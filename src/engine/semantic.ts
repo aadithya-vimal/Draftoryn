@@ -98,7 +98,7 @@ function applyField(model: SemanticModel, field: FieldDef, value: unknown): void
       break;
     case "reporting": {
       const rep: SemanticReporting = model.reporting ?? { deliverables: [] };
-      if (key === "deliverables") rep.deliverables.push(...asList(value));
+      if (key === "deliverables" || !key) rep.deliverables.push(...asList(value));
       else if (key) (rep as unknown as Record<string, unknown>)[key] = asString(value) || undefined;
       model.reporting = rep;
       break;
@@ -136,9 +136,9 @@ export function buildSemanticModel(
     applyField(model, field, value);
   }
 
-  // Capture any unmapped source fields at top level for portability.
+  // Also capture all source values into model.extra so template engines can access everything directly
   for (const [k, v] of Object.entries(source)) {
-    if (!def.fields.some((f) => f.id === k) && v !== undefined && v !== null && v !== "") {
+    if (v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)) {
       model.extra[k] = v;
     }
   }

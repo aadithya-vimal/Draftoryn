@@ -101,4 +101,61 @@ describe("generation determinism & structure", () => {
     expect(updated?.id).toBe("methodology");
     void before;
   });
+
+  it("populates user-entered data into reporting, escalation, and schedule sections", () => {
+    const def = getDefinition("pentest_agreement")!;
+    const src = {
+      clientName: "Alpha Bank",
+      clientContactName: "Alice Smith",
+      clientContactEmail: "alice@alphabank.com",
+      providerName: "CyberShield Security",
+      providerContactName: "Bob Assessor",
+      providerContactEmail: "bob@cybershield.io",
+      startDate: "2026-09-01",
+      endDate: "2026-09-15",
+      windows: ["00:00 - 06:00 UTC Maintenance Window"],
+      deliverables: [
+        "Executive PDF Briefing",
+        "Technical Vulnerability Catalog",
+      ],
+      reportAudience: "Alpha Bank Board and CISO",
+      evidence: [
+        "Encrypted Burp Suite Logs",
+        "Sanitized Exploit Screenshots",
+      ],
+    };
+
+    const gen = generateDocument(def, src);
+
+    // Reporting & Deliverables
+    const reportingSec = gen.sections.find((s) => s.kind === "reporting")!;
+    expect(reportingSec).toBeDefined();
+    const repText = reportingSec.blocks.flatMap((b) => [b.text ?? "", ...(b.table?.rows.flat() ?? [])]).join(" ");
+    expect(repText).toContain("Executive PDF Briefing");
+    expect(repText).toContain("Technical Vulnerability Catalog");
+    expect(repText).toContain("Alpha Bank Board and CISO");
+
+    // Incident / Emergency Escalation
+    const escalationSec = gen.sections.find((s) => s.kind === "escalation")!;
+    expect(escalationSec).toBeDefined();
+    const escText = escalationSec.blocks.flatMap((b) => [b.text ?? "", ...(b.table?.rows.flat() ?? [])]).join(" ");
+    expect(escText).toContain("Alice Smith");
+    expect(escText).toContain("alice@alphabank.com");
+    expect(escText).toContain("Bob Assessor");
+
+    // Schedule & Term
+    const scheduleSec = gen.sections.find((s) => s.kind === "schedule")!;
+    expect(scheduleSec).toBeDefined();
+    const schedText = scheduleSec.blocks.flatMap((b) => [b.text ?? "", ...(b.table?.rows.flat() ?? [])]).join(" ");
+    expect(schedText).toContain("2026-09-01");
+    expect(schedText).toContain("2026-09-15");
+    expect(schedText).toContain("00:00 - 06:00 UTC Maintenance Window");
+
+    // Evidence
+    const evidenceSec = gen.sections.find((s) => s.kind === "evidence")!;
+    expect(evidenceSec).toBeDefined();
+    const evText = evidenceSec.blocks.flatMap((b) => [b.text ?? "", ...(b.table?.rows.flat() ?? [])]).join(" ");
+    expect(evText).toContain("Encrypted Burp Suite Logs");
+    expect(evText).toContain("Sanitized Exploit Screenshots");
+  });
 });

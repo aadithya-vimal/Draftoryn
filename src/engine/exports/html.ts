@@ -37,20 +37,23 @@ function sectionToHtml(s: Section): string {
 
 const CSS = `
 :root { --ink:#1A1A1A; --muted:#6B6B6B; --line:#E8E4DF; --accent:#B8860B; --surface:#FAFAF8; }
-body { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); max-width: 820px; margin: 48px auto; padding: 0 24px 80px; line-height: 1.6; }
-h1 { font-size: 30px; font-family: Georgia, serif; border-bottom: 3px solid var(--accent); padding-bottom: 10px; }
-h2 { font-size: 21px; margin-top: 34px; color: var(--ink); font-family: Georgia, serif; }
-table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; font-size: 14px; }
-th { background: #F5F3F0; }
-p { font-size: 15px; }
-.callout { border-left: 4px solid var(--accent); background: #FBF7EE; padding: 10px 14px; margin: 12px 0; border-radius: 6px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; }
+body { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); max-width: 840px; margin: 48px auto; padding: 0 28px 80px; line-height: 1.65; }
+h1 { font-size: 28px; font-family: Georgia, serif; border-bottom: 2.5px solid var(--accent); padding-bottom: 12px; margin-bottom: 16px; }
+h2 { font-size: 20px; margin-top: 36px; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid var(--line); color: var(--ink); font-family: Georgia, serif; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0 20px; }
+th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; font-size: 13.5px; }
+th { background: #F5F3F0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
+p { font-size: 14.5px; margin: 8px 0 12px; }
+ul { margin: 8px 0 16px 24px; padding: 0; }
+li { margin-bottom: 6px; font-size: 14.5px; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
+.callout { border-left: 4px solid var(--accent); background: #FBF7EE; padding: 12px 16px; margin: 16px 0; border-radius: 6px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 13.5px; line-height: 1.5; }
 .callout-missing { border-color: #9B2C2C; background: #FBF1F1; }
 .callout-warning { border-color: #A9791B; background: #FBF6EC; }
 .callout-assumption { border-color: #7c3aed; background: #F5F3FF; }
 .callout-info { border-color: var(--accent); }
-.doc-section { margin-bottom: 8px; }
-.meta { color: var(--muted); font-size: 13px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+.doc-section { margin-bottom: 24px; }
+.meta { color: var(--muted); font-size: 13px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin-bottom: 20px; }
 .watermark { position: fixed; right: 16px; bottom: 12px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--accent); opacity: 0.5; text-transform: uppercase; }
 .draftoryn-footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
 `;

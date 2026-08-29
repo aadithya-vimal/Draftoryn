@@ -329,33 +329,49 @@ function generateBlocks(ctx: Ctx, s: SectionDef): ContentBlock[] {
         ),
       ];
 
-    case "schedule": {
+    case "schedule":
+    case "schedule_term":
+    case "window": {
       const sched = model.schedule;
-      const blocks: ContentBlock[] = [];
-      blocks.push(
+      const start = sched?.start ?? single(model, "startDate") ?? formatCatalogDate(new Date());
+      const end = sched?.end ?? single(model, "endDate") ?? formatCatalogDate(new Date(Date.now() + 14 * 86400000));
+      const windows = sched?.windows?.length ? sched.windows.join(", ") : single(model, "windows") ?? "09:00 - 18:00 Local / Standard Maintenance Window";
+
+      return [
+        paragraph(
+          `The authorized operational schedule for ${def.name.toLowerCase()} activities is established as follows:`,
+        ),
         table(
-          ["Phase / Activity", "Start Date", "End Date", "Authorized Hours", "Coordination Contact"],
+          ["Phase / Activity", "Start Date", "End Date", "Authorized Hours / Window", "Coordination Contact"],
           [
-            ["Phase 1: Reconnaissance & Planning", ph(sched?.start, "[START DATE]"), "[DATE]", "09:00 - 18:00 Local", provider],
-            ["Phase 2: Active Testing & Validation", "[DATE]", "[DATE]", ph(sched?.windows?.[0], "Standard Maintenance Window"), provider],
-            ["Phase 3: Reporting & Debrief", "[DATE]", ph(sched?.end, "[END DATE]"), "Business Hours", client],
+            ["Phase 1: Reconnaissance & Surface Discovery", start, start, "09:00 - 18:00 Local", provider],
+            ["Phase 2: Active Testing & Exploit Verification", start, end, windows, provider],
+            ["Phase 3: Remediation Reporting & Debrief", end, end, "Business Hours", client],
           ],
         ),
-      );
-      return blocks;
+        paragraph(
+          `Execution Window: Testing activities are strictly constrained between ${start} and ${end} during authorized windows (${windows}). Any testing outside these parameters requires explicit advance written re-authorization from ${client}.`,
+        ),
+      ];
     }
 
     case "testing_boundaries":
-    case "constraints": {
-      const blocks: ContentBlock[] = [];
-      const constraints = model.constraints.length ? model.constraints : [
-        "No distributed denial-of-service (DDoS) testing or volumetric bandwidth flooding.",
-        "No alteration, destruction, or exfiltration of sensitive customer production data.",
-        "No social engineering, phishing, or physical attacks against client personnel without explicit prior authorization.",
-        "Immediate emergency halt if any production service instability or data corruption is detected.",
+    case "constraints":
+    case "restrictions": {
+      const constraints = model.constraints.length
+        ? model.constraints
+        : extra(model, "constraints").length
+        ? extra(model, "constraints")
+        : [
+            "No distributed denial-of-service (DDoS) testing or volumetric bandwidth flooding against production endpoints.",
+            "No alteration, corruption, destruction, or unauthorized exfiltration of production customer records.",
+            "No social engineering, phishing, or physical attacks against client staff without explicit advance written authorization.",
+            "Immediate emergency halt if any production service instability, latency spike, or data inconsistency is observed.",
+          ];
+      return [
+        paragraph("The following operational constraints and safety boundaries are strictly binding upon all testing personnel:"),
+        list(constraints),
       ];
-      blocks.push(list(constraints));
-      return blocks;
     }
 
     case "emergency_stop":
@@ -375,7 +391,35 @@ function generateBlocks(ctx: Ctx, s: SectionDef): ContentBlock[] {
         ),
       ];
 
-    case "contact_matrix": {
+    case "escalation":
+    case "emergency_escalation": {
+      const clientContact = model.client?.contactName ?? "[CLIENT CONTACT]";
+      const clientEmail = model.client?.contactEmail ?? "[CLIENT EMAIL]";
+      const providerLead = model.provider?.contactName ?? "[ASSESSOR LEAD]";
+      const providerEmail = model.provider?.contactEmail ?? "[ASSESSOR EMAIL]";
+
+      return [
+        callout(
+          "EMERGENCY ESCALATION & INCIDENT PROTOCOL: In the event of system instability, unexpected downtime, or discovery of critical zero-day vulnerabilities (e.g. unauthenticated remote code execution or data exfiltration), testing must immediately pause and trigger the following notification chain.",
+          "warning",
+          "Escalation Chain",
+        ),
+        table(
+          ["Escalation Tier", "Trigger Condition", "Primary Contact", "Notification SLA", "Authorized Action"],
+          [
+            ["Tier 1: Critical Discovery", "Critical vulnerability or uncoordinated active adversary detected", `${clientContact} (${client})`, "Immediate (< 1 Hour)", "Pause exploit; deliver encrypted off-band notification"],
+            ["Tier 2: System Degradation", "Target service latency spike or unexpected error responses", "Client NOC / Operations Lead", "Immediate (< 15 Minutes)", "Halt automated traffic; restore baseline state"],
+            ["Tier 3: Daily Coordination", "Scope progression, credential issues, or testing updates", `${providerLead} (${provider})`, "Daily EOD", "Deliver progress status and test window debrief"],
+          ],
+        ),
+        paragraph(
+          `Emergency Points of Contact: Client Lead: ${clientContact} (${clientEmail}) · Testing Lead: ${providerLead} (${providerEmail}). All emergency communications must be conducted via verified secure voice hotline or encrypted messaging.`,
+        ),
+      ];
+    }
+
+    case "contact_matrix":
+    case "contacts": {
       const blocks: ContentBlock[] = [];
       blocks.push(
         table(
@@ -389,6 +433,59 @@ function generateBlocks(ctx: Ctx, s: SectionDef): ContentBlock[] {
         ),
       );
       return blocks;
+    }
+
+    case "communications": {
+      return [
+        paragraph(
+          `Operational communications between ${client} and ${provider} shall proceed through the following verified escalation and reporting channels:`,
+        ),
+        table(
+          ["Role", "Organization", "Name", "Primary Contact", "Communication Purpose"],
+          [
+            ["Engagement Sponsor", client, ph(model.client?.contactName, "[CLIENT SPONSOR]"), ph(model.client?.contactEmail, "[CLIENT EMAIL]"), "Executive approvals, contract matters, final report delivery"],
+            ["Testing Lead", provider, ph(model.provider?.contactName, "[ASSESSOR LEAD]"), ph(model.provider?.contactEmail, "[ASSESSOR EMAIL]"), "Day-to-day testing operations, daily status updates, debriefs"],
+            ["Emergency Contact", client, ph(model.client?.contactName, "SOC / Incident Lead"), ph(model.client?.contactEmail, "24/7 Hotline / Encrypted Channel"), "Immediate escalation, critical vulnerabilities, emergency halt"],
+          ],
+        ),
+      ];
+    }
+
+    case "reporting":
+    case "deliverables": {
+      const rep = model.reporting;
+      const deliverablesList = rep?.deliverables?.length
+        ? rep.deliverables
+        : extra(model, "deliverables").length
+        ? extra(model, "deliverables")
+        : extra(model, "reporting").length
+        ? extra(model, "reporting")
+        : [
+            "Executive Summary Assessment Briefing (PDF)",
+            "Comprehensive Technical Findings & Vulnerability Report (PDF / DOCX)",
+            "Raw Exploit Proof-of-Concepts & Reproduction Playbooks (Encrypted Archive)",
+            "Remediation Guidance & Re-test Verification Workbook (Excel / CSV)",
+          ];
+
+      const audience = rep?.audience ?? single(model, "reportAudience") ?? `${client} Security Leadership, Engineering, & Executive Stakeholders`;
+
+      return [
+        paragraph(
+          `The following formal deliverables and technical reports shall be produced by ${provider} and delivered to ${audience}:`,
+        ),
+        table(
+          ["Deliverable Item", "Format / Channel", "Target Audience", "Delivery Timeline"],
+          deliverablesList.map((item, idx) => [
+            item,
+            idx === 0 ? "Executive Presentation / PDF" : idx === 1 ? "Encrypted Technical PDF" : "Secure Archive (PGP / Vault)",
+            audience,
+            idx === 0 ? "At Engagement Debrief" : "Within 5 Business Days of Testing Close",
+          ]),
+        ),
+        paragraph(
+          "Delivery & Confidentiality Requirements: All reports containing discovered vulnerabilities are classified strictly as CONFIDENTIAL. Deliverables will be transmitted exclusively via encrypted channels (TLS 1.3 SFTP, PGP-encrypted email, or secure customer portal) and protected with strong multi-factor authentication.",
+        ),
+      ];
     }
 
     case "soc_coordination":
@@ -427,17 +524,36 @@ function generateBlocks(ctx: Ctx, s: SectionDef): ContentBlock[] {
       ];
 
     case "evidence":
-    case "evidence_types":
+    case "evidence_types": {
+      const evidenceList = model.evidence.length
+        ? model.evidence
+        : extra(model, "evidence").length
+        ? extra(model, "evidence")
+        : [
+            "Burp Suite / Proxy HTTP Request & Response Transcripts",
+            "Sanitized Screen Captures with System Timestamps & Exploit Steps",
+            "Command Execution Session Logs (Terminal / Script Outputs)",
+            "Database Query Logs & Vulnerability Proof-of-Concept Payloads",
+          ];
+
       return [
+        paragraph(
+          `All testing evidence collected during ${def.name.toLowerCase()} must be captured, cataloged, and protected in accordance with cryptographic integrity standards:`,
+        ),
         table(
-          ["Evidence ID", "Artifact Category", "Format / Description", "Integrity Hash (SHA-256)", "Storage Tier"],
-          [
-            ["EVD-01", "HTTP Request / Response Logs", "Burp Suite XML export / Raw HTTP traffic", "[SHA-256 HASH]", "Encrypted Case Archive"],
-            ["EVD-02", "Proof-of-Concept Screenshots", "Sanitized PNG captures showing exploit execution", "[SHA-256 HASH]", "Encrypted Case Archive"],
-            ["EVD-03", "Command Execution Logs", "Terminal session transcript with timestamps", "[SHA-256 HASH]", "Encrypted Case Archive"],
-          ],
+          ["Evidence Artifact / Category", "Collection Format", "Storage & Integrity Standard", "Retention SLA"],
+          evidenceList.map((item, idx) => [
+            `EVD-0${idx + 1}: ${item}`,
+            "Raw Log / PNG Capture / PGP Archive",
+            "AES-256 Encrypted Volume + SHA-256 Hash",
+            "30 Days Post-Delivery / Secure Overwrite",
+          ]),
+        ),
+        paragraph(
+          "Evidence Sanitization: Testing personnel must redact all customer proprietary records, PII, and non-essential credentials from final report artifacts prior to transmission.",
         ),
       ];
+    }
 
     case "chain_of_custody":
       return [
@@ -731,16 +847,36 @@ function generateBlocks(ctx: Ctx, s: SectionDef): ContentBlock[] {
       ];
 
     case "assumptions":
+    case "limitations_assumptions": {
+      const items = model.assumptions.length
+        ? model.assumptions
+        : extra(model, "assumptions").length
+        ? extra(model, "assumptions")
+        : [
+            "All assessment activities are conducted exclusively against systems explicitly authorized in writing by the asset owner.",
+            "Assessments represent a point-in-time evaluation of security posture; continuous monitoring and defense-in-depth remain mandatory.",
+            "The client will provide necessary test accounts, network allow-listing, and coordination support in a timely manner.",
+            "No warranties are expressed or implied regarding undiscovered vulnerabilities outside the authorized testing scope.",
+          ];
+      return [
+        paragraph("The findings and operational commitments in this document are predicated upon the following assumptions:"),
+        list(items),
+      ];
+    }
+
     default: {
-      if (model.assumptions && model.assumptions.length > 0) {
-        return [list(model.assumptions)];
+      const customValue = extra(model, s.kind).length
+        ? extra(model, s.kind)
+        : extra(model, s.id).length
+        ? extra(model, s.id)
+        : [];
+      if (customValue.length > 0) {
+        return [list(customValue)];
       }
       return [
-        list([
-          "All testing was conducted against systems explicitly authorized in writing by the asset owner.",
-          "Assessments represent a point-in-time evaluation of security posture; continuous monitoring remains mandatory.",
-          "No warranties are expressed or implied regarding undiscovered vulnerabilities outside the authorized testing scope.",
-        ]),
+        paragraph(
+          `This section outlines the operational standards, technical specifications, and parameters for ${s.title.toLowerCase()} as agreed between ${client} and ${provider}.`,
+        ),
       ];
     }
   }

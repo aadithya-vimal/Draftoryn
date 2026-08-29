@@ -59,9 +59,9 @@ export async function toPdf(doc: GeneratedDocument): Promise<Uint8Array> {
     const indent = opts.indent ?? 0;
     const lines = wrap(s, f, size, PAGE.w - MARGIN * 2 - indent);
     for (const ln of lines) {
-      ensure(size + 4);
+      ensure(size + 6);
       page.drawText(ln, { x: MARGIN + indent, y, size, font: f, color });
-      y -= size + 4;
+      y -= size + 5;
     }
     y -= opts.gap ?? 0;
   };
@@ -75,38 +75,41 @@ export async function toPdf(doc: GeneratedDocument): Promise<Uint8Array> {
   if (meta) text(meta, { size: 8.5, font: sansFont, color: MUTED, gap: 8 });
 
   // Header separator line
-  page.drawLine({ start: { x: MARGIN, y: y + 2 }, end: { x: PAGE.w - MARGIN, y: y + 2 }, thickness: 1.5, color: ACCENT });
-  y -= 14;
+  y -= 2;
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE.w - MARGIN, y }, thickness: 1.5, color: ACCENT });
+  y -= 16;
 
   const drawBlock = (b: ContentBlock) => {
     switch (b.type) {
       case "heading": {
         const size = b.level === 1 ? 14 : b.level === 3 ? 11 : 12;
-        text(b.text ?? "", { size, font: bold, gap: 4 });
+        y -= 4;
+        text(b.text ?? "", { size, font: bold, gap: 6 });
         break;
       }
       case "paragraph":
-        text(b.text ?? "", { gap: 4 });
+        text(b.text ?? "", { gap: 6 });
         break;
       case "list":
         for (const it of b.items ?? []) {
-          text(`•  ${it}`, { indent: 14, gap: 2 });
+          text(`•  ${it}`, { indent: 14, gap: 3 });
         }
-        y -= 4;
+        y -= 6;
         break;
       case "callout": {
         const color = b.tone === "missing" ? MISSING : b.tone === "warning" ? WARN : b.tone === "assumption" ? ASSUMPTION : ACCENT;
         const label = (b.tone ?? "info").toUpperCase();
         const inner = PAGE.w - MARGIN * 2 - 16;
         const lines = wrap(`${label}: ${b.text ?? ""}`, sansFont, 9.5, inner);
-        const boxH = lines.length * 14 + 10;
-        ensure(boxH);
-        page.drawRectangle({ x: MARGIN, y: y - boxH + 10, width: PAGE.w - MARGIN * 2, height: boxH, color: CALLOUT_BG, borderColor: color, borderWidth: 1 });
-        page.drawText(label, { x: MARGIN + 8, y: y - 2, size: 9.5, font: sansBold, color });
+        const boxH = lines.length * 14 + 12;
+        ensure(boxH + 10);
+        y -= 4;
+        page.drawRectangle({ x: MARGIN, y: y - boxH + 8, width: PAGE.w - MARGIN * 2, height: boxH, color: CALLOUT_BG, borderColor: color, borderWidth: 1 });
+        page.drawText(label, { x: MARGIN + 8, y: y - 4, size: 9.5, font: sansBold, color });
         lines.slice(1).forEach((ln, i) => {
-          page.drawText(ln, { x: MARGIN + 8, y: y - 16 - i * 14, size: 9.5, font: sansFont, color: INK });
+          page.drawText(ln, { x: MARGIN + 8, y: y - 18 - i * 14, size: 9.5, font: sansFont, color: INK });
         });
-        y -= boxH + 6;
+        y -= boxH + 10;
         break;
       }
       case "table": {
@@ -115,41 +118,45 @@ export async function toPdf(doc: GeneratedDocument): Promise<Uint8Array> {
         const cols = t.headers.length || 1;
         const colW = (PAGE.w - MARGIN * 2) / cols;
         const rows = [t.headers, ...t.rows];
+        y -= 4;
         for (const r of rows) {
-          const cellLines = r.map((c) => wrap(String(c ?? ""), sansFont, 9, colW - 10));
-          const rowH = Math.max(...cellLines.map((l) => l.length)) * 12 + 8;
+          const cellLines = r.map((c) => wrap(String(c ?? ""), sansFont, 9, colW - 12));
+          const rowH = Math.max(...cellLines.map((l) => l.length)) * 12 + 10;
           ensure(rowH);
           let x = MARGIN;
           const isHeader = r === t.headers;
           r.forEach((c, ci) => {
             if (isHeader) page.drawRectangle({ x, y: y - rowH + 6, width: colW, height: rowH, color: HEADER_BG });
-            const lines = wrap(String(c ?? ""), sansFont, 9, colW - 10);
+            const lines = wrap(String(c ?? ""), sansFont, 9, colW - 12);
             lines.forEach((ln, li) => {
-              page.drawText(ln, { x: x + 5, y: y - 12 - li * 12, size: 9, font: isHeader ? sansBold : sansFont, color: INK });
+              page.drawText(ln, { x: x + 6, y: y - 14 - li * 12, size: 9, font: isHeader ? sansBold : sansFont, color: INK });
             });
             page.drawRectangle({ x, y: y - rowH + 6, width: colW, height: rowH, borderColor: LINE, borderWidth: 0.5 });
             x += colW;
           });
           y -= rowH;
         }
-        y -= 6;
+        y -= 10;
         break;
       }
       case "divider":
-        ensure(4);
-        page.drawLine({ start: { x: MARGIN, y: y + 4 }, end: { x: PAGE.w - MARGIN, y: y + 4 }, thickness: 0.5, color: LINE });
+        ensure(24);
         y -= 10;
+        page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE.w - MARGIN, y }, thickness: 0.5, color: LINE });
+        y -= 14;
         break;
     }
   };
 
   const sectionToPdf = (s: Section) => {
-    ensure(24);
-    text(s.title, { size: 13, font: bold, gap: 4 });
-    page.drawLine({ start: { x: MARGIN, y: y + 2 }, end: { x: PAGE.w - MARGIN, y: y + 2 }, thickness: 0.5, color: LINE });
-    y -= 6;
+    ensure(40);
+    y -= 12;
+    text(s.title, { size: 13.5, font: bold, gap: 4 });
+    y -= 2;
+    page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE.w - MARGIN, y }, thickness: 0.75, color: LINE });
+    y -= 12;
     for (const b of s.blocks) drawBlock(b);
-    y -= 8;
+    y -= 10;
   };
 
   for (const s of doc.sections.filter((x) => !x.hidden)) sectionToPdf(s);

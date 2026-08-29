@@ -1067,7 +1067,7 @@ const styles = StyleSheet.create({
   docMeta: { flexDirection: "row", gap: 8, marginBottom: 18 },
   canvasSection: { marginTop: 22, padding: 12, borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "transparent" },
   canvasSectionSelected: { borderColor: theme.accent, backgroundColor: "#FAF7F2" },
-  canvasSectionHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8, borderBottomWidth: 1, borderColor: theme.border, paddingBottom: 6 },
+  canvasSectionHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, borderBottomWidth: 1, borderColor: theme.border, paddingBottom: 8 },
   canvasSectionTitle: { flex: 1, color: theme.text, fontSize: 20, fontFamily: theme.font.serifSemi },
   docHeading: { color: theme.text, fontFamily: theme.font.serifSemi, marginBottom: 8, marginTop: 10 },
   docHeading1: { fontSize: 22 },
@@ -1083,7 +1083,7 @@ const styles = StyleSheet.create({
   docTableCell: { flex: 1, minWidth: 100, padding: 8, fontSize: 13, fontFamily: theme.font.sans, color: theme.text, borderRightWidth: 1, borderColor: theme.border },
   docTableCellHead: { flex: 1, minWidth: 100, padding: 8, fontSize: 12, fontFamily: theme.font.sansSemi, color: theme.text, borderRightWidth: 1, borderColor: theme.border, textTransform: "uppercase", letterSpacing: 1 },
   docCallout: { borderLeftWidth: 3, borderRadius: theme.radiusSm, backgroundColor: theme.surface2, padding: 12, marginBottom: 12 },
-  docDivider: { height: 1, backgroundColor: theme.border, marginVertical: 12 },
+  docDivider: { height: 1, backgroundColor: theme.border, marginVertical: 18 },
 
   navHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 8 },
   navHeaderTitle: { fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: theme.accent },
