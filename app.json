@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Draftoryn",
+    "slug": "draftoryn",
+    "scheme": "draftoryn",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.draftoryn.app"
+    },
+    "android": {
+      "package": "com.draftoryn.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B1220"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:8081"
+    }
+  }
+}
