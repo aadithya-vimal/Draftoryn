@@ -283,10 +283,36 @@ export function EmptyState({ title, subtitle, action }: { title: string; subtitl
   );
 }
 
-export function Spinner() {
+export function Spinner({
+  size = "small",
+  color = theme.accent,
+  style,
+}: {
+  size?: "small" | "large" | number;
+  color?: string;
+  style?: ViewStyle;
+}) {
   return (
-    <View style={styles.spinner}>
-      <ActivityIndicator color={theme.accent} />
+    <View style={[styles.spinner, style]}>
+      <ActivityIndicator size={size as "small" | "large"} color={color} />
+    </View>
+  );
+}
+
+export function LoadingOverlay({
+  message = "Loading…",
+  subMessage,
+}: {
+  message?: string;
+  subMessage?: string;
+}) {
+  return (
+    <View style={styles.loadingOverlay}>
+      <View style={styles.loadingCard}>
+        <ActivityIndicator size="large" color={theme.accent} style={{ marginBottom: 14 }} />
+        <Text style={styles.loadingMsg}>{message}</Text>
+        {subMessage ? <Text style={styles.loadingSubMsg}>{subMessage}</Text> : null}
+      </View>
     </View>
   );
 }
@@ -373,6 +399,44 @@ const styles = StyleSheet.create({
   emptyTitle: { color: theme.text, marginBottom: 8 },
   emptySub: { fontFamily: theme.font.sans, fontSize: 14, color: theme.muted, textAlign: "center" },
   emptyActions: { marginTop: 20 },
-  spinner: { padding: 24, alignItems: "center" },
+  spinner: { padding: 12, alignItems: "center", justifyContent: "center" },
   error: { fontFamily: theme.font.sans, fontSize: 13, color: theme.danger, marginTop: 6 },
+  loadingOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: "rgba(247, 245, 240, 0.82)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999,
+    padding: 24,
+  },
+  loadingCard: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: theme.radius,
+    padding: 28,
+    alignItems: "center",
+    maxWidth: 360,
+    width: "100%",
+    ...theme.shadowMd,
+  },
+  loadingMsg: {
+    fontFamily: theme.font.serifSemi,
+    fontSize: 18,
+    color: theme.text,
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  loadingSubMsg: {
+    fontFamily: theme.font.sans,
+    fontSize: 13,
+    color: theme.muted,
+    textAlign: "center",
+    lineHeight: 18,
+    marginTop: 4,
+  },
 });

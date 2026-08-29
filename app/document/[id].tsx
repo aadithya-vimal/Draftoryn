@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -40,6 +41,7 @@ import {
   Card,
   ErrorText,
   Heading,
+  LoadingOverlay,
   Screen,
   SectionLabel,
   Spinner,
@@ -141,6 +143,8 @@ export default function DocumentEditor() {
   const [selectedId, setSelectedId] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [busy, setBusy] = useState(false);
+  const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
+  const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
   const [showSource, setShowSource] = useState(false);
   const [exportErr, setExportErr] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
@@ -149,12 +153,19 @@ export default function DocumentEditor() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [mobileSectionsOpen, setMobileSectionsOpen] = useState(false);
 
-  const loaded = useRef(false);
+  const loadedDocIdRef = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionsRef = useRef<Section[]>(sections);
+  const titleRef = useRef<string>(title);
   const sourceRef = useRef<Record<string, unknown>>(source);
+  const modelRef = useRef<SemanticModel | null>(model);
+  const recordRef = useRef<DocumentRecord | null>(record);
+
   sectionsRef.current = sections;
+  titleRef.current = title;
   sourceRef.current = source;
+  modelRef.current = model;
+  recordRef.current = record;
 
   const { width } = useWindowDimensions();
   const isDesktop = width >= 992;
@@ -162,61 +173,99 @@ export default function DocumentEditor() {
   // ---- Load --------------------------------------------------------------
   useEffect(() => {
     if (!user.isLoaded || !user.isSignedIn || !user.userId || !id) return;
+    if (loadedDocIdRef.current === id) return; // Prevent overwriting live user edits!
+
+    let active = true;
     getDocument(user, id).then((rec) => {
+      if (!active) return;
       if (!rec) {
         setRecord(null);
-        loaded.current = true;
+        loadedDocIdRef.current = id;
         return;
       }
       setRecord(rec);
+      recordRef.current = rec;
       const last = rec.versions[rec.versions.length - 1];
       if (last) {
         setSections(last.sections);
         setTitle(last.title);
-        setSource(rec.source);
-        setModel(last.model);
+        setSource(rec.source ?? {});
+        setModel(last.model ?? null);
         setSelectedId(last.sections[0]?.id ?? "");
       }
-      loaded.current = true;
+      loadedDocIdRef.current = id;
     });
-  }, [user, id]);
+
+    return () => {
+      active = false;
+    };
+  }, [user.isLoaded, user.isSignedIn, user.userId, id]);
 
   // ---- Autosave (debounced) ---------------------------------------------
-  const persist = useCallback(() => {
-    if (!record || !user.userId || !model) return;
-    const updated: DocumentRecord = {
-      ...record,
-      title,
-      updatedAt: new Date().toISOString(),
-      versions: record.versions.map((v, i) =>
-        i === record.versions.length - 1
-          ? { ...v, title, sections, model, source }
-          : v,
-      ),
-    };
+  const triggerAutosave = useCallback(() => {
+    if (loadedDocIdRef.current !== id) return;
+    if (timer.current) clearTimeout(timer.current);
     setSaveState("saving");
-    saveDocumentRecord(user, updated)
-      .then((saved) => {
+    timer.current = setTimeout(async () => {
+      const rec = recordRef.current;
+      if (!rec || !user.userId) return;
+      const updated: DocumentRecord = {
+        ...rec,
+        title: titleRef.current,
+        updatedAt: new Date().toISOString(),
+        source: sourceRef.current,
+        versions: rec.versions.map((v, i) =>
+          i === rec.versions.length - 1
+            ? {
+                ...v,
+                title: titleRef.current,
+                sections: sectionsRef.current,
+                model: modelRef.current ?? v.model,
+                source: sourceRef.current,
+              }
+            : v,
+        ),
+      };
+      try {
+        const saved = await saveDocumentRecord(user, updated);
+        recordRef.current = saved;
         setRecord(saved);
         setSaveState("saved");
-      })
-      .catch(() => setSaveState("error"));
-  }, [record, user, title, sections, model, source]);
+      } catch {
+        setSaveState("error");
+      }
+    }, 600);
+  }, [user, id]);
 
-  useEffect(() => {
-    if (!loaded.current) return;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(persist, 800);
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, [persist]);
+  const updateSections = useCallback((updater: (prev: Section[]) => Section[]) => {
+    setSections((prev) => {
+      const next = updater(prev);
+      sectionsRef.current = next;
+      triggerAutosave();
+      return next;
+    });
+  }, [triggerAutosave]);
+
+  const updateTitle = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    titleRef.current = newTitle;
+    triggerAutosave();
+  }, [triggerAutosave]);
+
+  const updateSource = useCallback((fid: string, v: unknown) => {
+    setSource((prev) => {
+      const next = { ...prev, [fid]: v };
+      sourceRef.current = next;
+      triggerAutosave();
+      return next;
+    });
+  }, [triggerAutosave]);
 
   // ---- Generation --------------------------------------------------------
   const regenerateSection = useCallback(
     async (sid: string) => {
       if (!def || !user.getToken) return;
-      setBusy(true);
+      setRegeneratingSectionId(sid);
       try {
         const gen = await generateDocumentClient(def.id, sourceRef.current, {
           sectionId: sid,
@@ -224,20 +273,21 @@ export default function DocumentEditor() {
         });
         const found = gen.sections.find((s) => s.id === sid);
         if (found) {
-          setSections((prev) =>
+          updateSections((prev) =>
             prev.map((s) =>
               s.id === sid ? { ...found, hidden: s.hidden } : s,
             ),
           );
         }
         setModel(gen.model);
+        modelRef.current = gen.model;
       } catch (e) {
         setExportErr(e instanceof Error ? e.message : "Regeneration failed.");
       } finally {
-        setBusy(false);
+        setRegeneratingSectionId(null);
       }
     },
-    [def, user],
+    [def, user, updateSections],
   );
 
   const regenerateAll = useCallback(
@@ -249,21 +299,22 @@ export default function DocumentEditor() {
         const gen = await generateDocumentClient(def.id, useSrc, {
           getToken: user.getToken,
         });
-        setSections(
+        updateSections(() =>
           gen.sections.map((rs) => {
             const ex = sectionsRef.current.find((s) => s.id === rs.id);
             return ex && ex.hidden ? { ...rs, hidden: true } : rs;
           }),
         );
-        setTitle(gen.title);
+        updateTitle(gen.title);
         setModel(gen.model);
+        modelRef.current = gen.model;
       } catch (e) {
         setExportErr(e instanceof Error ? e.message : "Regeneration failed.");
       } finally {
         setBusy(false);
       }
     },
-    [def, user],
+    [def, user, updateSections, updateTitle],
   );
 
   const saveVersion = useCallback(() => {
@@ -284,37 +335,46 @@ export default function DocumentEditor() {
       updatedAt: new Date().toISOString(),
     };
     setRecord(updated);
+    recordRef.current = updated;
     setVersionsOpen(false);
     if (user.userId) void saveDocumentRecord(user, updated);
   }, [record, model, title, source, sections, user]);
 
   const restoreVersion = useCallback((v: DocumentVersion) => {
     setTitle(v.title);
+    titleRef.current = v.title;
     setSource(v.source);
+    sourceRef.current = v.source;
     setModel(v.model);
+    modelRef.current = v.model;
     setSections(v.sections);
+    sectionsRef.current = v.sections;
     setVersionsOpen(false);
-  }, []);
+    triggerAutosave();
+  }, [triggerAutosave]);
 
   const doExport = useCallback(
     async (format: ExportFormat) => {
       if (!def || !model) return;
       const gen: GeneratedDocument = {
         definitionId: def.id,
-        title,
-        metadata: record ? { id: record.id, title: record.title } : {},
-        model,
-        sections,
+        title: titleRef.current,
+        metadata: recordRef.current ? { id: recordRef.current.id, title: recordRef.current.title } : {},
+        model: modelRef.current ?? model,
+        sections: sectionsRef.current,
       };
+      setExportingFormat(format);
+      setExportErr("");
       try {
         await exportAndSave(gen, format);
         setExportOpen(false);
-        setExportErr("");
       } catch (e) {
         setExportErr(e instanceof Error ? e.message : "Export failed.");
+      } finally {
+        setExportingFormat(null);
       }
     },
-    [def, model, title, record, sections],
+    [def, model],
   );
 
   // ---- Derived -----------------------------------------------------------
@@ -331,7 +391,7 @@ export default function DocumentEditor() {
 
   // ---- Loading / not found states ---------------------------------------
   if (user.isLoaded && user.isSignedIn && id) {
-    if (loaded.current && !record) {
+    if (loadedDocIdRef.current === id && !record) {
       return (
         <Screen title="Document">
           <Card>
@@ -346,8 +406,8 @@ export default function DocumentEditor() {
     }
     if (!record) {
       return (
-        <Screen>
-          <Spinner />
+        <Screen title="Document">
+          <LoadingOverlay message="Loading document…" subMessage="Fetching document specifications and latest outline" />
         </Screen>
       );
     }
@@ -451,6 +511,8 @@ export default function DocumentEditor() {
 
   const renderSection = (s: Section) => {
     const isSelected = selected?.id === s.id;
+    const isRegeneratingThis = regeneratingSectionId === s.id;
+
     return (
       <TouchableOpacity
         key={s.id}
@@ -460,13 +522,26 @@ export default function DocumentEditor() {
       >
         <View style={styles.canvasSectionHead}>
           <Text style={[styles.canvasSectionTitle, isSelected && { color: theme.accent }]}>{s.title}</Text>
-          <SectionStatusBadge status={s.status} />
+          {isRegeneratingThis ? (
+            <View style={styles.regenInlineBadge}>
+              <ActivityIndicator size="small" color={theme.accent} />
+              <Text style={styles.regenInlineText}>Regenerating…</Text>
+            </View>
+          ) : (
+            <SectionStatusBadge status={s.status} />
+          )}
         </View>
-        {isSelected ? (
+
+        {isRegeneratingThis ? (
+          <View style={styles.sectionLoadingBox}>
+            <ActivityIndicator size="small" color={theme.accent} />
+            <Text style={styles.sectionLoadingText}>Synthesizing section content with AI…</Text>
+          </View>
+        ) : isSelected ? (
           <SectionEditor
             section={s}
             onChange={(blocks) =>
-              setSections((prev) =>
+              updateSections((prev) =>
                 prev.map((p) =>
                   p.id === s.id ? { ...p, blocks, status: "edited" } : p,
                 ),
@@ -476,7 +551,7 @@ export default function DocumentEditor() {
         ) : (
           <View>{s.blocks.map((b, i) => renderBlock(b, i, s.title))}</View>
         )}
-        {s.blocks.length === 0 && !isSelected ? (
+        {s.blocks.length === 0 && !isSelected && !isRegeneratingThis ? (
           <Text style={styles.muted}>No content yet. Click to edit.</Text>
         ) : null}
       </TouchableOpacity>
@@ -520,67 +595,67 @@ export default function DocumentEditor() {
           <ProgressBar value={visibleSecs > 0 ? readySecs / visibleSecs : 1} height={4} style={{ marginTop: 6 }} />
         </View>
         {sections.map((s) => {
-        const isCurrent = (selectedId === s.id) || (!selectedId && selected?.id === s.id);
-        return (
-          <View
-            key={s.id}
-            style={[
-              styles.navItem,
-              isCurrent && styles.navItemActive,
-              s.hidden && styles.navItemMuted,
-            ]}
-          >
-            <Pressable
-              style={({ pressed }) => [
-                styles.navItemMain,
-                { opacity: pressed ? 0.7 : 1 },
+          const isCurrent = (selectedId === s.id) || (!selectedId && selected?.id === s.id);
+          return (
+            <View
+              key={s.id}
+              style={[
+                styles.navItem,
+                isCurrent && styles.navItemActive,
+                s.hidden && styles.navItemMuted,
               ]}
-              onPress={() => {
-                setSelectedId(s.id);
-                onPick?.();
-              }}
             >
-              <Text
-                style={[
-                  styles.navItemTitle,
-                  isCurrent && styles.navItemTitleActive,
-                  s.hidden && styles.navItemHidden,
+              <Pressable
+                style={({ pressed }) => [
+                  styles.navItemMain,
+                  { opacity: pressed ? 0.7 : 1 },
                 ]}
-                numberOfLines={2}
+                onPress={() => {
+                  setSelectedId(s.id);
+                  onPick?.();
+                }}
               >
-                {s.title}
-              </Text>
-              <SectionStatusBadge status={s.status} />
-            </Pressable>
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation?.();
-                setSections((p) => {
-                  const next = s.hidden ? showSection(p, s.id) : hideSection(p, s.id);
-                  return next;
-                });
-              }}
-              style={({ pressed }) => [
-                styles.navToggle,
-                s.hidden && { backgroundColor: theme.surface2 },
-                { opacity: pressed ? 0.5 : 1 },
-              ]}
-              hitSlop={8}
-              accessibilityLabel={s.hidden ? `Show ${s.title}` : `Hide ${s.title}`}
-            >
-              <Icon
-                name={s.hidden ? "EyeOff" : "Eye"}
-                size={16}
-                color={s.hidden ? theme.muted : theme.accent}
-              />
-            </Pressable>
-          </View>
-        );
-      })}
-      {available.length > 0 ? (
-        <Button label="Add section" variant="ghost" onPress={() => setAddOpen(true)} style={styles.navAdd} />
-      ) : null}
-    </View>
+                <Text
+                  style={[
+                    styles.navItemTitle,
+                    isCurrent && styles.navItemTitleActive,
+                    s.hidden && styles.navItemHidden,
+                  ]}
+                  numberOfLines={2}
+                >
+                  {s.title}
+                </Text>
+                <SectionStatusBadge status={s.status} />
+              </Pressable>
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  updateSections((p) => {
+                    const next = s.hidden ? showSection(p, s.id) : hideSection(p, s.id);
+                    return next;
+                  });
+                }}
+                style={({ pressed }) => [
+                  styles.navToggle,
+                  s.hidden && { backgroundColor: theme.surface2 },
+                  { opacity: pressed ? 0.5 : 1 },
+                ]}
+                hitSlop={8}
+                accessibilityLabel={s.hidden ? `Show ${s.title}` : `Hide ${s.title}`}
+              >
+                <Icon
+                  name={s.hidden ? "EyeOff" : "Eye"}
+                  size={16}
+                  color={s.hidden ? theme.muted : theme.accent}
+                />
+              </Pressable>
+            </View>
+          );
+        })}
+        {available.length > 0 ? (
+          <Button label="Add section" variant="ghost" onPress={() => setAddOpen(true)} style={styles.navAdd} />
+        ) : null}
+      </View>
     );
   };
 
@@ -600,14 +675,14 @@ export default function DocumentEditor() {
         label="Regenerate section"
         variant="secondary"
         onPress={() => selected && regenerateSection(selected.id)}
-        disabled={busy || !selected}
+        disabled={busy || !selected || Boolean(regeneratingSectionId)}
         style={styles.ctxButton}
       />
       <Button
         label="Regenerate all"
         variant="secondary"
         onPress={() => regenerateAll()}
-        disabled={busy}
+        disabled={busy || Boolean(regeneratingSectionId)}
         style={styles.ctxButton}
       />
 
@@ -652,22 +727,36 @@ export default function DocumentEditor() {
         <TextInput
           style={styles.titleInput}
           value={title}
-          onChangeText={setTitle}
+          onChangeText={updateTitle}
           placeholderTextColor={theme.muted}
         />
       </View>
       {model ? <StatusBadge status="editing" /> : null}
-      <Text style={styles.saveStatus}>
-        {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : ""}
-      </Text>
+      <View style={styles.saveStatusContainer}>
+        {saveState === "saving" ? (
+          <View style={styles.saveProgressRow}>
+            <ActivityIndicator size="small" color={theme.accent} />
+            <Text style={styles.saveStatus}>Saving…</Text>
+          </View>
+        ) : (
+          <Text style={styles.saveStatus}>
+            {saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : ""}
+          </Text>
+        )}
+      </View>
       <View style={styles.topActions}>
         <Button
           label="Regenerate section"
           variant="secondary"
           onPress={() => selected && regenerateSection(selected.id)}
-          disabled={busy || !selected}
+          disabled={busy || !selected || Boolean(regeneratingSectionId)}
         />
-        <Button label="Regenerate all" variant="secondary" onPress={() => regenerateAll()} disabled={busy} />
+        <Button
+          label="Regenerate all"
+          variant="secondary"
+          onPress={() => regenerateAll()}
+          disabled={busy || Boolean(regeneratingSectionId)}
+        />
         <Button label="Save version" variant="secondary" onPress={saveVersion} />
         <Button label="Export" onPress={() => setExportOpen(true)} />
       </View>
@@ -683,7 +772,12 @@ export default function DocumentEditor() {
           <View style={styles.leftCol}>
             <Card style={styles.leftCard}>{renderNavigator()}</Card>
           </View>
-          <View style={styles.centerCol}>{renderCanvas()}</View>
+          <View style={styles.centerCol}>
+            {busy && !regeneratingSectionId ? (
+              <LoadingOverlay message="Regenerating document…" subMessage="Synthesizing all sections with latest model parameters" />
+            ) : null}
+            {renderCanvas()}
+          </View>
           <View style={styles.rightCol}>
             <Card style={styles.rightCard}>{renderContext()}</Card>
           </View>
@@ -697,7 +791,7 @@ export default function DocumentEditor() {
             <FieldRenderer
               fields={def?.fields ?? []}
               source={source}
-              onChange={(fid, v) => setSource((s) => ({ ...s, [fid]: v }))}
+              onChange={(fid, v) => updateSource(fid, v)}
             />
           </ScrollView>
           <View style={styles.sheetActions}>
@@ -720,7 +814,7 @@ export default function DocumentEditor() {
                 key={a.id}
                 style={styles.addItem}
                 onPress={() => {
-                  setSections((p) => addSection(p, a));
+                  updateSections((p) => addSection(p, a));
                   setAddOpen(false);
                 }}
               >
@@ -759,26 +853,34 @@ export default function DocumentEditor() {
         </Sheet>
 
         {/* Export dialog */}
-        <Dialog open={exportOpen} onClose={() => setExportOpen(false)} title="Export document">
+        <Dialog open={exportOpen} onClose={() => !exportingFormat && setExportOpen(false)} title="Export document">
           <View>
-            {EXPORT_GROUPS.map((g) => (
-              <View key={g.label} style={styles.exportGroup}>
-                <Text style={styles.exportGroupLabel}>{g.label}</Text>
-                {g.items.map((it) => (
-                  <TouchableOpacity
-                    key={it.format}
-                    style={styles.exportRow}
-                    onPress={() => doExport(it.format)}
-                  >
-                    <View style={styles.exportRowText}>
-                      <Text style={styles.exportRowTitle}>{it.title}</Text>
-                      <Text style={styles.muted}>{it.description}</Text>
-                    </View>
-                    <Icon name="Download" size={18} color={theme.accent} />
-                  </TouchableOpacity>
-                ))}
+            {exportingFormat ? (
+              <View style={styles.exportProgressBox}>
+                <ActivityIndicator size="large" color={theme.accent} style={{ marginBottom: 12 }} />
+                <Text style={styles.exportProgressTitle}>Generating {exportingFormat.toUpperCase()}…</Text>
+                <Text style={styles.exportProgressSub}>Formatting typography, layout rules, and domain blocks</Text>
               </View>
-            ))}
+            ) : (
+              EXPORT_GROUPS.map((g) => (
+                <View key={g.label} style={styles.exportGroup}>
+                  <Text style={styles.exportGroupLabel}>{g.label}</Text>
+                  {g.items.map((it) => (
+                    <TouchableOpacity
+                      key={it.format}
+                      style={styles.exportRow}
+                      onPress={() => doExport(it.format)}
+                    >
+                      <View style={styles.exportRowText}>
+                        <Text style={styles.exportRowTitle}>{it.title}</Text>
+                        <Text style={styles.muted}>{it.description}</Text>
+                      </View>
+                      <Icon name="Download" size={18} color={theme.accent} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))
+            )}
             {exportErr ? <ErrorText message={exportErr} /> : null}
           </View>
         </Dialog>
@@ -797,20 +899,32 @@ export default function DocumentEditor() {
         <TextInput
           style={styles.mobileTitle}
           value={title}
-          onChangeText={setTitle}
+          onChangeText={updateTitle}
           placeholderTextColor={theme.muted}
         />
         {model ? <StatusBadge status="editing" /> : null}
       </View>
-      <Text style={styles.saveStatusCenter}>
-        {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : ""}
-      </Text>
+      <View style={styles.saveStatusContainerMobile}>
+        {saveState === "saving" ? (
+          <View style={styles.saveProgressRow}>
+            <ActivityIndicator size="small" color={theme.accent} />
+            <Text style={styles.saveStatusCenter}>Saving…</Text>
+          </View>
+        ) : (
+          <Text style={styles.saveStatusCenter}>
+            {saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : ""}
+          </Text>
+        )}
+      </View>
       <View style={styles.mobileBar}>
         <Button label="Sections" variant="secondary" onPress={() => setMobileSectionsOpen(true)} />
         <Button label="Details" variant="secondary" onPress={() => setDetailsOpen(true)} />
         <Button label="Export" onPress={() => setExportOpen(true)} />
       </View>
 
+      {busy && !regeneratingSectionId ? (
+        <LoadingOverlay message="Regenerating document…" subMessage="Synthesizing all sections with latest model parameters" />
+      ) : null}
       {renderCanvas()}
 
       <View style={styles.mobileActions}>
@@ -818,7 +932,7 @@ export default function DocumentEditor() {
           label="Regenerate"
           variant="secondary"
           onPress={() => (selected ? regenerateSection(selected.id) : regenerateAll())}
-          disabled={busy}
+          disabled={busy || Boolean(regeneratingSectionId)}
           style={styles.mobileAction}
         />
         <Button
@@ -843,7 +957,7 @@ export default function DocumentEditor() {
                   key={a.id}
                   style={styles.addItem}
                   onPress={() => {
-                    setSections((p) => addSection(p, a));
+                    updateSections((p) => addSection(p, a));
                     setMobileSectionsOpen(false);
                   }}
                 >
@@ -890,7 +1004,7 @@ export default function DocumentEditor() {
             label="Regenerate all"
             variant="secondary"
             onPress={() => regenerateAll()}
-            disabled={busy}
+            disabled={busy || Boolean(regeneratingSectionId)}
             style={styles.ctxButton}
           />
           <Button
@@ -903,80 +1017,8 @@ export default function DocumentEditor() {
             style={styles.ctxButton}
           />
         </View>
+        <Button label="Close" variant="ghost" onPress={() => setDetailsOpen(false)} />
       </Sheet>
-
-      {/* Source sheet */}
-      <Sheet open={showSource} onClose={() => setShowSource(false)} title="Edit source">
-        <ScrollView style={styles.sheetScroll}>
-          <FieldRenderer
-            fields={def?.fields ?? []}
-            source={source}
-            onChange={(fid, v) => setSource((s) => ({ ...s, [fid]: v }))}
-          />
-        </ScrollView>
-        <View style={styles.sheetActions}>
-          <Button
-            label="Apply & regenerate"
-            onPress={() => {
-              setShowSource(false);
-              void regenerateAll(sourceRef.current);
-            }}
-          />
-          <Button label="Close" variant="ghost" onPress={() => setShowSource(false)} />
-        </View>
-      </Sheet>
-
-      {/* Versions sheet */}
-      <Sheet open={versionsOpen} onClose={() => setVersionsOpen(false)} title="Version history">
-        <ScrollView style={styles.sheetScroll}>
-          {record?.versions
-            .slice()
-            .reverse()
-            .map((v) => (
-              <View key={v.id} style={styles.versionItem}>
-                <View style={styles.versionHead}>
-                  <Text style={styles.versionTitle}>{v.title}</Text>
-                  <Badge tone="neutral">v{v.versionNumber}</Badge>
-                </View>
-                <Text style={styles.muted}>
-                  {new Date(v.createdAt).toLocaleString()}
-                  {v.note ? ` · ${v.note}` : ""}
-                </Text>
-                <Button
-                  label="Restore"
-                  variant="secondary"
-                  onPress={() => restoreVersion(v)}
-                  style={styles.versionRestore}
-                />
-              </View>
-            ))}
-        </ScrollView>
-      </Sheet>
-
-      {/* Export dialog */}
-      <Dialog open={exportOpen} onClose={() => setExportOpen(false)} title="Export document">
-        <View>
-          {EXPORT_GROUPS.map((g) => (
-            <View key={g.label} style={styles.exportGroup}>
-              <Text style={styles.exportGroupLabel}>{g.label}</Text>
-              {g.items.map((it) => (
-                <TouchableOpacity
-                  key={it.format}
-                  style={styles.exportRow}
-                  onPress={() => doExport(it.format)}
-                >
-                  <View style={styles.exportRowText}>
-                    <Text style={styles.exportRowTitle}>{it.title}</Text>
-                    <Text style={styles.muted}>{it.description}</Text>
-                  </View>
-                  <Icon name="Download" size={18} color={theme.accent} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          ))}
-          {exportErr ? <ErrorText message={exportErr} /> : null}
-        </View>
-      </Dialog>
     </View>
   );
 }
@@ -1084,7 +1126,20 @@ const styles = StyleSheet.create({
   screenMobile: { flex: 1, backgroundColor: theme.bg, padding: 12, paddingTop: 18 },
   mobileTop: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
   mobileTitle: { flex: 1, color: theme.text, fontSize: 20, fontFamily: theme.font.serifSemi, borderBottomWidth: 1, borderColor: theme.border, paddingVertical: 4 },
-  saveStatusCenter: { color: theme.ok, fontSize: 12, fontFamily: theme.font.monoMedium, textAlign: "right", marginBottom: 6 },
+  saveStatusCenter: { color: theme.ok, fontSize: 12, fontFamily: theme.font.monoMedium, textAlign: "right" },
+  saveStatusContainer: { minWidth: 80, alignItems: "flex-end", justifyContent: "center" },
+  saveStatusContainerMobile: { alignItems: "flex-end", justifyContent: "center", marginBottom: 6 },
+  saveProgressRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+
+  regenInlineBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FAF6EE", paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, borderColor: "rgba(184, 134, 11, 0.3)" },
+  regenInlineText: { color: theme.accent, fontSize: 11, fontFamily: theme.font.monoMedium },
+  sectionLoadingBox: { flexDirection: "row", alignItems: "center", gap: 10, padding: 18, backgroundColor: "#FAF7F2", borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "rgba(184, 134, 11, 0.2)", marginVertical: 8 },
+  sectionLoadingText: { color: theme.accent, fontSize: 13, fontFamily: theme.font.sansMedium },
+
+  exportProgressBox: { alignItems: "center", justifyContent: "center", paddingVertical: 28, paddingHorizontal: 16 },
+  exportProgressTitle: { color: theme.text, fontSize: 16, fontFamily: theme.font.serifSemi, marginBottom: 6 },
+  exportProgressSub: { color: theme.muted, fontSize: 13, fontFamily: theme.font.sans, textAlign: "center" },
+
   mobileBar: { flexDirection: "row", gap: 8, marginBottom: 8 },
   mobileActions: { flexDirection: "row", gap: 8, marginTop: 8 },
   mobileAction: { flex: 1 },

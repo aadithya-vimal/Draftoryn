@@ -115,3 +115,59 @@ export function validateGeneratedDocument(input: unknown): GeneratedValidationRe
   }
   return { success: true, doc: parsed.data as unknown as GeneratedDocument };
 }
+
+// ===========================================================================
+// Format Validators & Predicates
+// ===========================================================================
+
+export function validateEmail(email: string): boolean {
+  if (!email || !email.trim()) return true;
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim());
+}
+
+export function validatePhone(phone: string): boolean {
+  if (!phone || !phone.trim()) return true;
+  const cleaned = phone.replace(/[\s\-\(\)\.]/g, "");
+  return /^\+?[0-9]{7,15}$/.test(cleaned);
+}
+
+export function validateDate(dateStr: string): boolean {
+  if (!dateStr || !dateStr.trim()) return true;
+  const match = dateStr.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match || !match[1] || !match[2] || !match[3]) return false;
+  const y = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const d = parseInt(match[3], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+  if (m < 1 || m > 12) return false;
+  if (d < 1 || d > 31) return false;
+  const dateObj = new Date(y, m - 1, d);
+  return dateObj.getFullYear() === y && dateObj.getMonth() === m - 1 && dateObj.getDate() === d;
+}
+
+export function isEmailField(field: FieldDef): boolean {
+  if (field.type === "email") return true;
+  const id = field.id.toLowerCase();
+  const label = (field.label || "").toLowerCase();
+  return id.includes("email") || id.includes("mail") || label.includes("email");
+}
+
+export function isPhoneField(field: FieldDef): boolean {
+  const id = field.id.toLowerCase();
+  const label = (field.label || "").toLowerCase();
+  return id.includes("phone") || id.includes("tel") || id.includes("mobile") || label.includes("phone");
+}
+
+export function isDateField(field: FieldDef): boolean {
+  if (field.type === "date") return true;
+  const id = field.id.toLowerCase();
+  const label = (field.label || "").toLowerCase();
+  return (
+    id.endsWith("date") ||
+    id.startsWith("date") ||
+    id.includes("startdate") ||
+    id.includes("enddate") ||
+    id.includes("authdate") ||
+    label.includes("date")
+  );
+}

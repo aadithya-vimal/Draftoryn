@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   ScrollView,
   StyleSheet,
@@ -26,7 +27,15 @@ import {
   Badge,
 } from "../../src/ui/components";
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
-import { FieldRenderer } from "../../src/ui/FieldRenderer";
+import {
+  FieldRenderer,
+  validateEmail,
+  validatePhone,
+  validateDate,
+  isEmailField,
+  isPhoneField,
+  isDateField,
+} from "../../src/ui/FieldRenderer";
 import { getDefinition } from "../../src/engine/definitions/catalog";
 import { generateDocumentClient } from "../../src/data/generate";
 import { createDocumentRecord } from "../../src/data/documents";
@@ -201,11 +210,46 @@ export default function NewDocumentScreen() {
   const visual = CATEGORY_VISUALS[def.category];
 
   const validateStep = (fields: FieldDef[]): boolean => {
+    // 1. Check required fields
     const missing = fields.find((f) => f.required === true && isEmptyValue(source[f.id]));
     if (missing) {
       setError(`Please fill required field: "${missing.label}"`);
       return false;
     }
+
+    // 2. Validate email fields
+    for (const f of fields) {
+      const val = source[f.id];
+      if (typeof val === "string" && val.trim().length > 0 && isEmailField(f)) {
+        if (!validateEmail(val)) {
+          setError(`Please enter a valid email address for "${f.label}"`);
+          return false;
+        }
+      }
+    }
+
+    // 3. Validate phone fields
+    for (const f of fields) {
+      const val = source[f.id];
+      if (typeof val === "string" && val.trim().length > 0 && isPhoneField(f)) {
+        if (!validatePhone(val)) {
+          setError(`Please enter a valid phone number for "${f.label}"`);
+          return false;
+        }
+      }
+    }
+
+    // 4. Validate date fields
+    for (const f of fields) {
+      const val = source[f.id];
+      if (typeof val === "string" && val.trim().length > 0 && isDateField(f)) {
+        if (!validateDate(val)) {
+          setError(`Please enter a valid date in YYYY-MM-DD format for "${f.label}"`);
+          return false;
+        }
+      }
+    }
+
     setError("");
     return true;
   };
@@ -478,10 +522,10 @@ export default function NewDocumentScreen() {
   const generatingCard = (
     <Card accentTop style={styles.fieldsCard}>
       <View style={styles.genInner}>
-        <Icon name="Sparkles" size={26} color={theme.accent} />
+        <ActivityIndicator size="large" color={theme.accent} style={{ marginBottom: 8 }} />
         <Heading level={3} style={styles.genTitle}>Generating your document…</Heading>
         <ProgressBar indeterminate height={6} />
-        <Text style={styles.genSub}>Preparing structure · Generating content · Validating</Text>
+        <Text style={styles.genSub}>Preparing structure · Synthesizing clauses · Validating</Text>
       </View>
     </Card>
   );
