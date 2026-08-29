@@ -413,24 +413,26 @@ export default function DocumentEditor() {
       case "table":
         if (!b.table) return null;
         return (
-          <View key={i} style={styles.docTable}>
-            <View style={[styles.docTableRow, styles.docTableHeader]}>
-              {b.table.headers.map((h, ci) => (
-                <Text key={ci} style={styles.docTableCellHead}>
-                  {h}
-                </Text>
-              ))}
-            </View>
-            {b.table.rows.map((row, ri) => (
-              <View key={ri} style={styles.docTableRow}>
-                {row.map((cell, ci) => (
-                  <Text key={ci} style={styles.docTableCell}>
-                    {cell}
+          <ScrollView key={i} horizontal showsHorizontalScrollIndicator={false} style={styles.tableScroll}>
+            <View style={styles.docTable}>
+              <View style={[styles.docTableRow, styles.docTableHeader]}>
+                {b.table.headers.map((h, ci) => (
+                  <Text key={ci} style={styles.docTableCellHead}>
+                    {h}
                   </Text>
                 ))}
               </View>
-            ))}
-          </View>
+              {b.table.rows.map((row, ri) => (
+                <View key={ri} style={styles.docTableRow}>
+                  {row.map((cell, ci) => (
+                    <Text key={ci} style={styles.docTableCell}>
+                      {cell}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
         );
       case "callout": {
         const toneColor = b.tone ? TONE_COLOR[b.tone] ?? theme.muted : theme.accent;
@@ -1032,11 +1034,12 @@ const styles = StyleSheet.create({
   docList: { marginBottom: 10 },
   docListItem: { flexDirection: "row", gap: 8, marginBottom: 4 },
   docBullet: { color: theme.accent, fontSize: 15 },
-  docTable: { borderWidth: 1, borderColor: theme.border, borderRadius: theme.radiusSm, marginBottom: 12, overflow: "hidden" },
+  docTable: { borderWidth: 1, borderColor: theme.border, borderRadius: theme.radiusSm, marginBottom: 12, overflow: "hidden", minWidth: 460 },
+  tableScroll: { marginVertical: 8, maxWidth: "100%" },
   docTableRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: theme.border },
   docTableHeader: { backgroundColor: theme.surface2 },
-  docTableCell: { flex: 1, padding: 8, fontSize: 13, fontFamily: theme.font.sans, color: theme.text, borderRightWidth: 1, borderColor: theme.border },
-  docTableCellHead: { flex: 1, padding: 8, fontSize: 12, fontFamily: theme.font.sansSemi, color: theme.text, borderRightWidth: 1, borderColor: theme.border, textTransform: "uppercase", letterSpacing: 1 },
+  docTableCell: { flex: 1, minWidth: 100, padding: 8, fontSize: 13, fontFamily: theme.font.sans, color: theme.text, borderRightWidth: 1, borderColor: theme.border },
+  docTableCellHead: { flex: 1, minWidth: 100, padding: 8, fontSize: 12, fontFamily: theme.font.sansSemi, color: theme.text, borderRightWidth: 1, borderColor: theme.border, textTransform: "uppercase", letterSpacing: 1 },
   docCallout: { borderLeftWidth: 3, borderRadius: theme.radiusSm, backgroundColor: theme.surface2, padding: 12, marginBottom: 12 },
   docDivider: { height: 1, backgroundColor: theme.border, marginVertical: 12 },
 

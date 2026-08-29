@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
   type ViewStyle,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -51,27 +52,51 @@ function normalizeParam(value: string | string[] | undefined): string | undefine
 
 function getStepTitle(fields: FieldDef[], index: number, total: number): string {
   if (!fields || fields.length === 0) return `Step ${index + 1}`;
-  const concepts = new Set(fields.map((f) => f.mapsTo).filter(Boolean));
-  if (concepts.has("client") || concepts.has("provider")) {
-    return "Organizations & Contacts";
+  const ids = fields.map((f) => f.id);
+
+  if (ids.some((id) => id.startsWith("client"))) {
+    return "Client Organization";
   }
-  if (concepts.has("scope") || concepts.has("objective")) {
+  if (ids.some((id) => id.startsWith("provider"))) {
+    return "Assessing Provider";
+  }
+  if (ids.includes("objective") || ids.includes("inScope") || ids.includes("outOfScope")) {
     return "Scope & Objectives";
   }
-  if (concepts.has("schedule") || concepts.has("authorization")) {
+  if (
+    ids.includes("startDate") ||
+    ids.includes("endDate") ||
+    ids.includes("windows") ||
+    ids.includes("authorizedBy") ||
+    ids.includes("authReference")
+  ) {
     return "Schedule & Authorization";
   }
-  if (concepts.has("constraints") || concepts.has("methodology")) {
+  if (ids.includes("constraints") || ids.includes("methodology") || ids.includes("authDate")) {
     return "Rules & Methodology";
   }
-  if (concepts.has("evidence") || concepts.has("reporting")) {
-    return "Evidence & Reporting";
+  if (
+    ids.includes("deliverables") ||
+    ids.includes("reportAudience") ||
+    ids.includes("evidence") ||
+    ids.includes("assumptions")
+  ) {
+    return "Deliverables & Reporting";
   }
-  if (concepts.has("assumptions")) {
-    return "Assumptions & Prerequisites";
-  }
+
+  const concepts = new Set(fields.map((f) => f.mapsTo).filter(Boolean));
+  if (concepts.has("client")) return "Client Details";
+  if (concepts.has("provider")) return "Provider Details";
+  if (concepts.has("scope")) return "Target Scope";
+  if (concepts.has("schedule")) return "Timeline";
+  if (concepts.has("authorization")) return "Authorization";
+  if (concepts.has("constraints")) return "Safety Constraints";
+  if (concepts.has("methodology")) return "Methodology";
+  if (concepts.has("reporting")) return "Deliverables";
+  if (concepts.has("assumptions")) return "Assumptions";
+
   const first = fields[0]?.label ?? `Step ${index + 1}`;
-  return first.length > 26 ? `${first.slice(0, 24)}…` : first;
+  return first.length > 24 ? `${first.slice(0, 22)}…` : first;
 }
 
 function summarizeSource(fields: FieldDef[], source: Record<string, unknown>): { label: string; value: string }[] {
@@ -94,6 +119,8 @@ export default function NewDocumentScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const user = useAppUser();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 992;
 
   const defId = normalizeParam(params.defId) || normalizeParam(params.def);
   const def = defId ? getDefinition(defId) : undefined;
@@ -176,7 +203,7 @@ export default function NewDocumentScreen() {
   const validateStep = (fields: FieldDef[]): boolean => {
     const missing = fields.find((f) => f.required === true && isEmptyValue(source[f.id]));
     if (missing) {
-      setError(`"${missing.label}" is required.`);
+      setError(`Please fill required field: "${missing.label}"`);
       return false;
     }
     setError("");
@@ -245,16 +272,19 @@ export default function NewDocumentScreen() {
 
   const summary = summarizeSource(def.fields, source);
 
-  const topBar = (
-    <View style={styles.topBar}>
-      <TouchableOpacity style={styles.backPill} onPress={goBack} accessibilityRole="button" accessibilityLabel="Go back">
+  // Desktop Top Bar
+  const desktopTopBar = (
+    <View style={styles.desktopTopBar}>
+      <TouchableOpacity style={styles.backPill} onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
         <Icon name="ArrowLeft" size={18} color={theme.text} />
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
-      <View style={styles.topBarTitle}>
+      <View style={styles.desktopTopBarTitleWrap}>
         <Icon name={visual.icon} size={20} color={visual.accent} />
-        <Text style={styles.topBarName}>{def.name}</Text>
-        <Text style={styles.topBarCat}>{visual.label}</Text>
+        <Text style={styles.topBarName} numberOfLines={1}>{def.name}</Text>
+        <View style={styles.topBarCatBadge}>
+          <Text style={styles.topBarCat}>{visual.label}</Text>
+        </View>
       </View>
       <View style={styles.topBarProgress}>
         <ProgressBar value={completionRatio} height={6} />
@@ -265,15 +295,46 @@ export default function NewDocumentScreen() {
     </View>
   );
 
+  // Mobile Top Bar
+  const mobileTopBar = (
+    <View style={styles.mobileTopBar}>
+      <View style={styles.mobileTopBarNavRow}>
+        <TouchableOpacity style={styles.backPill} onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
+          <Icon name="ArrowLeft" size={16} color={theme.text} />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+        <View style={styles.topBarCatBadge}>
+          <Icon name={visual.icon} size={12} color={visual.accent} />
+          <Text style={styles.topBarCat}>{visual.label}</Text>
+        </View>
+      </View>
+
+      <View style={styles.mobileTopBarTitleRow}>
+        <Text style={styles.mobileDocTitle} numberOfLines={2}>
+          {def.name}
+        </Text>
+      </View>
+
+      <View style={styles.mobileProgressBarWrap}>
+        <ProgressBar value={completionRatio} height={5} />
+        <View style={styles.mobileProgressLabels}>
+          <Text style={styles.mobileProgressPct}>{completionPct}% complete</Text>
+          <Text style={styles.mobileProgressStep}>Step {step + 1} of {totalSteps}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  // Interactive Progress & Step Selector Card
   const progressSection = (
     <View style={styles.progressSection}>
       <View style={styles.progressHeaderRow}>
         <SectionLabel style={{ marginBottom: 0 }}>Your progress</SectionLabel>
         <Badge tone={completionPct === 100 ? "ok" : completionPct > 0 ? "accent" : "neutral"}>
-          {`${completionPct}% complete`}
+          {`${completionPct}% completed`}
         </Badge>
       </View>
-      <ProgressBar value={completionRatio} height={7} style={styles.overviewProgressBar} />
+      <ProgressBar value={completionRatio} height={6} style={styles.overviewProgressBar} />
       <Text style={styles.progressSubtitle}>
         {totalAllFilled} of {totalAllFields} fields filled · {completedStepsCount} of {totalSteps} steps ready
       </Text>
@@ -309,17 +370,15 @@ export default function NewDocumentScreen() {
                 )}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.stepItemTitle, active && styles.stepItemTitleActive]}>
+                <Text style={[styles.stepItemTitle, active && styles.stepItemTitleActive]} numberOfLines={1}>
                   {sm.title}
                 </Text>
                 <Text style={styles.stepItemMeta}>
-                  {sm.filled} of {sm.total} fields filled
-                  {sm.missingRequired > 0 ? ` · ${sm.missingRequired} required` : ""}
+                  {sm.filled} of {sm.total} fields
+                  {sm.missingRequired > 0 ? ` (${sm.missingRequired} required)` : ""}
                 </Text>
               </View>
-              {active ? (
-                <View style={styles.activeDot} />
-              ) : null}
+              {active ? <View style={styles.activeDot} /> : null}
             </TouchableOpacity>
           );
         })}
@@ -355,11 +414,36 @@ export default function NewDocumentScreen() {
       </View>
       <Text style={styles.fieldsHelper}>
         {currentStepFields.length > 0
-          ? `Complete the fields below (${currentStepMeta?.filled ?? 0}/${currentStepMeta?.total ?? 0} filled). Fields marked as required must be filled to continue.`
+          ? `Complete the fields below (${currentStepMeta?.filled ?? 0}/${currentStepMeta?.total ?? 0} filled). Required fields must be completed.`
           : "This template has no entry fields — you can generate it directly."}
       </Text>
       <FieldRenderer fields={currentStepFields} source={source} onChange={change} />
       {error ? <ErrorText message={error} /> : null}
+
+      <View style={styles.formNavRow}>
+        <Button
+          label="Back"
+          variant="secondary"
+          disabled={step === 0 || busy}
+          onPress={goBack}
+          style={styles.navBtn}
+        />
+        {isLastStep ? (
+          <Button
+            label={busy ? "Generating…" : "Generate document"}
+            disabled={busy}
+            onPress={onGenerate}
+            style={styles.navBtn}
+          />
+        ) : (
+          <Button
+            label="Continue"
+            disabled={busy}
+            onPress={goNext}
+            style={styles.navBtn}
+          />
+        )}
+      </View>
     </Card>
   );
 
@@ -396,48 +480,20 @@ export default function NewDocumentScreen() {
       <View style={styles.genInner}>
         <Icon name="Sparkles" size={26} color={theme.accent} />
         <Heading level={3} style={styles.genTitle}>Generating your document…</Heading>
-        <ProgressBar indeterminate />
+        <ProgressBar indeterminate height={6} />
         <Text style={styles.genSub}>Preparing structure · Generating content · Validating</Text>
       </View>
     </Card>
   );
 
-  const bottomNav = (
-    <View style={styles.bottomNav}>
-      <Button
-        label="Back"
-        variant="secondary"
-        disabled={step === 0 || busy}
-        onPress={goBack}
-        style={styles.navBtn}
-      />
-      {isLastStep ? (
-        <Button
-          label={busy ? "Generating…" : "Generate document"}
-          disabled={busy}
-          onPress={onGenerate}
-          style={styles.navBtn}
-        />
-      ) : (
-        <Button
-          label="Continue"
-          disabled={busy}
-          onPress={goNext}
-          style={styles.navBtn}
-        />
-      )}
-    </View>
-  );
-
-  if (Platform.OS === "web") {
+  if (isDesktop) {
     return (
       <View style={styles.webShell}>
-        {topBar}
+        {desktopTopBar}
         <View style={styles.webRow}>
           <View style={styles.webLeft}>{overviewCard}</View>
           <ScrollView style={styles.webCenter} contentContainerStyle={styles.webCenterInner}>
             {busy ? generatingCard : fieldsCard}
-            {!busy ? bottomNav : null}
           </ScrollView>
           <View style={styles.webRight}>{helpCard}</View>
         </View>
@@ -446,92 +502,118 @@ export default function NewDocumentScreen() {
   }
 
   return (
-    <View style={styles.shell}>
-      {topBar}
+    <View style={styles.mobileShell}>
+      {mobileTopBar}
       <ScrollView style={styles.mobileScroll} contentContainerStyle={styles.mobileInner}>
-        <Card style={styles.overviewCard}>
-          <SectionLabel>About</SectionLabel>
-          <Text style={styles.bodyText}>{def.description}</Text>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Audience</Text>
-            <Text style={styles.metaValue}>{def.intendedAudience}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Purpose</Text>
-            <Text style={styles.metaValue}>{def.purpose}</Text>
-          </View>
-        </Card>
         {busy ? generatingCard : fieldsCard}
-        <Card style={styles.helpCard}>
-          <SectionLabel>Why we ask</SectionLabel>
-          <Text style={styles.bodyText}>
-            These inputs shape the document’s structure and tone, and the
-            specifics we generate for you.
-          </Text>
-      <View style={styles.helpHeader}>
-        <SectionLabel>Live summary</SectionLabel>
-      </View>
-          {summary.length === 0 ? (
-            <Text style={styles.muted}>Nothing filled in yet.</Text>
-          ) : (
-            summary.map((row) => (
-              <View key={row.label} style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{row.label}</Text>
-                <Text style={styles.summaryValue} numberOfLines={2}>{row.value}</Text>
-              </View>
-            ))
-          )}
-        </Card>
+        <View style={{ height: 16 }} />
+        {overviewCard}
+        <View style={{ height: 16 }} />
+        {helpCard}
       </ScrollView>
-      {!busy ? bottomNav : (
-        <View style={styles.bottomNav}>
-          <Button label="Cancel" variant="ghost" disabled onPress={() => {}} style={styles.navBtn} />
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  shell: { flex: 1, backgroundColor: theme.bg, padding: theme.spacing, paddingTop: 20 },
-  webShell: { flex: 1, backgroundColor: theme.bg, padding: theme.spacing, paddingTop: 20 },
-  webRow: { flexDirection: "row", gap: 20, maxWidth: 1100, width: "100%", alignSelf: "center" },
-  webLeft: { width: 280, flexShrink: 0 },
+  webShell: { flex: 1, backgroundColor: theme.bg, padding: 24, paddingTop: 20 },
+  webRow: { flexDirection: "row", gap: 20, maxWidth: 1120, width: "100%", alignSelf: "center" },
+  webLeft: { width: 300, flexShrink: 0 },
   webCenter: { flex: 1 },
-  webCenterInner: { paddingBottom: 24 },
+  webCenterInner: { paddingBottom: 32 },
   webRight: { width: 280, flexShrink: 0 },
-  mobileScroll: { flex: 1 },
-  mobileInner: { paddingBottom: 24 },
 
-  topBar: {
+  mobileShell: { flex: 1, backgroundColor: theme.bg, padding: 16, paddingTop: 14 },
+  mobileScroll: { flex: 1 },
+  mobileInner: { paddingBottom: 32 },
+
+  desktopTopBar: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 16,
-    marginBottom: 16,
-    maxWidth: 1100,
+    marginBottom: 18,
+    maxWidth: 1120,
     width: "100%",
     alignSelf: "center",
   },
+  desktopTopBarTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
   backPill: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 4 },
   backText: { fontFamily: theme.font.sansMedium, fontSize: 14, color: theme.text },
-  topBarTitle: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
   topBarName: { fontFamily: theme.font.serifSemi, fontSize: 18, color: theme.text },
-  topBarCat: { fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: theme.muted },
-  topBarProgress: { width: 200 },
+  topBarCatBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FAF6EE",
+    borderWidth: 1,
+    borderColor: "rgba(184, 134, 11, 0.25)",
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  topBarCat: { fontFamily: theme.font.monoMedium, fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase", color: theme.accent },
+  topBarProgress: { width: 220 },
   topBarPct: { fontFamily: theme.font.monoMedium, fontSize: 11, color: theme.muted, marginTop: 4, textAlign: "right" },
 
+  mobileTopBar: {
+    marginBottom: 16,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderColor: theme.border,
+    paddingBottom: 12,
+  },
+  mobileTopBarNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  mobileTopBarTitleRow: {
+    marginTop: 2,
+  },
+  mobileDocTitle: {
+    fontFamily: theme.font.serifSemi,
+    fontSize: 20,
+    lineHeight: 26,
+    color: theme.text,
+  },
+  mobileProgressBarWrap: {
+    marginTop: 6,
+  },
+  mobileProgressLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  mobileProgressPct: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    color: theme.accent,
+  },
+  mobileProgressStep: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    color: theme.muted,
+  },
+
   overviewCard: { marginBottom: 0 },
-  progressSection: { marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderColor: theme.border },
-  progressHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  progressSection: { marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderColor: theme.border },
+  progressHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   overviewProgressBar: { marginVertical: 6 },
-  progressSubtitle: { fontFamily: theme.font.monoMedium, fontSize: 11, color: theme.muted, marginTop: 4, marginBottom: 14 },
-  stepsList: { gap: 6 },
+  progressSubtitle: { fontFamily: theme.font.monoMedium, fontSize: 10.5, color: theme.muted, marginTop: 3, marginBottom: 12 },
+  stepsList: { gap: 5 },
   stepItem: {
     position: "relative",
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
+    gap: 10,
+    paddingVertical: 9,
     paddingHorizontal: 12,
     borderRadius: theme.radiusSm,
     borderWidth: 1,
@@ -539,10 +621,10 @@ const styles = StyleSheet.create({
   },
   stepItemActive: { backgroundColor: "#FAF6EE", borderColor: "rgba(184, 134, 11, 0.25)" },
   stepItemComplete: { backgroundColor: theme.surface },
-  stepActiveBar: { position: "absolute", left: 0, top: 6, bottom: 6, width: 3.5, backgroundColor: theme.accent, borderTopRightRadius: 3, borderBottomRightRadius: 3 },
+  stepActiveBar: { position: "absolute", left: 0, top: 5, bottom: 5, width: 3.5, backgroundColor: theme.accent, borderTopRightRadius: 3, borderBottomRightRadius: 3 },
   stepBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: theme.surface2, alignItems: "center", justifyContent: "center" },
   stepBadgeActive: { backgroundColor: theme.accent },
-  stepBadgeComplete: { backgroundColor: theme.accent },
+  stepBadgeComplete: { backgroundColor: "#3F5B43" },
   stepBadgeNum: { fontFamily: theme.font.monoMedium, fontSize: 11, color: theme.muted },
   stepBadgeNumActive: { color: theme.accentForeground },
   stepItemTitle: { fontFamily: theme.font.sansMedium, fontSize: 13, color: theme.text },
@@ -552,8 +634,19 @@ const styles = StyleSheet.create({
 
   fieldsCard: { marginBottom: 0 },
   fieldsHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
-  fieldsTitle: { marginBottom: 0 },
-  fieldsHelper: { fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, marginBottom: 12, marginTop: 6 },
+  fieldsTitle: { marginBottom: 0, flex: 1 },
+  fieldsHelper: { fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, marginBottom: 16, marginTop: 6, lineHeight: 18 },
+
+  formNavRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderColor: theme.border,
+  },
+  navBtn: { flex: 1 },
 
   helpCard: { marginBottom: 0 },
   helpHeader: { marginTop: 16, marginBottom: 8 },
@@ -569,17 +662,6 @@ const styles = StyleSheet.create({
   genInner: { alignItems: "center", paddingVertical: 28 },
   genTitle: { marginTop: 12, marginBottom: 16 },
   genSub: { fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, marginTop: 12 },
-
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-    marginTop: 16,
-    maxWidth: 1100,
-    width: "100%",
-    alignSelf: "center",
-  },
-  navBtn: { flex: 1 },
 
   centerCard: { alignItems: "center", maxWidth: 420, alignSelf: "center", marginTop: 40 },
   unknownTitle: { marginTop: 12, marginBottom: 6 },
