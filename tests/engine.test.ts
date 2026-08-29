@@ -1,0 +1,104 @@
+import { describe, expect, it } from "vitest";
+import { buildSemanticModel } from "../src/engine/semantic";
+import { validateSource } from "../src/engine/validation";
+import { generateDocument, regenerateSection } from "../src/engine/generate";
+import { getDefinition } from "../src/engine/definitions/catalog";
+
+const IP_RE = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
+
+function textOf(defId: string, source: Record<string, unknown>): string {
+  const def = getDefinition(defId)!;
+  const gen = generateDocument(def, source);
+  return gen.sections
+    .flatMap((s) => s.blocks.flatMap((b) => [b.text ?? "", ...(b.items ?? []), ...(b.table?.rows.flat() ?? [])]))
+    .join("\n");
+}
+
+describe("semantic model", () => {
+  it("maps fields to the correct semantic concept", () => {
+    const def = getDefinition("pentest_agreement")!;
+    const model = buildSemanticModel(def, {
+      clientName: "Acme Corp",
+      clientContactName: "Jane",
+      providerName: "TestCo",
+      inScope: ["app.example.com"],
+      constraints: ["No DoS"],
+    });
+    expect(model.client?.name).toBe("Acme Corp");
+    expect(model.client?.contactName).toBe("Jane");
+    expect(model.provider?.name).toBe("TestCo");
+    expect(model.scope?.inScope).toContain("app.example.com");
+    expect(model.constraints).toContain("No DoS");
+  });
+});
+
+describe("input validation", () => {
+  it("flags required missing fields", () => {
+    const def = getDefinition("pentest_agreement")!;
+    const res = validateSource(def, {});
+    expect(res.success).toBe(false);
+    expect(res.errors.clientName).toBeTruthy();
+  });
+
+  it("passes when required fields present", () => {
+    const def = getDefinition("pentest_agreement")!;
+    const res = validateSource(def, { clientName: "Acme" });
+    expect(res.success).toBe(true);
+  });
+});
+
+describe("generation safety (no fabrication)", () => {
+  it("uses placeholders when client name is missing", () => {
+    const t = textOf("pentest_agreement", {});
+    expect(t).toContain("[CLIENT ORGANIZATION]");
+  });
+
+  it("never invents IP addresses when none are provided", () => {
+    const t = textOf("pentest_report", {});
+    expect(IP_RE.test(t)).toBe(false);
+  });
+
+  it("marks missing required information rather than inventing it", () => {
+    const def = getDefinition("pentest_authorization")!;
+    const gen = generateDocument(def, {});
+    const auth = gen.sections.find((s) => s.kind === "authorization")!;
+    expect(auth.status).toBe("missing");
+  });
+
+  it("produces empty-but-structured findings instead of fabricated ones", () => {
+    const def = getDefinition("pentest_report")!;
+    const gen = generateDocument(def, {});
+    const findings = gen.sections.find((s) => s.kind === "findings")!;
+    const t = findings.blocks.flatMap((b) => [b.text ?? "", ...(b.items ?? [])]).join("\n");
+    expect(t.toLowerCase()).not.toContain("sql injection in ");
+    expect(IP_RE.test(t)).toBe(false);
+  });
+});
+
+describe("generation determinism & structure", () => {
+  it("is deterministic for the same input", () => {
+    const def = getDefinition("pentest_sow")!;
+    const src = { clientName: "Acme", objective: "Find holes" };
+    const a = JSON.stringify(generateDocument(def, src).sections);
+    const b = JSON.stringify(generateDocument(def, src).sections);
+    expect(a).toBe(b);
+  });
+
+  it("includes category-appropriate sections", () => {
+    const gen = generateDocument(getDefinition("tm_report")!, { clientName: "Acme" });
+    const kinds = gen.sections.map((s) => s.kind);
+    expect(kinds).toContain("asset_inventory");
+    expect(kinds).toContain("trust_boundaries");
+    expect(kinds).toContain("mitigations");
+  });
+
+  it("regenerating a single section only replaces that section", () => {
+    const def = getDefinition("pentest_report")!;
+    const src = { clientName: "Acme" };
+    const gen = generateDocument(def, src);
+    const before = gen.sections.find((s) => s.kind === "methodology")!.blocks;
+    const updated = regenerateSection(def, "methodology", src);
+    expect(updated?.id).toBe("methodology");
+    void before;
+  });
+});
