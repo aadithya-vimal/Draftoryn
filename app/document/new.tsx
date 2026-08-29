@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -37,6 +37,12 @@ import {
   isDateField,
 } from "../../src/ui/FieldRenderer";
 import { getDefinition } from "../../src/engine/definitions/catalog";
+import {
+  getUserSettings,
+  autofillFromProfiles,
+  DEFAULT_USER_SETTINGS,
+  type UserSettings,
+} from "../../src/lib/userSettings";
 import { generateDocumentClient } from "../../src/data/generate";
 import { createDocumentRecord } from "../../src/data/documents";
 import { createVersion } from "../../src/engine/serialization";
@@ -135,6 +141,11 @@ export default function NewDocumentScreen() {
   const def = defId ? getDefinition(defId) : undefined;
 
   const [source, setSource] = useState<Record<string, unknown>>({});
+  const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
+
+  useEffect(() => {
+    getUserSettings().then(setUserSettings);
+  }, []);
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
@@ -461,6 +472,45 @@ export default function NewDocumentScreen() {
           ? `Complete the fields below (${currentStepMeta?.filled ?? 0}/${currentStepMeta?.total ?? 0} filled). Required fields must be completed.`
           : "This template has no entry fields — you can generate it directly."}
       </Text>
+            {/* Quick Autofill Profiles Banner */}
+      <View style={styles.autofillBanner}>
+        <View style={styles.autofillHeader}>
+          <Text style={styles.autofillTitle}>⚡ QUICK AUTOFILL</Text>
+          <TouchableOpacity onPress={() => router.push("/(app)/settings")}>
+            <Text style={styles.autofillSettingsLink}>Configure Profiles →</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.autofillChipsRow}>
+          <TouchableOpacity
+            style={styles.autofillChip}
+            onPress={() => {
+              setSource((prev) => autofillFromProfiles(prev, userSettings, "tester"));
+              setError("");
+            }}
+          >
+            <Text style={styles.autofillChipText}>+ Tester Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.autofillChip}
+            onPress={() => {
+              setSource((prev) => autofillFromProfiles(prev, userSettings, "client"));
+              setError("");
+            }}
+          >
+            <Text style={styles.autofillChipText}>+ Client Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.autofillChip, styles.autofillChipAccent]}
+            onPress={() => {
+              setSource((prev) => autofillFromProfiles(prev, userSettings, "all"));
+              setError("");
+            }}
+          >
+            <Text style={styles.autofillChipAccentText}>Autofill All</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <FieldRenderer fields={currentStepFields} source={source} onChange={change} />
       {error ? <ErrorText message={error} /> : null}
 
@@ -560,6 +610,59 @@ export default function NewDocumentScreen() {
 }
 
 const styles = StyleSheet.create({
+  autofillBanner: {
+    backgroundColor: "#FAF7F2",
+    borderRadius: theme.radiusSm,
+    borderWidth: 1,
+    borderColor: "rgba(184, 134, 11, 0.25)",
+    padding: 12,
+    marginBottom: 16,
+  },
+  autofillHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  autofillTitle: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: theme.accent,
+  },
+  autofillSettingsLink: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12,
+    color: theme.accent,
+    textDecorationLine: "underline",
+  },
+  autofillChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  autofillChip: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  autofillChipText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12.5,
+    color: theme.text,
+  },
+  autofillChipAccent: {
+    backgroundColor: theme.accent,
+    borderColor: theme.accent,
+  },
+  autofillChipAccentText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12.5,
+    color: theme.accentForeground,
+  },
   webShell: { flex: 1, backgroundColor: theme.bg, padding: 24, paddingTop: 20 },
   webRow: { flexDirection: "row", gap: 20, maxWidth: 1120, width: "100%", alignSelf: "center" },
   webLeft: { width: 300, flexShrink: 0 },

@@ -16,6 +16,12 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useAppUser } from "../../src/auth/clerk";
 import { getDefinition } from "../../src/engine/definitions/catalog";
 import {
+  getUserSettings,
+  autofillFromProfiles,
+  DEFAULT_USER_SETTINGS,
+  type UserSettings,
+} from "../../src/lib/userSettings";
+import {
   addSection,
   availableSections,
   hideSection,
@@ -142,6 +148,11 @@ export default function DocumentEditor() {
   const [model, setModel] = useState<SemanticModel | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
+
+  useEffect(() => {
+    getUserSettings().then(setUserSettings);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
@@ -796,6 +807,49 @@ export default function DocumentEditor() {
 
         {/* Source sheet */}
         <Sheet open={showSource} onClose={() => setShowSource(false)} title="Edit source">
+          <View style={styles.sheetAutofillBanner}>
+            <View style={styles.sheetAutofillHeader}>
+              <Text style={styles.sheetAutofillTitle}>⚡ AUTOFILL PROFILES</Text>
+              <TouchableOpacity onPress={() => router.push("/(app)/settings")}>
+                <Text style={styles.sheetAutofillLink}>Configure →</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.sheetAutofillChips}>
+              <TouchableOpacity
+                style={styles.sheetAutofillBtn}
+                onPress={() => {
+                  const next = autofillFromProfiles(sourceRef.current, userSettings, "tester");
+                  setSource(next);
+                  sourceRef.current = next;
+                  triggerAutosave();
+                }}
+              >
+                <Text style={styles.sheetAutofillBtnText}>+ Tester</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sheetAutofillBtn}
+                onPress={() => {
+                  const next = autofillFromProfiles(sourceRef.current, userSettings, "client");
+                  setSource(next);
+                  sourceRef.current = next;
+                  triggerAutosave();
+                }}
+              >
+                <Text style={styles.sheetAutofillBtnText}>+ Client</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sheetAutofillBtn, styles.sheetAutofillBtnAccent]}
+                onPress={() => {
+                  const next = autofillFromProfiles(sourceRef.current, userSettings, "all");
+                  setSource(next);
+                  sourceRef.current = next;
+                  triggerAutosave();
+                }}
+              >
+                <Text style={styles.sheetAutofillBtnAccentText}>Autofill All</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
           <ScrollView style={styles.sheetScroll}>
             <FieldRenderer
               fields={def?.fields ?? []}
@@ -871,24 +925,49 @@ export default function DocumentEditor() {
                 <Text style={styles.exportProgressSub}>Formatting typography, layout rules, and domain blocks</Text>
               </View>
             ) : (
-              EXPORT_GROUPS.map((g) => (
-                <View key={g.label} style={styles.exportGroup}>
-                  <Text style={styles.exportGroupLabel}>{g.label}</Text>
-                  {g.items.map((it) => (
-                    <TouchableOpacity
-                      key={it.format}
-                      style={styles.exportRow}
-                      onPress={() => doExport(it.format)}
-                    >
-                      <View style={styles.exportRowText}>
-                        <Text style={styles.exportRowTitle}>{it.title}</Text>
-                        <Text style={styles.muted}>{it.description}</Text>
-                      </View>
-                      <Icon name="Download" size={18} color={theme.accent} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ))
+              <>
+                <TouchableOpacity
+                  style={styles.quickExportBanner}
+                  onPress={() => doExport(userSettings.defaultExportFormat || "pdf")}
+                >
+                  <View style={styles.quickExportTextCol}>
+                    <View style={styles.quickExportBadgeRow}>
+                      <Text style={styles.quickExportLabel}>DEFAULT EXPORT FORMAT</Text>
+                      <Badge tone="accent">{(userSettings.defaultExportFormat || "pdf").toUpperCase()}</Badge>
+                    </View>
+                    <Text style={styles.quickExportTitle}>Export as {(userSettings.defaultExportFormat || "pdf").toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.quickExportBtn}>
+                    <Icon name="Download" size={16} color={theme.accentForeground} />
+                    <Text style={styles.quickExportBtnText}>Download</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {EXPORT_GROUPS.map((g) => (
+                  <View key={g.label} style={styles.exportGroup}>
+                    <Text style={styles.exportGroupLabel}>{g.label}</Text>
+                    {g.items.map((it) => {
+                      const isDefault = it.format.toLowerCase() === (userSettings.defaultExportFormat || "pdf").toLowerCase();
+                      return (
+                        <TouchableOpacity
+                          key={it.format}
+                          style={[styles.exportRow, isDefault && styles.exportRowDefault]}
+                          onPress={() => doExport(it.format)}
+                        >
+                          <View style={styles.exportRowText}>
+                            <View style={styles.exportRowTitleWrap}>
+                              <Text style={styles.exportRowTitle}>{it.title}</Text>
+                              {isDefault ? <Badge tone="accent">Default</Badge> : null}
+                            </View>
+                            <Text style={styles.muted}>{it.description}</Text>
+                          </View>
+                          <Icon name="Download" size={18} color={theme.accent} />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+              </>
             )}
             {exportErr ? <ErrorText message={exportErr} /> : null}
           </View>
@@ -1033,6 +1112,114 @@ export default function DocumentEditor() {
 }
 
 const styles = StyleSheet.create({
+  sheetAutofillBanner: {
+    backgroundColor: "#FAF7F2",
+    borderRadius: theme.radiusSm,
+    borderWidth: 1,
+    borderColor: "rgba(184, 134, 11, 0.25)",
+    padding: 10,
+    marginBottom: 12,
+  },
+  sheetAutofillHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  sheetAutofillTitle: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.5,
+    color: theme.accent,
+  },
+  sheetAutofillLink: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 11.5,
+    color: theme.accent,
+    textDecorationLine: "underline",
+  },
+  sheetAutofillChips: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  sheetAutofillBtn: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  sheetAutofillBtnText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 11.5,
+    color: theme.text,
+  },
+  sheetAutofillBtnAccent: {
+    backgroundColor: theme.accent,
+    borderColor: theme.accent,
+  },
+  sheetAutofillBtnAccentText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 11.5,
+    color: theme.accentForeground,
+  },
+
+  quickExportBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FAF7F2",
+    borderWidth: 1,
+    borderColor: theme.accent,
+    borderRadius: theme.radiusSm,
+    padding: 14,
+    marginBottom: 18,
+  },
+  quickExportTextCol: {
+    flex: 1,
+  },
+  quickExportBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  quickExportLabel: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: theme.accent,
+  },
+  quickExportTitle: {
+    fontFamily: theme.font.serifSemi,
+    fontSize: 16,
+    color: theme.text,
+  },
+  quickExportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: theme.accent,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+  },
+  quickExportBtnText: {
+    fontFamily: theme.font.sansSemi,
+    fontSize: 13,
+    color: theme.accentForeground,
+  },
+  exportRowDefault: {
+    borderColor: theme.accent,
+    backgroundColor: "#FAF9F5",
+  },
+  exportRowTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 2,
+  },
   screenWeb: { flex: 1, backgroundColor: theme.bg, padding: 16, paddingTop: 20 },
   columns: { flexDirection: "row", gap: 16, flex: 1, maxWidth: 1280, alignSelf: "center", width: "100%" },
   leftCol: { width: 240 },
