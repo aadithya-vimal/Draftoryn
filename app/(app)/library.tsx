@@ -17,6 +17,7 @@ import {
   theme,
 } from "../../src/ui/primitives";
 import {
+  Dialog,
   Icon,
   Skeleton,
   PageIllustration,
@@ -151,38 +152,28 @@ export default function Library() {
     );
   });
 
-  const performDelete = async (docId: string) => {
+  const [deleteTarget, setDeleteTarget] = useState<DocumentSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const performDelete = async () => {
+    if (!deleteTarget) return;
+    const docId = deleteTarget.id;
+    setDeleting(true);
     try {
       setDocs((prev) => prev.filter((d) => d.id !== docId));
       await deleteDocument(user, docId);
+      setDeleteTarget(null);
       load();
     } catch {
       setError("Could not delete that document. Please try again.");
       load();
+    } finally {
+      setDeleting(false);
     }
   };
 
   const confirmDelete = (doc: DocumentSummary) => {
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-      const ok = window.confirm(`Are you sure you want to delete "${doc.title}"? This cannot be undone.`);
-      if (ok) {
-        void performDelete(doc.id);
-      }
-      return;
-    }
-
-    Alert.alert(
-      "Delete document",
-      `Delete "${doc.title}"? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => void performDelete(doc.id),
-        },
-      ],
-    );
+    setDeleteTarget(doc);
   };
 
   const openDoc = (id: string) => router.push(`/document/${id}`);
@@ -326,6 +317,36 @@ export default function Library() {
           ))}
         </View>
       )}
+
+      {/* Custom Delete Confirmation UI Modal */}
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        title="Delete Document"
+      >
+        <View style={{ paddingTop: 8 }}>
+          <Text style={{ fontFamily: theme.font.sans, fontSize: 15, color: theme.text, marginBottom: 8, lineHeight: 22 }}>
+            Are you sure you want to permanently delete <Text style={{ fontFamily: theme.font.sansSemi }}>"{deleteTarget?.title}"</Text>?
+          </Text>
+          <Text style={{ fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, marginBottom: 20 }}>
+            This document and its full version history will be removed. This action cannot be undone.
+          </Text>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10 }}>
+            <Button
+              label="Cancel"
+              variant="ghost"
+              disabled={deleting}
+              onPress={() => setDeleteTarget(null)}
+            />
+            <Button
+              label={deleting ? "Deleting…" : "Delete"}
+              variant="danger"
+              disabled={deleting}
+              onPress={performDelete}
+            />
+          </View>
+        </View>
+      </Dialog>
     </ScrollView>
   );
 }

@@ -143,6 +143,7 @@ export default function DocumentEditor() {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [mobileSectionsOpen, setMobileSectionsOpen] = useState(false);
 
   const loaded = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -784,9 +785,8 @@ export default function DocumentEditor() {
       <Text style={styles.saveStatusCenter}>
         {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : ""}
       </Text>
-
       <View style={styles.mobileBar}>
-        <Button label="Sections" variant="secondary" onPress={() => setAddOpen(true)} />
+        <Button label="Sections" variant="secondary" onPress={() => setMobileSectionsOpen(true)} />
         <Button label="Details" variant="secondary" onPress={() => setDetailsOpen(true)} />
         <Button label="Export" onPress={() => setExportOpen(true)} />
       </View>
@@ -811,10 +811,10 @@ export default function DocumentEditor() {
 
       {exportErr ? <ErrorText message={exportErr} /> : null}
 
-      {/* Sections sheet */}
-      <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Sections & outline">
+      {/* Mobile Sections sheet */}
+      <Sheet open={mobileSectionsOpen} onClose={() => setMobileSectionsOpen(false)} title="Sections & outline">
         <ScrollView style={styles.sheetScroll}>
-          {renderNavigator(() => setAddOpen(false))}
+          {renderNavigator(() => setMobileSectionsOpen(false))}
           {available.length > 0 ? (
             <View style={styles.addWrap}>
               <Text style={styles.addHead}>Add section</Text>
@@ -824,7 +824,7 @@ export default function DocumentEditor() {
                   style={styles.addItem}
                   onPress={() => {
                     setSections((p) => addSection(p, a));
-                    setAddOpen(false);
+                    setMobileSectionsOpen(false);
                   }}
                 >
                   <Text style={styles.addItemTitle}>+ {a.title}</Text>
@@ -833,7 +833,7 @@ export default function DocumentEditor() {
             </View>
           ) : null}
         </ScrollView>
-        <Button label="Close" variant="ghost" onPress={() => setAddOpen(false)} />
+        <Button label="Close" variant="ghost" onPress={() => setMobileSectionsOpen(false)} />
       </Sheet>
 
       {/* Details sheet */}
