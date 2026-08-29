@@ -443,9 +443,14 @@ export default function DocumentEditor() {
   const renderSection = (s: Section) => {
     const isSelected = selected?.id === s.id;
     return (
-      <View key={s.id} style={styles.canvasSection}>
+      <TouchableOpacity
+        key={s.id}
+        activeOpacity={0.92}
+        onPress={() => setSelectedId(s.id)}
+        style={[styles.canvasSection, isSelected && styles.canvasSectionSelected]}
+      >
         <View style={styles.canvasSectionHead}>
-          <Text style={styles.canvasSectionTitle}>{s.title}</Text>
+          <Text style={[styles.canvasSectionTitle, isSelected && { color: theme.accent }]}>{s.title}</Text>
           <SectionStatusBadge status={s.status} />
         </View>
         {isSelected ? (
@@ -463,9 +468,9 @@ export default function DocumentEditor() {
           <View>{s.blocks.map((b, i) => renderBlock(b, i, s.title))}</View>
         )}
         {s.blocks.length === 0 && !isSelected ? (
-          <Text style={styles.muted}>No content yet.</Text>
+          <Text style={styles.muted}>No content yet. Click to edit.</Text>
         ) : null}
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -969,7 +974,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   docMeta: { flexDirection: "row", gap: 8, marginBottom: 18 },
-  canvasSection: { marginTop: 22 },
+  canvasSection: { marginTop: 22, padding: 12, borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "transparent" },
+  canvasSectionSelected: { borderColor: theme.accent, backgroundColor: "#FAF7F2" },
   canvasSectionHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8, borderBottomWidth: 1, borderColor: theme.border, paddingBottom: 6 },
   canvasSectionTitle: { flex: 1, color: theme.text, fontSize: 20, fontFamily: theme.font.serifSemi },
   docHeading: { color: theme.text, fontFamily: theme.font.serifSemi, marginBottom: 8, marginTop: 10 },
