@@ -149,6 +149,21 @@ export default function DocumentEditor() {
   const [selectedId, setSelectedId] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
+  const [sectionOffsets, setSectionOffsets] = useState<Record<string, number>>({});
+  const scrollViewRef = useRef<any>(null);
+  const handleScroll = useCallback((e: any) => {
+    const y = e.nativeEvent.contentOffset.y;
+    const entries = Object.entries(sectionOffsets);
+    if (entries.length === 0) return;
+    const sorted = entries.sort((a, b) => b[1] - a[1]);
+    const found = sorted.find(([_, offset]) => offset <= y + 20);
+    if (found) {
+      const [id] = found;
+      if (id !== selectedId) {
+        setSelectedId(id);
+      }
+    }
+  }, [sectionOffsets, selectedId]);
 
   useEffect(() => {
     getUserSettings().then(setUserSettings);
@@ -528,8 +543,17 @@ export default function DocumentEditor() {
       <TouchableOpacity
         key={s.id}
         activeOpacity={0.92}
-        onPress={() => setSelectedId(s.id)}
+        onPress={() => {
+          setSelectedId(s.id);
+          if (scrollViewRef.current && sectionOffsets[s.id] !== undefined) {
+            scrollViewRef.current.scrollTo({ y: sectionOffsets[s.id], animated: true });
+          }
+        }}
         style={[styles.canvasSection, isSelected && styles.canvasSectionSelected]}
+        onLayout={(event) => {
+          const { y } = event.nativeEvent.layout;
+          setSectionOffsets((prev) => ({ ...prev, [s.id]: y }));
+        }}
       >
         <View style={styles.canvasSectionHead}>
           <Text style={[styles.canvasSectionTitle, isSelected && { color: theme.accent }]}>{s.title}</Text>
@@ -570,7 +594,7 @@ export default function DocumentEditor() {
   };
 
   const renderCanvas = () => (
-    <ScrollView style={styles.canvasScroll} contentContainerStyle={styles.canvasScrollContent}>
+    <ScrollView style={styles.canvasScroll} contentContainerStyle={styles.canvasScrollContent} ref={scrollViewRef} onScroll={handleScroll} scrollEventThrottle={16}>
       <View style={styles.page}>
         <View style={styles.docTitleContainer}>
           <TextInput
