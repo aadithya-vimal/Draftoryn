@@ -99,14 +99,24 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-export function ProgressBar({ value, indeterminate }: { value?: number; indeterminate?: boolean }) {
+export function ProgressBar({
+  value,
+  indeterminate,
+  height = 6,
+  style,
+}: {
+  value?: number;
+  indeterminate?: boolean;
+  height?: number;
+  style?: ViewStyle;
+}) {
   const pct = indeterminate ? 0.35 : Math.max(0, Math.min(1, value ?? 0));
   return (
-    <View style={styles.progressTrack}>
+    <View style={[styles.progressTrack, { height }, style]}>
       <View
         style={[
           styles.progressFill,
-          { width: `${Math.round(pct * 100)}%` },
+          { width: `${Math.round(pct * 100)}%`, height },
           indeterminate && styles.progressIndeterminate,
         ]}
       />

@@ -50,6 +50,7 @@ import {
   type BadgeTone,
   Dialog,
   Icon,
+  ProgressBar,
   Sheet,
   StatusBadge,
 } from "../../src/ui/components";
@@ -500,10 +501,23 @@ export default function DocumentEditor() {
   );
 
   // ---- Left navigator ----------------------------------------------------
-  const renderNavigator = (onPick?: () => void) => (
-    <View>
-      <SectionLabel>Sections</SectionLabel>
-      {sections.map((s) => {
+  const renderNavigator = (onPick?: () => void) => {
+    const visibleSecs = sections.filter((s) => !s.hidden).length;
+    const readySecs = sections.filter((s) => !s.hidden && s.status !== "missing" && s.status !== "empty").length;
+    const secCompletionPct = visibleSecs > 0 ? Math.round((readySecs / visibleSecs) * 100) : 100;
+
+    return (
+      <View>
+        <View style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <SectionLabel style={{ marginBottom: 0 }}>Sections</SectionLabel>
+            <Badge tone={secCompletionPct === 100 ? "ok" : readySecs > 0 ? "accent" : "neutral"}>
+              {`${readySecs}/${visibleSecs} ready`}
+            </Badge>
+          </View>
+          <ProgressBar value={visibleSecs > 0 ? readySecs / visibleSecs : 1} height={4} style={{ marginTop: 6 }} />
+        </View>
+        {sections.map((s) => {
         const isCurrent = (selectedId === s.id) || (!selectedId && selected?.id === s.id);
         return (
           <View
@@ -565,7 +579,8 @@ export default function DocumentEditor() {
         <Button label="Add section" variant="ghost" onPress={() => setAddOpen(true)} style={styles.navAdd} />
       ) : null}
     </View>
-  );
+    );
+  };
 
   // ---- Right context panel ----------------------------------------------
   const renderContext = () => (
