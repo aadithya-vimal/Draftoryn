@@ -65,6 +65,7 @@ const SECTION_STATUS_LABEL: Record<SectionStatus, string> = {
   edited: "Edited",
   missing: "Missing",
   ai: "AI",
+  needs_review: "Needs Review",
 };
 const SECTION_STATUS_TONE: Record<SectionStatus, BadgeTone> = {
   generated: "ok",
@@ -72,6 +73,7 @@ const SECTION_STATUS_TONE: Record<SectionStatus, BadgeTone> = {
   edited: "accent",
   missing: "danger",
   ai: "info",
+  needs_review: "warn",
 };
 
 function SectionStatusBadge({ status }: { status: SectionStatus }) {
@@ -92,6 +94,7 @@ const STATUS_TONE: Record<SectionStatus, "neutral" | "accent" | "ok" | "warn" | 
   edited: "accent",
   missing: "danger",
   ai: "info",
+  needs_review: "warn",
 };
 
 const EXPORT_GROUPS: {

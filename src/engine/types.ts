@@ -105,7 +105,8 @@ export interface DocumentDefinition {
   name: string;
   category: DocumentCategory;
   description: string;
-  intendedAudience: string;
+  intendedAudience?: string;
+  audience?: string;
   purpose: string;
   fields: FieldDef[];
   sections: SectionDef[];
@@ -113,6 +114,7 @@ export interface DocumentDefinition {
   generationInstructions?: string;
   terminology?: string[];
   outputCapabilities?: ExportFormat[];
+  exportFormats?: ExportFormat[];
 }
 
 // ---- Semantic model -------------------------------------------------------
@@ -217,7 +219,7 @@ export type BlockType =
   | "callout"
   | "divider";
 
-export type BlockTone = "info" | "warning" | "missing" | "assumption" | "neutral";
+export type BlockTone = "info" | "warning" | "missing" | "assumption" | "neutral" | "danger" | "success";
 
 export interface ContentBlock {
   type: BlockType;
@@ -226,6 +228,7 @@ export interface ContentBlock {
   items?: string[];
   table?: { headers: string[]; rows: string[][] };
   tone?: BlockTone;
+  ordered?: boolean;
 }
 
 export type SectionStatus =
@@ -233,7 +236,8 @@ export type SectionStatus =
   | "empty"
   | "edited"
   | "missing"
-  | "ai";
+  | "ai"
+  | "needs_review";
 
 export interface Section {
   id: string;
@@ -275,11 +279,16 @@ export type GenerationStatus =
   | "failed";
 
 export interface GeneratedDocument {
+  id?: string;
   definitionId: string;
   title: string;
+  status?: DocumentStatus;
+  generatedAt?: string;
+  engineVersion?: string;
   metadata: Record<string, string>;
   model: SemanticModel;
   sections: Section[];
+  validation?: unknown;
   /** Canonical Draftoryn attribution. Present on every generated document. */
   generator?: GeneratorMeta;
 }

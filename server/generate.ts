@@ -4,8 +4,14 @@ import { buildDocumentPrompt, buildSectionPrompt } from "../src/engine/ai/prompt
 import { validateGeneratedDocument } from "../src/engine/validation";
 import type { GeneratedDocument, Section } from "../src/engine/types";
 
-// Server-side generation entrypoint. AI keys live only on the server, so the
-// client can never see them.
+function getAiConfig() {
+  const apiKey = process.env.DRAFTORYN_AI_API_KEY || process.env.GROQ_API_KEY;
+  const baseUrl = process.env.DRAFTORYN_AI_BASE_URL || process.env.GROQ_BASE_URL || (process.env.GROQ_API_KEY ? "https://api.groq.com/openai/v1" : "https://api.openai.com/v1");
+  const model = process.env.DRAFTORYN_AI_MODEL || process.env.GROQ_MODEL || (process.env.GROQ_API_KEY ? "llama-3.3-70b-versatile" : "gpt-4o");
+  return { apiKey, baseUrl, model };
+}
+
+// Server-side generation entrypoint. AI keys live only on the server.
 export async function runGeneration(
   definitionId: string,
   source: Record<string, unknown>,
@@ -14,21 +20,15 @@ export async function runGeneration(
   const def = getDefinition(definitionId);
   if (!def) throw new Error(`Unknown document definition: ${definitionId}`);
 
-  const apiKey = process.env.DRAFTORYN_AI_API_KEY;
+  const { apiKey, baseUrl, model } = getAiConfig();
 
   if (sectionId) {
     if (apiKey) {
-      try {
-        const secDef = def.sections.find((s) => s.id === sectionId);
-        if (secDef) {
-          const baseDoc = generateDocument(def, source);
-          const aiSection = await generateAiSection(def, secDef, baseDoc.model, apiKey);
-          if (aiSection) return aiSection;
-        }
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn("AI section regeneration failed; using domain engine.", e);
-      }
+      const secDef = def.sections.find((s) => s.id === sectionId);
+      if (!secDef) throw new Error(`Unknown section: ${sectionId}`);
+      const baseDoc = generateDocument(def, source);
+      const aiSection = await generateAiSection(def, secDef, baseDoc.model, source, apiKey, baseUrl, model);
+      if (aiSection) return aiSection;
     }
     const section = regenerateSection(def, sectionId, source);
     if (!section) throw new Error(`Unknown section: ${sectionId}`);
@@ -36,33 +36,29 @@ export async function runGeneration(
   }
 
   if (apiKey) {
-    try {
-      const aiDoc = await generateAiDocument(def, source, apiKey);
-      if (aiDoc) return aiDoc;
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn("AI document generation failed; using deterministic domain engine.", e);
-    }
+    const aiDoc = await generateAiDocument(def, source, apiKey, baseUrl, model);
+    if (aiDoc) return aiDoc;
   }
 
+  // If no AI key was configured on the server, generate the deterministic baseline document
   return generateDocument(def, source);
 }
 
 async function generateAiDocument(
-  def: ReturnType<typeof getDefinition> extends undefined ? never : NonNullable<ReturnType<typeof getDefinition>>,
+  def: NonNullable<ReturnType<typeof getDefinition>>,
   source: Record<string, unknown>,
   apiKey: string,
+  baseUrl: string,
+  model: string,
 ): Promise<GeneratedDocument | null> {
   const req = buildDocumentPrompt(def);
-  const baseUrl = process.env.DRAFTORYN_AI_BASE_URL || "https://api.openai.com/v1";
-  const model = process.env.DRAFTORYN_AI_MODEL || "gpt-4o";
 
-  const res = await fetch(`${baseUrl}/chat/completions`, {
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model,
-      temperature: 0.2,
+      temperature: 0.15,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: `${req.system}\n\nRespond strictly with valid JSON conforming to:\n${req.schema}` },
@@ -71,10 +67,14 @@ async function generateAiDocument(
     }),
   });
 
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`AI inference failed (${res.status}): ${errBody.slice(0, 200)}`);
+  }
+
   const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   const text = json.choices?.[0]?.message?.content;
-  if (!text) return null;
+  if (!text) throw new Error("AI engine returned an empty response.");
 
   try {
     const parsed = JSON.parse(text) as { sections?: Section[] };
@@ -83,9 +83,18 @@ async function generateAiDocument(
       const combinedSections = base.sections.map((sec) => {
         const aiMatch = parsed.sections?.find((s) => s.id === sec.id);
         if (aiMatch && Array.isArray(aiMatch.blocks) && aiMatch.blocks.length > 0) {
+          // Remove duplicate leading heading matching the section title
+          const cleanBlocks = aiMatch.blocks.filter((b) => {
+            if (b.type === "heading" && typeof b.text === "string") {
+              const cleanText = b.text.trim().toLowerCase();
+              const cleanTitle = sec.title.trim().toLowerCase();
+              return cleanText !== cleanTitle && !cleanTitle.startsWith(cleanText);
+            }
+            return true;
+          });
           return {
             ...sec,
-            blocks: aiMatch.blocks,
+            blocks: cleanBlocks.length > 0 ? cleanBlocks : sec.blocks,
             status: "generated" as const,
           };
         }
@@ -102,38 +111,43 @@ async function generateAiDocument(
       }
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn("Could not parse AI response JSON", err);
+    if (err instanceof Error && err.message.startsWith("AI inference failed")) throw err;
+    throw new Error(`Could not parse structured AI output: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   return null;
 }
 
 async function generateAiSection(
-  def: ReturnType<typeof getDefinition> extends undefined ? never : NonNullable<ReturnType<typeof getDefinition>>,
+  def: NonNullable<ReturnType<typeof getDefinition>>,
   secDef: NonNullable<ReturnType<typeof getDefinition>>["sections"][number],
   model: GeneratedDocument["model"],
+  source: Record<string, unknown>,
   apiKey: string,
+  baseUrl: string,
+  aiModel: string,
 ): Promise<Section | null> {
   const req = buildSectionPrompt(def, secDef, model);
-  const baseUrl = process.env.DRAFTORYN_AI_BASE_URL || "https://api.openai.com/v1";
-  const aiModel = process.env.DRAFTORYN_AI_MODEL || "gpt-4o";
 
-  const res = await fetch(`${baseUrl}/chat/completions`, {
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: aiModel,
-      temperature: 0.2,
+      temperature: 0.15,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: `${req.system}\n\nRespond strictly with valid JSON conforming to:\n${req.schema}` },
-        { role: "user", content: req.user },
+        { role: "user", content: `${req.user}\n\nSource input:\n${JSON.stringify(source, null, 2)}` },
       ],
     }),
   });
 
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`AI section inference failed (${res.status}): ${errBody.slice(0, 200)}`);
+  }
+
   const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
   const text = json.choices?.[0]?.message?.content;
   if (!text) return null;
@@ -142,17 +156,28 @@ async function generateAiSection(
     const parsed = JSON.parse(text) as { sections?: Section[] };
     const found = parsed.sections?.find((s) => s.id === secDef.id) || parsed.sections?.[0];
     if (found && Array.isArray(found.blocks) && found.blocks.length > 0) {
+      const cleanBlocks = found.blocks.filter((b) => {
+        if (b.type === "heading" && typeof b.text === "string") {
+          const cleanText = b.text.trim().toLowerCase();
+          const cleanTitle = secDef.title.trim().toLowerCase();
+          return cleanText !== cleanTitle && !cleanTitle.startsWith(cleanText);
+        }
+        return true;
+      });
+
       return {
         id: secDef.id,
         title: secDef.title,
         kind: secDef.kind,
-        blocks: found.blocks,
+        blocks: cleanBlocks.length > 0 ? cleanBlocks : found.blocks,
         status: "generated",
       };
     }
-  } catch {
-    // ignore
+  } catch (err) {
+    throw new Error(`Could not parse regenerated section output: ${err instanceof Error ? err.message : String(err)}`);
   }
+
   return null;
 }
+
 

@@ -101,16 +101,19 @@ cp .env.example .env
 
 Set the required environment keys:
 ```env
-# Clerk Authentication
+# Client Public Configuration
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+EXPO_PUBLIC_API_BASE=http://localhost:8787
 
-# Neon PostgreSQL Database
+# Server-Only Privileged Credentials (never exposed to client)
+CLERK_SECRET_KEY=sk_test_...
 DATABASE_URL=postgresql://user:pass@ep-host.aws.neon.tech/neondb?sslmode=require
+PORT=8787
 
-# Groq AI Acceleration
-EXPO_PUBLIC_GROQ_API_KEY=gsk_...
-EXPO_PUBLIC_GROQ_BASE_URL=https://api.groq.com/openai/v1
-EXPO_PUBLIC_GROQ_MODEL=llama-3.3-70b-versatile
+# Server-Side AI Acceleration (Groq / OpenAI compatible)
+GROQ_API_KEY=gsk_...
+GROQ_BASE_URL=https://api.groq.com/openai/v1
+GROQ_MODEL=llama-3.3-70b-versatile
 ```
 
 ### 3. Run Development Server

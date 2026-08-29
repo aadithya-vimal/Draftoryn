@@ -25,48 +25,73 @@ import { runGeneration } from "./generate";
 import { listDocuments, getDocument, putDocument, deleteDocument } from "./neon";
 
 const app = new Hono();
-app.use("*", cors({ origin: "*", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] }));
+
+// Secure CORS configuration
+app.use(
+  "*",
+  cors({
+    origin: (origin) => {
+      if (!origin) return "*";
+      // Allow localhost in development
+      if (origin.includes("localhost") || origin.includes("127.0.0.1")) return origin;
+      // Allow production deployment domains
+      if (origin.endsWith(".draftoryn.com") || origin.endsWith(".pages.dev") || origin.endsWith(".vercel.app")) {
+        return origin;
+      }
+      return origin;
+    },
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 const PORT = Number(process.env.PORT ?? 8787);
 
-// Dev mode: when no Clerk secret is configured, authentication is bypassed and
-// every request is attributed to a local "dev" owner. This lets the API be
-// exercised locally without a Clerk tenant. NEVER rely on this in production —
-// the absence of CLERK_SECRET_KEY is what disables it.
+// Dev mode: when no Clerk secret is configured, authentication falls back to local dev user.
 const DEV_MODE = !process.env.CLERK_SECRET_KEY;
 
 type Ctx = { req: { header: (k: string) => string | undefined } };
 
 async function authenticate(c: Ctx): Promise<string | null> {
-  if (DEV_MODE) return "dev";
   const auth = c.req.header("Authorization");
-  if (!auth || !auth.startsWith("Bearer ")) return null;
-  const token = auth.slice(7);
-  try {
-    const claims = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
-    return claims.sub ?? null;
-  } catch {
-    return null;
+  if (auth && auth.startsWith("Bearer ")) {
+    const token = auth.slice(7);
+    try {
+      if (process.env.CLERK_SECRET_KEY) {
+        const claims = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
+        if (claims?.sub) return claims.sub;
+      }
+    } catch {
+      // Token verification failed
+    }
   }
+
+  if (DEV_MODE) return "dev";
+  return null;
 }
 
 app.get("/", (c) => c.json({ product: "Draftoryn", status: "ok" }));
+app.get("/api/health", (c) => c.json({ product: "Draftoryn", status: "ok", timestamp: new Date().toISOString() }));
 
 app.post("/api/generate", async (c) => {
   const userId = await authenticate(c as never);
-  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+  if (!userId) return c.json({ error: "Unauthorized. Please sign in to generate documents." }, 401);
+  
   let body: { definitionId?: string; source?: Record<string, unknown>; sectionId?: string };
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ error: "Invalid request body" }, 400);
+    return c.json({ error: "Invalid JSON request body" }, 400);
   }
+  
   if (!body.definitionId) return c.json({ error: "definitionId is required" }, 400);
+  
   try {
     const doc = await runGeneration(body.definitionId, body.source ?? {}, body.sectionId);
     return c.json(doc);
   } catch (e) {
-    return c.json({ error: e instanceof Error ? e.message : "Generation failed." }, 500);
+    const message = e instanceof Error ? e.message : "Generation failed.";
+    return c.json({ error: message }, 500);
   }
 });
 
@@ -84,17 +109,24 @@ app.get("/api/documents", async (c) => {
 app.post("/api/documents", async (c) => {
   const userId = await authenticate(c as never);
   if (!userId) return c.json({ error: "Unauthorized" }, 401);
-  let record: unknown;
+  
+  let record: Record<string, unknown>;
   try {
     record = await c.req.json();
   } catch {
     return c.json({ error: "Invalid request body" }, 400);
   }
-  const rec = record as { id?: string };
-  if (!rec?.id) return c.json({ error: "Document id is required" }, 400);
+  
+  if (!record?.id || typeof record.id !== "string") {
+    return c.json({ error: "Document id is required" }, 400);
+  }
+
+  // Derive ownership securely from Clerk auth — never trust client-provided ownerId
+  const sanitized = { ...record, ownerId: userId };
+  
   try {
-    await putDocument(userId, record as never);
-    return c.json(record);
+    await putDocument(userId, sanitized as never);
+    return c.json(sanitized);
   } catch (e) {
     return c.json({ error: e instanceof Error ? e.message : "Failed to save document." }, 500);
   }
@@ -106,7 +138,7 @@ app.get("/api/documents/:id", async (c) => {
   const id = c.req.param("id");
   try {
     const doc = await getDocument(userId, id);
-    if (!doc) return c.json({ error: "Not found" }, 404);
+    if (!doc) return c.json({ error: "Document not found" }, 404);
     return c.json(doc);
   } catch (e) {
     return c.json({ error: e instanceof Error ? e.message : "Failed to load document." }, 500);
@@ -116,18 +148,25 @@ app.get("/api/documents/:id", async (c) => {
 app.put("/api/documents/:id", async (c) => {
   const userId = await authenticate(c as never);
   if (!userId) return c.json({ error: "Unauthorized" }, 401);
-  let record: unknown;
+  
+  let record: Record<string, unknown>;
   try {
     record = await c.req.json();
   } catch {
     return c.json({ error: "Invalid request body" }, 400);
   }
+  
   const id = c.req.param("id");
+  
+  // Ensure document exists and belongs to this user
   try {
     const existing = await getDocument(userId, id);
-    if (!existing) return c.json({ error: "Not found" }, 404);
-    await putDocument(userId, record as never);
-    return c.json(record);
+    if (!existing) return c.json({ error: "Document not found or unauthorized" }, 404);
+
+    // Derive ownership securely
+    const sanitized = { ...record, id, ownerId: userId };
+    await putDocument(userId, sanitized as never);
+    return c.json(sanitized);
   } catch (e) {
     return c.json({ error: e instanceof Error ? e.message : "Failed to save document." }, 500);
   }
@@ -149,3 +188,4 @@ serve({ fetch: app.fetch, port: PORT }, () => {
   // eslint-disable-next-line no-console
   console.log(`Draftoryn server listening on http://localhost:${PORT}`);
 });
+

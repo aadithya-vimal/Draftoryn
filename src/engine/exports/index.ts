@@ -49,7 +49,8 @@ export function slugifyTitle(title: string): string {
 
 export async function exportDocument(doc: GeneratedDocument, format: ExportFormat): Promise<ExportResult> {
   const withMeta: GeneratedDocument = doc.generator ? doc : { ...doc, generator: buildGeneratorMeta() };
-  const filename = `${slugifyTitle(withMeta.title)}.${EXT[format]}`;
+  const clientPrefix = withMeta.model?.client?.name ? `${slugifyTitle(withMeta.model.client.name)}-` : "";
+  const filename = `${clientPrefix}${slugifyTitle(withMeta.title)}.${EXT[format]}`;
   switch (format) {
     case "markdown":
       return { format, filename, mimeType: MIME.markdown, data: toMarkdown(withMeta) };
