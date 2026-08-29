@@ -151,7 +151,26 @@ export default function Library() {
     );
   });
 
+  const performDelete = async (docId: string) => {
+    try {
+      setDocs((prev) => prev.filter((d) => d.id !== docId));
+      await deleteDocument(user, docId);
+      load();
+    } catch {
+      setError("Could not delete that document. Please try again.");
+      load();
+    }
+  };
+
   const confirmDelete = (doc: DocumentSummary) => {
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      const ok = window.confirm(`Are you sure you want to delete "${doc.title}"? This cannot be undone.`);
+      if (ok) {
+        void performDelete(doc.id);
+      }
+      return;
+    }
+
     Alert.alert(
       "Delete document",
       `Delete "${doc.title}"? This cannot be undone.`,
@@ -160,15 +179,7 @@ export default function Library() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: async () => {
-            if (!user.isSignedIn || !user.userId) return;
-            try {
-              await deleteDocument(user, doc.id);
-              load();
-            } catch {
-              setError("Could not delete that document. Please try again.");
-            }
-          },
+          onPress: () => void performDelete(doc.id),
         },
       ],
     );

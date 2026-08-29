@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,6 +9,7 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
+  type GestureResponderEvent,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAppUser } from "../../src/auth/clerk";
@@ -497,37 +499,64 @@ export default function DocumentEditor() {
   const renderNavigator = (onPick?: () => void) => (
     <View>
       <SectionLabel>Sections</SectionLabel>
-      {sections.map((s) => (
-        <View key={s.id} style={[styles.navItem, selectedId === s.id && styles.navItemActive]}>
-          <TouchableOpacity
-            style={styles.navItemMain}
-            onPress={() => {
-              setSelectedId(s.id);
-              onPick?.();
-            }}
+      {sections.map((s) => {
+        const isCurrent = (selectedId === s.id) || (!selectedId && selected?.id === s.id);
+        return (
+          <View
+            key={s.id}
+            style={[
+              styles.navItem,
+              isCurrent && styles.navItemActive,
+              s.hidden && styles.navItemMuted,
+            ]}
           >
-            <Text style={[styles.navItemTitle, s.hidden && styles.navItemHidden]}>{s.title}</Text>
-            <SectionStatusBadge status={s.status} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation?.();
-              setSections((p) => {
-                const next = s.hidden ? showSection(p, s.id) : hideSection(p, s.id);
-                if (!s.hidden && selectedId === s.id) {
-                  const firstVisible = next.find((x) => !x.hidden);
-                  if (firstVisible) setSelectedId(firstVisible.id);
-                }
-                return next;
-              });
-            }}
-            style={[styles.navToggle, s.hidden && { backgroundColor: theme.surface2 }]}
-            accessibilityLabel={s.hidden ? `Show ${s.title}` : `Hide ${s.title}`}
-          >
-            <Icon name={s.hidden ? "EyeOff" : "Eye"} size={16} color={s.hidden ? theme.danger : theme.muted} />
-          </TouchableOpacity>
-        </View>
-      ))}
+            <Pressable
+              style={({ pressed }) => [
+                styles.navItemMain,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+              onPress={() => {
+                setSelectedId(s.id);
+                onPick?.();
+              }}
+            >
+              <Text
+                style={[
+                  styles.navItemTitle,
+                  isCurrent && styles.navItemTitleActive,
+                  s.hidden && styles.navItemHidden,
+                ]}
+                numberOfLines={2}
+              >
+                {s.title}
+              </Text>
+              <SectionStatusBadge status={s.status} />
+            </Pressable>
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation?.();
+                setSections((p) => {
+                  const next = s.hidden ? showSection(p, s.id) : hideSection(p, s.id);
+                  return next;
+                });
+              }}
+              style={({ pressed }) => [
+                styles.navToggle,
+                s.hidden && { backgroundColor: theme.surface2 },
+                { opacity: pressed ? 0.5 : 1 },
+              ]}
+              hitSlop={8}
+              accessibilityLabel={s.hidden ? `Show ${s.title}` : `Hide ${s.title}`}
+            >
+              <Icon
+                name={s.hidden ? "EyeOff" : "Eye"}
+                size={16}
+                color={s.hidden ? theme.muted : theme.accent}
+              />
+            </Pressable>
+          </View>
+        );
+      })}
       {available.length > 0 ? (
         <Button label="Add section" variant="ghost" onPress={() => setAddOpen(true)} style={styles.navAdd} />
       ) : null}
@@ -994,10 +1023,12 @@ const styles = StyleSheet.create({
   docDivider: { height: 1, backgroundColor: theme.border, marginVertical: 12 },
 
   navItem: { flexDirection: "row", alignItems: "center", borderRadius: theme.radiusSm, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, marginBottom: 8, overflow: "hidden" },
-  navItemActive: { borderColor: theme.accent, backgroundColor: "#FBF7EE" },
+  navItemActive: { borderColor: theme.accent, backgroundColor: "#FAF7F2" },
+  navItemMuted: { opacity: 0.6 },
   navItemMain: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 9, paddingHorizontal: 10, gap: 8 },
   navItemTitle: { color: theme.text, fontSize: 13, fontFamily: theme.font.sansMedium, flexShrink: 1 },
-  navItemHidden: { color: theme.muted, fontStyle: "italic" },
+  navItemTitleActive: { color: theme.accent, fontFamily: theme.font.sansSemi },
+  navItemHidden: { color: theme.muted, textDecorationLine: "line-through" },
   navToggle: { paddingHorizontal: 10, paddingVertical: 9, borderLeftWidth: 1, borderColor: theme.border },
   navAdd: { marginTop: 4 },
 
