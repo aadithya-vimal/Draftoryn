@@ -511,8 +511,8 @@ export default function DocumentEditor() {
     return (
       <View>
         <View style={{ marginBottom: 12 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <SectionLabel style={{ marginBottom: 0 }}>Sections</SectionLabel>
+          <View style={styles.navHeaderRow}>
+            <Text style={styles.navHeaderTitle}>SECTIONS</Text>
             <Badge tone={secCompletionPct === 100 ? "ok" : readySecs > 0 ? "accent" : "neutral"}>
               {`${readySecs}/${visibleSecs} ready`}
             </Badge>
@@ -1043,6 +1043,8 @@ const styles = StyleSheet.create({
   docCallout: { borderLeftWidth: 3, borderRadius: theme.radiusSm, backgroundColor: theme.surface2, padding: 12, marginBottom: 12 },
   docDivider: { height: 1, backgroundColor: theme.border, marginVertical: 12 },
 
+  navHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 8 },
+  navHeaderTitle: { fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: theme.accent },
   navItem: { flexDirection: "row", alignItems: "center", borderRadius: theme.radiusSm, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, marginBottom: 8, overflow: "hidden" },
   navItemActive: { borderColor: theme.accent, backgroundColor: "#FAF7F2" },
   navItemMuted: { opacity: 0.6 },

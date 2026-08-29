@@ -329,9 +329,9 @@ export default function NewDocumentScreen() {
   const progressSection = (
     <View style={styles.progressSection}>
       <View style={styles.progressHeaderRow}>
-        <SectionLabel style={{ marginBottom: 0 }}>Your progress</SectionLabel>
+        <Text style={styles.progressHeaderTitle}>YOUR PROGRESS</Text>
         <Badge tone={completionPct === 100 ? "ok" : completionPct > 0 ? "accent" : "neutral"}>
-          {`${completionPct}% completed`}
+          {`${completionPct}% complete`}
         </Badge>
       </View>
       <ProgressBar value={completionRatio} height={6} style={styles.overviewProgressBar} />
@@ -542,10 +542,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     flex: 1,
+    minWidth: 0,
   },
-  backPill: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 4 },
+  backPill: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 4, flexShrink: 0 },
   backText: { fontFamily: theme.font.sansMedium, fontSize: 14, color: theme.text },
-  topBarName: { fontFamily: theme.font.serifSemi, fontSize: 18, color: theme.text },
+  topBarName: { fontFamily: theme.font.serifSemi, fontSize: 18, color: theme.text, flexShrink: 1 },
   topBarCatBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -556,9 +557,10 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 12,
+    flexShrink: 0,
   },
   topBarCat: { fontFamily: theme.font.monoMedium, fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase", color: theme.accent },
-  topBarProgress: { width: 220 },
+  topBarProgress: { width: 220, flexShrink: 0 },
   topBarPct: { fontFamily: theme.font.monoMedium, fontSize: 11, color: theme.muted, marginTop: 4, textAlign: "right" },
 
   mobileTopBar: {
@@ -604,7 +606,14 @@ const styles = StyleSheet.create({
 
   overviewCard: { marginBottom: 0 },
   progressSection: { marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderColor: theme.border },
-  progressHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  progressHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 },
+  progressHeaderTitle: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    color: theme.accent,
+  },
   overviewProgressBar: { marginVertical: 6 },
   progressSubtitle: { fontFamily: theme.font.monoMedium, fontSize: 10.5, color: theme.muted, marginTop: 3, marginBottom: 12 },
   stepsList: { gap: 5 },
