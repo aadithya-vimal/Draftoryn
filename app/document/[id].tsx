@@ -561,7 +561,16 @@ export default function DocumentEditor() {
   const renderCanvas = () => (
     <ScrollView style={styles.canvasScroll} contentContainerStyle={styles.canvasScrollContent}>
       <View style={styles.page}>
-        <Text style={styles.docTitle}>{title || "Untitled document"}</Text>
+        <View style={styles.docTitleContainer}>
+          <TextInput
+            style={styles.docTitleInput}
+            value={title}
+            onChangeText={updateTitle}
+            placeholder="Untitled document"
+            placeholderTextColor={theme.muted}
+            accessibilityLabel="Document title"
+          />
+        </View>
         {def ? (
           <View style={styles.docMeta}>
             {category ? <Badge tone="accent">{category.label}</Badge> : null}
@@ -1038,12 +1047,16 @@ const styles = StyleSheet.create({
   titleWrap: { flex: 1, minWidth: 200 },
   titleInput: {
     color: theme.text,
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: theme.font.serifSemi,
     borderBottomWidth: 1,
     borderColor: theme.border,
     paddingVertical: 4,
-  },
+    paddingHorizontal: 8,
+    backgroundColor: theme.surface2,
+    borderRadius: theme.radiusSm,
+    outlineStyle: "none",
+  } as any,
   saveStatus: { color: theme.ok, fontSize: 12, fontFamily: theme.font.monoMedium, minWidth: 70, textAlign: "right" },
   topActions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
 
@@ -1064,6 +1077,20 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     marginBottom: 10,
   },
+  docTitleContainer: {
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderColor: "transparent",
+  },
+  docTitleInput: {
+    color: theme.text,
+    fontSize: 32,
+    fontFamily: theme.font.serifBold,
+    lineHeight: 38,
+    paddingVertical: 4,
+    paddingHorizontal: 0,
+    outlineStyle: "none",
+  } as any,
   docMeta: { flexDirection: "row", gap: 8, marginBottom: 18 },
   canvasSection: { marginTop: 22, padding: 12, borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "transparent" },
   canvasSectionSelected: { borderColor: theme.accent, backgroundColor: "#FAF7F2" },
@@ -1125,7 +1152,19 @@ const styles = StyleSheet.create({
 
   screenMobile: { flex: 1, backgroundColor: theme.bg, padding: 12, paddingTop: 18 },
   mobileTop: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
-  mobileTitle: { flex: 1, color: theme.text, fontSize: 20, fontFamily: theme.font.serifSemi, borderBottomWidth: 1, borderColor: theme.border, paddingVertical: 4 },
+  mobileTitle: {
+    flex: 1,
+    color: theme.text,
+    fontSize: 18,
+    fontFamily: theme.font.serifSemi,
+    borderBottomWidth: 1,
+    borderColor: theme.border,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: theme.surface2,
+    borderRadius: theme.radiusSm,
+    outlineStyle: "none",
+  } as any,
   saveStatusCenter: { color: theme.ok, fontSize: 12, fontFamily: theme.font.monoMedium, textAlign: "right" },
   saveStatusContainer: { minWidth: 80, alignItems: "flex-end", justifyContent: "center" },
   saveStatusContainerMobile: { alignItems: "flex-end", justifyContent: "center", marginBottom: 6 },
