@@ -1,3 +1,10 @@
+// Ensure process.env is safely defined in edge/worker environments
+if (typeof globalThis.process === "undefined") {
+  (globalThis as any).process = { env: {} };
+} else if (!globalThis.process.env) {
+  (globalThis.process as any).env = {};
+}
+
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
@@ -24,7 +31,15 @@ import {
   listDocumentExports,
 } from "./neon";
 
-const app = new Hono();
+const app = new Hono<{ Bindings: Record<string, string> }>();
+
+// Populate process.env with Cloudflare Worker bindings/secrets
+app.use("*", async (c, next) => {
+  if (c.env && typeof c.env === "object") {
+    Object.assign(globalThis.process.env, c.env);
+  }
+  await next();
+});
 
 // Secure CORS configuration
 app.use(
@@ -45,10 +60,7 @@ app.use(
   }),
 );
 
-const PORT = Number(process.env.PORT ?? 8787);
-
-// Dev mode: when no Clerk secret is configured, authentication falls back to local dev user.
-const DEV_MODE = !process.env.CLERK_SECRET_KEY;
+const isDevMode = () => !process.env.CLERK_SECRET_KEY;
 
 type Ctx = { req: { header: (k: string) => string | undefined } };
 
@@ -83,7 +95,7 @@ async function authenticate(c: Ctx): Promise<{ userId: string; claims?: AuthUser
     }
   }
 
-  if (DEV_MODE) {
+  if (isDevMode()) {
     return {
       userId: "dev_user",
       claims: {
