@@ -461,7 +461,7 @@ export default function Settings() {
             <View style={styles.aboutRow}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <Image
-                  source={require("../../../assets/icon.png")}
+                  source={require("../../assets/icon.png")}
                   style={{ width: 24, height: 24, borderRadius: 5 }}
                   resizeMode="contain"
                 />
