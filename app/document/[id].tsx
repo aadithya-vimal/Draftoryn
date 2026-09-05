@@ -1139,10 +1139,10 @@ export default function DocumentEditor() {
 
 const styles = StyleSheet.create({
   sheetAutofillBanner: {
-    backgroundColor: "#FAF7F2",
+    backgroundColor: "rgba(59, 130, 246, 0.12)",
     borderRadius: theme.radiusSm,
     borderWidth: 1,
-    borderColor: "rgba(184, 134, 11, 0.25)",
+    borderColor: "rgba(59, 130, 246, 0.28)",
     padding: 10,
     marginBottom: 12,
   },
@@ -1195,7 +1195,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#FAF7F2",
+    backgroundColor: "rgba(59, 130, 246, 0.12)",
     borderWidth: 1,
     borderColor: theme.accent,
     borderRadius: theme.radiusSm,
@@ -1238,7 +1238,7 @@ const styles = StyleSheet.create({
   },
   exportRowDefault: {
     borderColor: theme.accent,
-    backgroundColor: "#FAF9F5",
+    backgroundColor: "rgba(59, 130, 246, 0.12)",
   },
   exportRowTitleWrap: {
     flexDirection: "row",
@@ -1306,7 +1306,7 @@ const styles = StyleSheet.create({
   } as any,
   docMeta: { flexDirection: "row", gap: 8, marginBottom: 18 },
   canvasSection: { marginTop: 22, padding: 12, borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "transparent" },
-  canvasSectionSelected: { borderColor: theme.accent, backgroundColor: "#FAF7F2" },
+  canvasSectionSelected: { borderColor: theme.accent, backgroundColor: "rgba(59, 130, 246, 0.12)" },
   canvasSectionHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, borderBottomWidth: 1, borderColor: theme.border, paddingBottom: 8 },
   canvasSectionTitle: { flex: 1, color: theme.text, fontSize: 20, fontFamily: theme.font.serifSemi },
   docHeading: { color: theme.text, fontFamily: theme.font.serifSemi, marginBottom: 8, marginTop: 10 },
@@ -1328,7 +1328,7 @@ const styles = StyleSheet.create({
   navHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6, gap: 8 },
   navHeaderTitle: { fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: theme.accent },
   navItem: { flexDirection: "row", alignItems: "center", borderRadius: theme.radiusSm, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, marginBottom: 8, overflow: "hidden" },
-  navItemActive: { borderColor: theme.accent, backgroundColor: "#FAF7F2" },
+  navItemActive: { borderColor: theme.accent, backgroundColor: "rgba(59, 130, 246, 0.12)" },
   navItemMuted: { opacity: 0.6 },
   navItemMain: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 9, paddingHorizontal: 10, gap: 8 },
   navItemTitle: { color: theme.text, fontSize: 13, fontFamily: theme.font.sansMedium, flexShrink: 1 },
@@ -1383,9 +1383,9 @@ const styles = StyleSheet.create({
   saveStatusContainerMobile: { alignItems: "flex-end", justifyContent: "center", marginBottom: 6 },
   saveProgressRow: { flexDirection: "row", alignItems: "center", gap: 6 },
 
-  regenInlineBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#FAF6EE", paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, borderColor: "rgba(184, 134, 11, 0.3)" },
+  regenInlineBadge: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(59, 130, 246, 0.12)", paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, borderColor: "rgba(59, 130, 246, 0.3)" },
   regenInlineText: { color: theme.accent, fontSize: 11, fontFamily: theme.font.monoMedium },
-  sectionLoadingBox: { flexDirection: "row", alignItems: "center", gap: 10, padding: 18, backgroundColor: "#FAF7F2", borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "rgba(184, 134, 11, 0.2)", marginVertical: 8 },
+  sectionLoadingBox: { flexDirection: "row", alignItems: "center", gap: 10, padding: 18, backgroundColor: "rgba(59, 130, 246, 0.12)", borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "rgba(59, 130, 246, 0.25)", marginVertical: 8 },
   sectionLoadingText: { color: theme.accent, fontSize: 13, fontFamily: theme.font.sansMedium },
 
   exportProgressBox: { alignItems: "center", justifyContent: "center", paddingVertical: 28, paddingHorizontal: 16 },

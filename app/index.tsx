@@ -22,51 +22,51 @@ export default function LandingPage() {
 
   const tabs = [
     {
-      label: "Software Requirements (SRS)",
-      icon: "Code2",
-      badge: "Engineering",
-      title: "Complete IEEE 830 / ISO Software Specs",
-      desc: "Generate comprehensive system scope, user roles, functional requirements, REST API contracts, sequence logic, and non-functional constraints tailored for development teams.",
-      previewTitle: "Software Requirements Specification (SRS)",
-      previewMeta: "ISO/IEC/IEEE 29148 Standard · 12 Sections",
-      previewItems: [
-        "1.0 Purpose & System Scope",
-        "2.0 User Classes & Personas",
-        "3.0 Functional Requirements & Use Cases",
-        "4.0 Data Models & External APIs",
-        "5.0 Security & Performance Guarantees",
-      ],
-    },
-    {
-      label: "Penetration Testing Scope",
+      label: "Penetration Testing Authorization",
       icon: "ShieldAlert",
-      badge: "Security",
+      badge: "Offensive Security",
       title: "Legally Authoritative Security Scopes",
-      desc: "Create clear rules of engagement, authorized targets, out-of-scope assets, test schedule boundaries, and emergency contact escalation paths in minutes.",
-      previewTitle: "Penetration Test Authorization Agreement",
-      previewMeta: "PTES Standard · Legal & Operational Scope",
+      desc: "Establish clear rules of engagement, authorized targets, out-of-scope assets, test schedule boundaries, and emergency contact escalation paths in minutes.",
+      previewTitle: "Penetration Testing Agreement & Authorization",
+      previewMeta: "PTES / NIST SP 800-115 Standard · 7 Sections",
       previewItems: [
-        "1.0 Authorization & Safe Harbor Clause",
-        "2.0 Target CIDR Ranges & Domains",
-        "3.0 Out-of-Scope Production Systems",
-        "4.0 Testing Windows & Rate Limits",
-        "5.0 Escalation & Incident Response Contacts",
+        "1.0 Identification of Parties & Authority",
+        "2.0 Authorization & Safe Harbor Clause",
+        "3.0 Target CIDR Ranges & Domain Scope",
+        "4.0 Out-of-Scope Production Systems",
+        "5.0 Emergency Escalation Protocol",
       ],
     },
     {
-      label: "Architecture & Threat Model",
-      icon: "Layers",
-      badge: "Architecture",
-      title: "STRIDE & Cloud Infrastructure Plans",
+      label: "Incident Response Playbook",
+      icon: "Siren",
+      badge: "Incident Response / DFIR",
+      title: "Operational Incident Response Playbooks",
+      desc: "Standardize containment matrices, forensic evidence handling procedures, severity triage, and stakeholder communication timelines.",
+      previewTitle: "Cybersecurity Incident Response Playbook",
+      previewMeta: "NIST SP 800-61 Rev 2 Framework · Operational",
+      previewItems: [
+        "1.0 Incident Classification & Severity Matrix",
+        "2.0 Triage & First-Responder Protocol",
+        "3.0 Forensic Evidence Chain of Custody",
+        "4.0 Containment & Eradication Procedures",
+        "5.0 Post-Incident Remediation & Sign-off",
+      ],
+    },
+    {
+      label: "Enterprise Threat Model",
+      icon: "Building2",
+      badge: "Security Architecture",
+      title: "STRIDE Architecture & Trust Boundaries",
       desc: "Structured architecture blueprints including component trust boundaries, data flow diagrams, threat modeling mitigations, and compliance checklists.",
-      previewTitle: "Cloud Architecture & Threat Model",
-      previewMeta: "STRIDE Framework · AWS/GCP Ready",
+      previewTitle: "System Threat Model & Architecture Spec",
+      previewMeta: "STRIDE / OWASP Threat Matrix · Production-Grade",
       previewItems: [
         "1.0 System Architecture Overview",
-        "2.0 Trust Boundaries & Data Flow",
-        "3.0 STRIDE Threat Matrix",
-        "4.0 AuthN / AuthZ Mechanism",
-        "5.0 Resilience & Disaster Recovery",
+        "2.0 Trust Boundaries & Data Flow Diagrams",
+        "3.0 STRIDE Threat Identification Matrix",
+        "4.0 Authentication & Cryptographic Controls",
+        "5.0 Residual Risk Acceptance & Action Items",
       ],
     },
   ];
@@ -74,31 +74,31 @@ export default function LandingPage() {
   const currentTab = tabs[activeTab] ?? tabs[0]!;
 
   const stats = [
-    { value: "100+", label: "Vetted Templates" },
-    { value: "< 5s", label: "Instant Generation" },
-    { value: "7+", label: "Export Formats (PDF, DOCX...)" },
-    { value: "100%", label: "Zero Server Lock-in" },
+    { value: "30", label: "Core Security Frameworks" },
+    { value: "6", label: "Specialized Domains" },
+    { value: "7", label: "Export Formats (PDF, DOCX...)" },
+    { value: "100%", label: "Client-Side Privacy" },
   ];
 
   const features = [
     {
       icon: "Cpu",
-      title: "Ultra-Fast Groq Intelligence",
-      desc: "Powered by high-throughput LLaMA models on Groq hardware. Drafts multi-page technical blueprints with zero hallucination.",
+      title: "Context-Driven Opt-In AI",
+      desc: "Deterministic manual structural drafting by default. Opt in to AI synthesis only when you provide explicit scope and organizational context.",
     },
     {
       icon: "FileCheck2",
       title: "Publication-Grade Exports",
-      desc: "Export to bordered executive PDFs, stylized Word DOCX documents, clean GitHub Markdown, and structured JSON.",
+      desc: "Export to executive styled PDFs, structured Word DOCX files, clean GitHub Markdown, and raw JSON blueprints.",
     },
     {
       icon: "Lock",
       title: "Zero Operational Data Leakage",
-      desc: "Placeholders and explicit variables protect your live credentials, proprietary codebases, and private endpoints.",
+      desc: "Strict field boundaries and client-side isolation protect your live credentials, proprietary targets, and private endpoints.",
     },
     {
       icon: "Database",
-      title: "Serverless Neon Persistence",
+      title: "Serverless Persistence",
       desc: "Cloud-synchronized PostgreSQL database via Neon with instant offline caching and Clerk authentication.",
     },
   ];
@@ -115,7 +115,7 @@ export default function LandingPage() {
             <Text style={styles.brandTitle}>Draftoryn</Text>
             {!isMobile ? (
               <View style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>STUDIO</Text>
+                <Text style={styles.proBadgeText}>CYBERSECURITY</Text>
               </View>
             ) : null}
           </View>
@@ -141,20 +141,20 @@ export default function LandingPage() {
         <View style={styles.heroContainer}>
           <View style={styles.pillBadge}>
             <Icon name="Sparkles" size={14} color={theme.accent} />
-            <Text style={styles.pillText}>Next-Gen Technical & Security Document Studio</Text>
+            <Text style={styles.pillText}>Specialized Cybersecurity Document Studio</Text>
           </View>
 
           <Heading level={1} style={isMobile ? styles.heroTitleMobile : styles.heroTitle}>
-            Authoritative technical specs & security agreements in seconds.
+            Authoritative security agreements & technical specs in seconds.
           </Heading>
 
           <Text style={[styles.heroSubtitle, isMobile && { fontSize: 15, lineHeight: 22 }]}>
-            Stop wrestling with messy word templates. Draftoryn combines domain-specific frameworks with high-speed AI to create flawless system specifications, software architecture plans, and security assessment scopes.
+            Stop wrestling with unstandardized templates. Draftoryn provides 30 rigorously structured cybersecurity documents across Offensive Security, DFIR, Threat Intelligence, Architecture, Governance, and Resilience.
           </Text>
 
           <View style={[styles.heroCtaRow, isMobile && { flexDirection: "column", width: "100%" }]}>
             <Button
-              label="Start drafting for free"
+              label="Start drafting now"
               onPress={() => router.push("/(auth)/signup")}
               style={isMobile ? { width: "100%" } : styles.ctaPrimary}
             />
@@ -168,7 +168,7 @@ export default function LandingPage() {
 
           {/* Stats strip */}
           <View style={styles.statsStrip}>
-            {stats.map((s, i) => (
+            {stats.map((s) => (
               <View key={s.label} style={[styles.statBox, isMobile && { width: "50%", marginBottom: 12 }]}>
                 <Text style={styles.statVal}>{s.value}</Text>
                 <Text style={styles.statLab}>{s.label}</Text>
@@ -181,12 +181,12 @@ export default function LandingPage() {
       {/* 3. Interactive Product Showcase / Tabs */}
       <View style={styles.showcaseSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionKicker}>CURATED BLUEPRINTS</Text>
+          <Text style={styles.sectionKicker}>CANONICAL BLUEPRINTS</Text>
           <Heading level={2} style={styles.sectionHeading}>
-            Engineered for modern software & security teams
+            Rigorously structured for security professionals
           </Heading>
           <Text style={styles.sectionDesc}>
-            Select a document type to preview how Draftoryn structures complex engineering requirements into export-ready documents.
+            Select a framework to preview how Draftoryn structures complex cybersecurity scopes, technical findings, and executive sign-offs into export-ready documents.
           </Text>
         </View>
 
@@ -207,7 +207,7 @@ export default function LandingPage() {
                 <Icon
                   name={t.icon}
                   size={18}
-                  color={active ? theme.accentForeground : theme.text}
+                  color={active ? "#FFFFFF" : theme.mutedLight}
                 />
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
                   {t.label}
@@ -219,7 +219,7 @@ export default function LandingPage() {
 
         {/* Tab Content Display Card */}
         <View style={[styles.showcaseCard, isMobile && { padding: 18 }]}>
-          <View style={[styles.showcaseGrid, isMobile && { flexDirection: "column", gap: 20 }]}>
+          <View style={[styles.showcaseGrid, isMobile && { flexDirection: "column", gap: 24 }]}>
             <View style={styles.showcaseLeft}>
               <View style={styles.badgeWrap}>
                 <Text style={styles.showcaseBadge}>{currentTab.badge.toUpperCase()}</Text>
@@ -228,9 +228,9 @@ export default function LandingPage() {
                 {currentTab.title}
               </Heading>
               <Text style={styles.showcaseText}>{currentTab.desc}</Text>
-              <View style={{ marginTop: 20 }}>
+              <View style={{ marginTop: 24 }}>
                 <Button
-                  label="Use this blueprint"
+                  label="Create this document"
                   onPress={() => router.push("/(auth)/signup")}
                   style={{ alignSelf: isMobile ? "stretch" : "flex-start" }}
                 />
@@ -242,11 +242,11 @@ export default function LandingPage() {
               <View style={styles.docMockup}>
                 <View style={styles.docMockupHeader}>
                   <View style={styles.docMockupDots}>
-                    <View style={[styles.dot, { backgroundColor: "#ff5f56" }]} />
-                    <View style={[styles.dot, { backgroundColor: "#ffbd2e" }]} />
-                    <View style={[styles.dot, { backgroundColor: "#27c93f" }]} />
+                    <View style={[styles.dot, { backgroundColor: "#EF4444" }]} />
+                    <View style={[styles.dot, { backgroundColor: "#F59E0B" }]} />
+                    <View style={[styles.dot, { backgroundColor: "#10B981" }]} />
                   </View>
-                  <Text style={styles.docMockupFile}>draftoryn-spec.pdf</Text>
+                  <Text style={styles.docMockupFile}>draftoryn-preview.pdf</Text>
                 </View>
                 <View style={styles.docMockupBody}>
                   <Text style={styles.mockupDocTitle}>{currentTab.previewTitle}</Text>
@@ -271,9 +271,9 @@ export default function LandingPage() {
       {/* 4. Features Grid */}
       <View style={styles.featuresSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionKicker}>BUILT FOR PERFORMANCE</Text>
+          <Text style={styles.sectionKicker}>DESIGNED FOR RIGOR</Text>
           <Heading level={2} style={styles.sectionHeading}>
-            Everything needed to draft, edit, and ship
+            Everything required to author, review, and deliver
           </Heading>
         </View>
 
@@ -300,14 +300,14 @@ export default function LandingPage() {
       {/* 5. Supported Categories */}
       <View style={styles.categoriesSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionKicker}>DOCUMENT CATEGORIES</Text>
+          <Text style={styles.sectionKicker}>EXHAUSTIVE SECURITY CATALOG</Text>
           <Heading level={2} style={styles.sectionHeading}>
-            Over 100 domain-specific document types
+            6 Core Cybersecurity Domains (30 Standard Frameworks)
           </Heading>
         </View>
 
         <View style={styles.catGrid}>
-          {CATEGORIES.slice(0, 6).map((cat) => {
+          {CATEGORIES.map((cat) => {
             const visual = CATEGORY_VISUALS[cat];
             return (
               <View
@@ -316,7 +316,7 @@ export default function LandingPage() {
               >
                 <Card hover style={styles.catCard}>
                   <View style={styles.catHead}>
-                    <View style={[styles.catIconWrap, { backgroundColor: `${visual.accent}18` }]}>
+                    <View style={[styles.catIconWrap, { backgroundColor: `${visual.accent}20` }]}>
                       <Icon name={visual.icon} size={18} color={visual.accent} />
                     </View>
                     <Text style={styles.catTitle}>{visual.label}</Text>
@@ -332,15 +332,15 @@ export default function LandingPage() {
       {/* 6. Big CTA Footer Banner */}
       <View style={styles.bannerSection}>
         <View style={styles.bannerCard}>
-          <Text style={styles.bannerKicker}>READY TO GET STARTED?</Text>
+          <Text style={styles.bannerKicker}>READY TO DRAFT?</Text>
           <Heading level={2} style={styles.bannerTitle}>
-            Start drafting professional documentation in minutes.
+            Start drafting professional security documentation.
           </Heading>
           <Text style={styles.bannerSub}>
-            No credit card required. Free tier includes full access to all standard templates and instant multi-format exports.
+            Standardize your agreements, incident playbooks, and assessment deliverables. Free access to all 30 standard security templates.
           </Text>
           <Button
-            label="Create your workspace"
+            label="Open your workspace"
             onPress={() => router.push("/(auth)/signup")}
             style={{ paddingHorizontal: 32, paddingVertical: 14 }}
           />
@@ -357,10 +357,10 @@ export default function LandingPage() {
             <Text style={styles.brandTitle}>Draftoryn</Text>
           </View>
           <Text style={styles.footerText}>
-            Professional technical specification and security document studio.
+            The authoritative cybersecurity document studio.
           </Text>
           <Text style={styles.footerMeta}>
-            Direct Serverless Neon PostgreSQL · Powered by Groq AI Inference
+            Direct Serverless Neon PostgreSQL · Client-Isolated Synthesis
           </Text>
         </View>
       </View>
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface,
     borderBottomWidth: 1,
     borderColor: theme.border,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     width: "100%",
   },
@@ -389,10 +389,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  brand: { flexDirection: "row", alignItems: "center", gap: 8 },
+  brand: { flexDirection: "row", alignItems: "center", gap: 10 },
   brandMark: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     backgroundColor: theme.accent,
     alignItems: "center",
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface2,
     borderWidth: 1,
     borderColor: theme.border,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
@@ -411,13 +411,13 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.monoMedium,
     fontSize: 9,
     color: theme.accent,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
-  navActions: { flexDirection: "row", alignItems: "center", gap: 6 },
+  navActions: { flexDirection: "row", alignItems: "center", gap: 10 },
 
   // Hero
   heroSection: {
-    paddingVertical: 40,
+    paddingVertical: 56,
     paddingHorizontal: 16,
     backgroundColor: theme.bg,
     borderBottomWidth: 1,
@@ -439,18 +439,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
-    marginBottom: 20,
+    marginBottom: 24,
     ...theme.shadowSm,
   },
   pillText: {
     fontFamily: theme.font.sansMedium,
     fontSize: 13,
-    color: theme.text,
+    color: theme.textSecondary,
   },
   heroTitle: {
-    fontSize: 48,
-    lineHeight: 56,
-    letterSpacing: -1.5,
+    fontSize: 46,
+    lineHeight: 54,
+    letterSpacing: -1.2,
     color: theme.text,
     textAlign: "center",
     marginBottom: 20,
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     color: theme.muted,
     textAlign: "center",
     maxWidth: 720,
-    marginBottom: 32,
+    marginBottom: 36,
   },
   heroCtaRow: {
     flexDirection: "row",
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.border,
     borderRadius: theme.radius,
-    paddingVertical: 20,
+    paddingVertical: 22,
     paddingHorizontal: 28,
     ...theme.shadowSm,
   },
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
 
   // Showcase
   showcaseSection: {
-    paddingVertical: 56,
+    paddingVertical: 64,
     paddingHorizontal: 24,
     maxWidth: 1200,
     width: "100%",
@@ -518,12 +518,12 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 36,
   },
   sectionKicker: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    letterSpacing: 2,
+    letterSpacing: 2.5,
     color: theme.accent,
     marginBottom: 8,
   },
@@ -538,13 +538,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: theme.muted,
     textAlign: "center",
-    maxWidth: 620,
+    maxWidth: 640,
   },
   tabRow: {
     flexDirection: "row",
     justifyContent: "center",
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   tabButton: {
     flexDirection: "row",
@@ -564,10 +564,10 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: theme.font.sansMedium,
     fontSize: 13,
-    color: theme.text,
+    color: theme.textSecondary,
   },
   tabLabelActive: {
-    color: theme.accentForeground,
+    color: "#FFFFFF",
   },
   showcaseCard: {
     backgroundColor: theme.surface,
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
     borderRadius: theme.radius,
     padding: 36,
-    ...theme.shadowSm,
+    ...theme.shadowMd,
   },
   showcaseGrid: {
     flexDirection: "row",
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
     color: theme.accent,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   showcaseTitle: {
     fontSize: 24,
@@ -605,10 +605,10 @@ const styles = StyleSheet.create({
   showcaseRight: { flex: 1, alignItems: "center", justifyContent: "center" },
   docMockup: {
     width: "100%",
-    backgroundColor: "#ffffff",
+    backgroundColor: theme.surface2,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: theme.border,
     overflow: "hidden",
     ...theme.shadowSm,
   },
@@ -616,33 +616,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#f8fafc",
+    backgroundColor: theme.surface,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: theme.border,
   },
   docMockupDots: { flexDirection: "row", gap: 6 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  docMockupFile: { fontFamily: theme.font.mono, fontSize: 11, color: "#64748b" },
+  docMockupFile: { fontFamily: theme.font.mono, fontSize: 11, color: theme.muted },
   docMockupBody: { padding: 22 },
-  mockupDocTitle: { fontFamily: theme.font.serifSemi, fontSize: 16, color: "#0f172a", marginBottom: 4 },
-  mockupDocMeta: { fontFamily: theme.font.mono, fontSize: 11, color: "#64748b", marginBottom: 14 },
-  mockupDivider: { height: 1, backgroundColor: "#e2e8f0", marginBottom: 14 },
+  mockupDocTitle: { fontFamily: theme.font.serifSemi, fontSize: 16, color: theme.text, marginBottom: 4 },
+  mockupDocMeta: { fontFamily: theme.font.mono, fontSize: 11, color: theme.muted, marginBottom: 14 },
+  mockupDivider: { height: 1, backgroundColor: theme.border, marginBottom: 14 },
   mockupItem: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
-  mockupItemText: { fontFamily: theme.font.sans, fontSize: 13, color: "#334155" },
+  mockupItemText: { fontFamily: theme.font.sans, fontSize: 13, color: theme.textSecondary },
   mockupFooterWatermark: {
     marginTop: 18,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderColor: "#f1f5f9",
+    borderColor: theme.border,
     alignItems: "center",
   },
-  mockupWatermarkText: { fontFamily: theme.font.mono, fontSize: 10, color: "#94a3b8" },
+  mockupWatermarkText: { fontFamily: theme.font.mono, fontSize: 10, color: theme.muted },
 
   // Features
   featuresSection: {
-    paddingVertical: 56,
+    paddingVertical: 64,
     paddingHorizontal: 24,
     backgroundColor: theme.surface2,
     borderTopWidth: 1,
@@ -658,12 +658,12 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   featureCardWrap: { marginBottom: 0 },
-  featureCard: { padding: 22, height: "100%" },
+  featureCard: { padding: 22, height: "100%", backgroundColor: theme.surface },
   featureIcon: {
     width: 42,
     height: 42,
     borderRadius: 8,
-    backgroundColor: theme.surface,
+    backgroundColor: theme.surface2,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
 
   // Categories
   categoriesSection: {
-    paddingVertical: 56,
+    paddingVertical: 64,
     paddingHorizontal: 24,
     maxWidth: 1200,
     width: "100%",
@@ -681,21 +681,21 @@ const styles = StyleSheet.create({
   },
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 14 },
   catCardWrap: { marginBottom: 0 },
-  catCard: { padding: 18, height: "100%" },
+  catCard: { padding: 20, height: "100%", backgroundColor: theme.surface },
   catHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   catIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
   catTitle: { fontFamily: theme.font.sansSemi, fontSize: 15, color: theme.text },
-  catDesc: { fontFamily: theme.font.sans, fontSize: 13, lineHeight: 18, color: theme.muted },
+  catDesc: { fontFamily: theme.font.sans, fontSize: 13, lineHeight: 19, color: theme.muted },
 
   // Banner
   bannerSection: {
-    paddingVertical: 48,
+    paddingVertical: 56,
     paddingHorizontal: 24,
     maxWidth: 1200,
     width: "100%",
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 32,
     alignItems: "center",
-    ...theme.shadowSm,
+    ...theme.shadowMd,
   },
   bannerKicker: {
     fontFamily: theme.font.monoMedium,
@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
     color: theme.muted,
     textAlign: "center",
     maxWidth: 540,
-    marginBottom: 26,
+    marginBottom: 28,
   },
 
   // Footer
@@ -753,5 +753,3 @@ const styles = StyleSheet.create({
   footerText: { fontFamily: theme.font.sans, fontSize: 13, color: theme.text },
   footerMeta: { fontFamily: theme.font.mono, fontSize: 11, color: theme.muted },
 });
-
-

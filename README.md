@@ -2,16 +2,15 @@
 
 # Draftoryn
 
-**Professional Technical Specification & Security Document Studio**
+**Authoritative Cybersecurity Document Studio**
 
-*Draft authoritative software requirements, cloud architecture blueprints, and legally binding security agreements in seconds.*
+*Draft standardized security agreements, incident response playbooks, threat models, and audit reports in seconds.*
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Expo](https://img.shields.io/badge/Expo-52-000020?style=flat-square&logo=expo&logoColor=white)](https://expo.dev/)
 [![React Native Web](https://img.shields.io/badge/React%20Native-Web-61DAFB?style=flat-square&logo=react&logoColor=black)](https://necolas.github.io/react-native-web/)
 [![Neon Database](https://img.shields.io/badge/Neon-Serverless%20Postgres-00E599?style=flat-square&logo=postgresql&logoColor=black)](https://neon.tech/)
 [![Clerk](https://img.shields.io/badge/Clerk-Authentication-6C47FF?style=flat-square&logo=clerk&logoColor=white)](https://clerk.com/)
-[![Groq](https://img.shields.io/badge/Groq-LLaMA%203.3%20Inference-F55036?style=flat-square)](https://groq.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 </div>
@@ -20,41 +19,64 @@
 
 ## 📌 Overview
 
-**Draftoryn** is an enterprise-grade technical document studio designed for engineering leads, cloud architects, cybersecurity consultants, and product teams. 
+**Draftoryn** is an enterprise-grade cybersecurity document studio designed for security consultants, penetration testers, incident responders, security architects, and GRC leaders.
 
-Instead of wrestling with fragile Word templates or dealing with hallucinated unstructured AI output, Draftoryn combines **domain-specific canonical frameworks** (IEEE 830 / ISO 29148, PTES, STRIDE, NIST SP 800-115) with ultra-high-throughput **Groq LLaMA-3.3 inference** to produce publication-ready, legally sound, and structured specifications in seconds.
+Instead of wrestling with fragile Word templates or dealing with hallucinated AI output, Draftoryn provides a canonical catalog of **30 core cybersecurity documents across 6 specialized domains**. Draft documents with deterministic structural accuracy by default, with opt-in AI synthesis requiring explicit scope and organizational context.
 
 ### Why Draftoryn?
 
 - ⚡ **Zero Hallucination Guarantee**: Strict operational boundaries prevent AI from fabricating live IPs, domains, cryptographic keys, testing windows, or findings.
-- 📐 **Dual Engine Pipeline**: Hybrid architecture combining a deterministic structural rule engine with high-speed LLM context completion.
+- 📐 **Dual Engine Pipeline**: Deterministic structural rule engine by default, with optional context-validated AI synthesis.
 - 📑 **Publication-Ready Exports**: Instant conversion to bordered executive PDFs, formatted Microsoft Word `.docx` documents, GitHub Markdown, structured JSON, XML, and YAML.
-- ☁️ **Direct Serverless Edge**: Zero dedicated backend required. Connects directly from client/edge to Clerk Auth $\rightarrow$ Neon PostgreSQL $\rightarrow$ Groq AI. Ready for 1-click Cloudflare Pages / Vercel hosting.
+- ☁️ **Direct Serverless Edge**: Cloud-synchronized persistence via Neon PostgreSQL with Clerk authentication and offline caching.
 
 ---
 
-## 🌟 Key Features
+## 🌟 Document Catalog (30 Core Cybersecurity Documents)
 
-### 1. Document Catalog & Templates (100+ Frameworks)
-- **Software Engineering**: Software Requirements Specifications (SRS IEEE 830 / ISO 29148), System Architecture Documents (SAD), Technical RFCs, and REST API contracts.
-- **Offensive Security & Pentesting**: Penetration Testing Authorization Agreements (PTES), Rules of Engagement (RoE), Scope Definition Sheets, and Statements of Work (SoW).
-- **Cloud Architecture & Threat Modeling**: STRIDE Threat Models, AWS/GCP Infrastructure Blueprints, Disaster Recovery Plans, and Trust Boundary Inventories.
-- **Incident Response & Compliance**: Incident Response Playbooks (NIST SP 800-61), Chain of Custody logs, Vulnerability Disclosure Policies (VDP), and SOC 2 / ISO 27001 readiness checklists.
+Draftoryn is strictly scoped to 30 authoritative cybersecurity documents across 6 core domains:
 
-### 2. Live 3-Column Document Studio
-- **Section Navigator**: Interactive outline tree with live completeness indicators (`GENERATED`, `EDITED`, `MISSING`, `ASSUMPTION`).
-- **Structured Block Canvas**: WYSIWYG editor supporting headings, editable paragraphs, threat tables, callout blocks, and bullet matrices.
-- **Context & Source Inspector**: Live parameter drawer to modify scope, IP ranges, dates, or organizational details and regenerate individual sections on the fly.
-- **Non-Destructive Version History**: Instant snapshot restoration with automatic change diff tracking.
+### 1. Offensive Security
+- **Rules of Engagement (RoE)**
+- **Penetration Testing Agreement / Authorization**
+- **Penetration Testing Plan**
+- **Penetration Testing Report**
+- **Red Team Assessment Report**
+- **Vulnerability Assessment Report**
+- **Security Assessment Report**
 
-### 3. Multi-Format Export Engine
-| Format | Description | Target Use Case |
-| :--- | :--- | :--- |
-| **PDF** | Bordered executive layout with formal typography & discreet watermark | Client sign-offs, legal agreements, compliance audits |
-| **DOCX** | Structured Word document with standard heading styles and tables | Corporate redlining, enterprise procurement |
-| **Markdown** | Clean GitHub Flavored Markdown (GFM) | Engineering wikis, Git repositories, developer docs |
-| **JSON / YAML** | Structured semantic data model | CI/CD validation, automated compliance pipelines |
-| **XML / HTML** | Standalone web and interchange format | Archival, web publishing, portal embeds |
+### 2. Incident Response / DFIR
+- **Incident Response Plan**
+- **Incident Response Playbook**
+- **Incident Report**
+- **Digital Forensics Report**
+- **Malware Analysis Report**
+- **Post-Incident / Lessons Learned Report**
+
+### 3. Threat Intelligence
+- **Threat Intelligence Report**
+- **Threat Actor Profile**
+- **Threat Assessment Report**
+- **Campaign Analysis Report**
+
+### 4. Security Architecture / Engineering
+- **Threat Model (STRIDE)**
+- **Security Architecture Document**
+- **Security Design Review**
+- **Cloud Security Assessment**
+- **Application Security Assessment**
+
+### 5. Risk / Governance
+- **Cybersecurity Risk Assessment**
+- **Risk Register**
+- **Third-Party Security Assessment**
+- **Security Exception / Risk Acceptance**
+
+### 6. Resilience
+- **Business Impact Analysis (BIA)**
+- **Business Continuity Plan (BCP)**
+- **Disaster Recovery Plan (DRP)**
+- **Cyber Recovery Plan**
 
 ---
 
@@ -68,13 +90,13 @@ Draftoryn is engineered for high performance, zero operational maintenance, and 
 │             (Expo 52 · React Native Web · Hono)             │
 └──────────────┬──────────────────────────────┬───────────────┘
                │                              │
-        Direct Clerk Auth             Direct Inference
+        Direct Clerk Auth             Context-Validated AI
                │                              │
                ▼                              ▼
 ┌─────────────────────────────┐  ┌────────────────────────────┐
-│      Neon PostgreSQL        │  │     Groq AI Hardware       │
-│  (@neondatabase/serverless) │  │  (LLaMA 3.3 70B Versatile) │
-│  User-isolated Persistence  │  │  < 5s Multi-page Drafting  │
+│      Neon PostgreSQL        │  │     AI Inference Engine    │
+│  (@neondatabase/serverless) │  │  (OpenAI-compatible edge) │
+│  User-isolated Persistence  │  │   Opt-in context synthesis │
 └─────────────────────────────┘  └────────────────────────────┘
 ```
 
@@ -105,15 +127,15 @@ Set the required environment keys:
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 EXPO_PUBLIC_API_BASE=http://localhost:8787
 
-# Server-Only Privileged Credentials (never exposed to client)
+# Server Privileged Credentials (never exposed to client)
 CLERK_SECRET_KEY=sk_test_...
 DATABASE_URL=postgresql://user:pass@ep-host.aws.neon.tech/neondb?sslmode=require
 PORT=8787
 
-# Server-Side AI Acceleration (Groq / OpenAI compatible)
-GROQ_API_KEY=gsk_...
-GROQ_BASE_URL=https://api.groq.com/openai/v1
-GROQ_MODEL=llama-3.3-70b-versatile
+# Server-Side AI (Opt-in, OpenAI-compatible)
+DRAFTORYN_AI_API_KEY=...
+DRAFTORYN_AI_BASE_URL=https://api.openai.com/v1
+DRAFTORYN_AI_MODEL=gpt-4o-mini
 ```
 
 ### 3. Run Development Server
@@ -134,7 +156,7 @@ npm run typecheck
 
 ## 📦 Production Deployment
 
-Draftoryn exports directly to static web assets for 1-click hosting on **Cloudflare Pages**, **Vercel**, or **AWS S3 / CloudFront**:
+Draftoryn exports directly to static web assets for hosting on **Cloudflare Pages**, **Vercel**, or **AWS S3 / CloudFront**:
 
 ```bash
 # Build static web distribution bundle
@@ -148,9 +170,9 @@ node serve-dist.mjs
 
 ## 🛡️ Security & Privacy Philosophy
 
-1. **Explicit Scoping & Placeholders**: The generation pipeline will never hallucinate or invent factual parameters (CIDRs, emails, dates, hostnames). Any missing required field is formatted as an explicit callout or placeholder.
-2. **Client-Isolated Database**: Every document query in Neon enforces owner-level isolation mapped to Clerk authenticated user tokens.
-3. **No Central API Logging of Sensitive Scopes**: Document contents and API payloads are processed through direct stateless edge connections.
+1. **Deterministic Default**: Generation produces standard structural documents immediately without making unnecessary external API calls.
+2. **Context-Required AI**: When opted into, AI generation requires verified user scope parameters and will never invent live IP ranges, domains, or credentials.
+3. **Client-Isolated Database**: Every document query in Neon enforces owner-level isolation mapped to Clerk authenticated user tokens.
 
 ---
 

@@ -494,8 +494,8 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
   },
   saveBadgeSuccess: {
-    backgroundColor: "#F4FBF4",
-    borderColor: "#C6F0C6",
+    backgroundColor: theme.okBg,
+    borderColor: "rgba(16, 185, 129, 0.35)",
   },
   saveBadgeText: {
     fontFamily: theme.font.sansMedium,
