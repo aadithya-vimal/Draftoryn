@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Modal,
   Pressable,
@@ -27,23 +27,35 @@ export function SectionEditorModal({
   onSave,
 }: SectionEditorModalProps) {
   const [draftBlocks, setDraftBlocks] = useState<ContentBlock[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showDiscardPrompt, setShowDiscardPrompt] = useState(false);
+  const originalBlocksRef = useRef<string>("");
 
   useEffect(() => {
     if (section) {
-      setDraftBlocks(JSON.parse(JSON.stringify(section.blocks)));
+      const clone = JSON.parse(JSON.stringify(section.blocks)) as ContentBlock[];
+      setDraftBlocks(clone);
+      originalBlocksRef.current = JSON.stringify(clone);
     } else {
       setDraftBlocks([]);
+      originalBlocksRef.current = "";
     }
+    setIsDirty(false);
+    setShowDiscardPrompt(false);
   }, [section, open]);
 
   if (!open || !section) return null;
 
+  const markDirty = () => setIsDirty(true);
+
   const updateBlock = (index: number, updated: ContentBlock) => {
     setDraftBlocks((prev) => prev.map((b, i) => (i === index ? updated : b)));
+    markDirty();
   };
 
   const removeBlock = (index: number) => {
     setDraftBlocks((prev) => prev.filter((_, i) => i !== index));
+    markDirty();
   };
 
   const addBlock = (type: ContentBlock["type"]) => {
@@ -56,17 +68,34 @@ export function SectionEditorModal({
     } else if (type === "list") {
       setDraftBlocks((prev) => [...prev, { type: "list", items: [""] }]);
     }
+    markDirty();
   };
 
   const handleSave = () => {
     onSave(draftBlocks);
+    setIsDirty(false);
+    onClose();
+  };
+
+  /** Attempt to close – if dirty, show the discard prompt instead */
+  const handleAttemptClose = () => {
+    if (isDirty) {
+      setShowDiscardPrompt(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleDiscard = () => {
+    setIsDirty(false);
+    setShowDiscardPrompt(false);
     onClose();
   };
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={open} transparent animationType="fade" onRequestClose={handleAttemptClose}>
       <View style={styles.modalOverlay}>
-        <Pressable style={styles.modalBackdrop} onPress={onClose} />
+        <Pressable style={styles.modalBackdrop} onPress={handleAttemptClose} />
         <View style={styles.modalCard}>
           {/* Header */}
           <View style={styles.modalHeader}>
@@ -74,15 +103,43 @@ export function SectionEditorModal({
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <Text style={styles.modalKicker}>SECTION EDITOR</Text>
                 <Badge tone="accent">{section.status.toUpperCase()}</Badge>
+                {isDirty && <Badge tone="warn">UNSAVED</Badge>}
               </View>
               <Text style={styles.modalTitle} numberOfLines={1}>
                 {section.title}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={8}>
+            <TouchableOpacity onPress={handleAttemptClose} style={styles.closeBtn} hitSlop={8}>
               <Icon name="X" size={18} color={theme.muted} />
             </TouchableOpacity>
           </View>
+
+          {/* Discard-changes warning strip */}
+          {showDiscardPrompt && (
+            <View style={styles.discardBanner}>
+              <View style={styles.discardBannerLeft}>
+                <Icon name="AlertTriangle" size={16} color={theme.warn} />
+                <View>
+                  <Text style={styles.discardBannerTitle}>Unsaved changes</Text>
+                  <Text style={styles.discardBannerSub}>
+                    You've made edits that haven't been saved. Discard them or keep editing.
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.discardBannerActions}>
+                <TouchableOpacity
+                  style={styles.discardKeepBtn}
+                  onPress={() => setShowDiscardPrompt(false)}
+                >
+                  <Text style={styles.discardKeepText}>Keep Editing</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.discardConfirmBtn} onPress={handleDiscard}>
+                  <Icon name="Trash2" size={13} color="#FFFFFF" />
+                  <Text style={styles.discardConfirmText}>Discard</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           {/* Scrollable Content Body */}
           <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
@@ -287,7 +344,7 @@ export function SectionEditorModal({
 
           {/* Footer Actions */}
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={handleAttemptClose}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
@@ -365,6 +422,71 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  // Discard changes warning strip
+  discardBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "rgba(217, 154, 36, 0.12)",
+    borderBottomWidth: 1,
+    borderColor: "rgba(217, 154, 36, 0.3)",
+  },
+  discardBannerLeft: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    flex: 1,
+  },
+  discardBannerTitle: {
+    fontFamily: theme.font.sansSemi,
+    fontSize: 13,
+    color: theme.warn,
+    marginBottom: 2,
+  },
+  discardBannerSub: {
+    fontFamily: theme.font.sans,
+    fontSize: 12,
+    color: theme.muted,
+    lineHeight: 17,
+  },
+  discardBannerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  discardKeepBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surface2,
+  },
+  discardKeepText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12,
+    color: theme.text,
+  },
+  discardConfirmBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 6,
+    backgroundColor: theme.danger,
+  },
+  discardConfirmText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
+
   modalScroll: {
     flex: 1,
   },

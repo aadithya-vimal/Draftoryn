@@ -1037,6 +1037,84 @@ export default function DocumentEditor() {
             {exportErr ? <ErrorText message={exportErr} /> : null}
           </View>
         </Dialog>
+
+        {/* Section editor modal – desktop */}
+        <SectionEditorModal
+          open={editingSection !== null}
+          section={editingSection}
+          onClose={() => setEditingSection(null)}
+          onSave={(newBlocks) => {
+            if (!editingSection) return;
+            updateSections((prev) =>
+              prev.map((p) =>
+                p.id === editingSection.id
+                  ? { ...p, blocks: newBlocks, status: "edited" }
+                  : p,
+              ),
+            );
+            setIsDirty(true);
+            setEditingSection(null);
+          }}
+        />
+
+        {/* Progress will be lost – desktop */}
+        <Dialog open={showLeaveConfirm} onClose={() => setShowLeaveConfirm(false)}>
+          <View style={{ alignItems: "center", paddingVertical: 12 }}>
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: "rgba(217, 154, 36, 0.15)",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 14,
+              }}
+            >
+              <Icon name="AlertTriangle" size={24} color={theme.warn} />
+            </View>
+            <Heading level={3} style={{ textAlign: "center", marginBottom: 8 }}>
+              Progress Will Be Lost
+            </Heading>
+            <Text
+              style={{
+                fontFamily: theme.font.sans,
+                fontSize: 13.5,
+                color: theme.muted,
+                textAlign: "center",
+                lineHeight: 20,
+                marginBottom: 20,
+              }}
+            >
+              You have unsaved changes in this document. If you leave now, your recent edits will not be saved.
+            </Text>
+            <View style={{ flexDirection: "column", gap: 10, width: "100%" }}>
+              <Button
+                label="Save & Leave"
+                variant="primary"
+                onPress={async () => {
+                  await executeSave();
+                  setShowLeaveConfirm(false);
+                  router.back();
+                }}
+              />
+              <Button
+                label="Discard Changes & Leave"
+                variant="ghost"
+                onPress={() => {
+                  setShowLeaveConfirm(false);
+                  setIsDirty(false);
+                  router.back();
+                }}
+              />
+              <Button
+                label="Keep Editing"
+                variant="secondary"
+                onPress={() => setShowLeaveConfirm(false)}
+              />
+            </View>
+          </View>
+        </Dialog>
       </View>
     );
   }
@@ -1378,7 +1456,7 @@ const styles = StyleSheet.create({
   screenWeb: { flex: 1, backgroundColor: theme.bg, padding: 16, paddingTop: 20 },
   columns: { flexDirection: "row", gap: 16, flex: 1, maxWidth: 1280, alignSelf: "center", width: "100%" },
   leftCol: { width: 280 },
-  centerCol: { flex: 1, minWidth: 0 },
+  centerCol: { flex: 1, minWidth: 0, overflow: "hidden" as any },
   rightCol: { width: 280 },
   leftCard: { padding: 14, maxHeight: "100%" },
   rightCard: { padding: 14, maxHeight: "100%" },
@@ -1410,6 +1488,7 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
     borderRadius: theme.radius,
     padding: 32,
+    overflow: "hidden" as any,
     ...theme.shadowSm,
   },
   docTitle: {
@@ -1434,7 +1513,7 @@ const styles = StyleSheet.create({
     outlineStyle: "none",
   } as any,
   docMeta: { flexDirection: "row", gap: 8, marginBottom: 18 },
-  canvasSection: { marginTop: 22, padding: 12, borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "transparent" },
+  canvasSection: { marginTop: 22, padding: 12, borderRadius: theme.radiusSm, borderWidth: 1, borderColor: "transparent", overflow: "hidden" as any },
   canvasSectionSelected: { borderColor: theme.accent, backgroundColor: "rgba(59, 130, 246, 0.12)" },
   canvasSectionHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, borderBottomWidth: 1, borderColor: theme.border, paddingBottom: 8 },
   canvasSectionTitle: { flex: 1, color: theme.text, fontSize: 20, fontFamily: theme.font.serifSemi },
@@ -1445,8 +1524,8 @@ const styles = StyleSheet.create({
   docList: { marginBottom: 10 },
   docListItem: { flexDirection: "row", gap: 8, marginBottom: 4 },
   docBullet: { color: theme.accent, fontSize: 15 },
-  docTable: { borderWidth: 1, borderColor: theme.border, borderRadius: theme.radiusSm, marginBottom: 12, overflow: "hidden", minWidth: 460 },
-  tableScroll: { marginVertical: 8, maxWidth: "100%" },
+  docTable: { borderWidth: 1, borderColor: theme.border, borderRadius: theme.radiusSm, marginBottom: 12, overflow: "hidden" },
+  tableScroll: { marginVertical: 8 },
   docTableRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: theme.border },
   docTableHeader: { backgroundColor: theme.surface2 },
   docTableCell: { flex: 1, minWidth: 100, padding: 8, fontSize: 13, fontFamily: theme.font.sans, color: theme.text, borderRightWidth: 1, borderColor: theme.border },
