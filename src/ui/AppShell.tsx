@@ -40,9 +40,12 @@ function Brand() {
   return (
     <View style={styles.brand}>
       <View style={styles.brandMark}>
-        <Icon name="Shield" size={18} color={theme.accentForeground} strokeWidth={2} />
+        <Icon name="Shield" size={16} color={theme.accentForeground} strokeWidth={2.2} />
       </View>
-      <Text style={styles.brandText}>Draftoryn</Text>
+      <View>
+        <Text style={styles.brandText}>DRAFTORYN</Text>
+        <Text style={styles.brandSub}>DOC STUDIO // V1</Text>
+      </View>
     </View>
   );
 }
@@ -59,45 +62,64 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const rail = (
     <View style={styles.railInner}>
-      <Pressable onPress={() => router.push("/(app)/home")} accessibilityRole="button" accessibilityLabel="Draftoryn Home">
-        <Brand />
-      </Pressable>
-      <View style={styles.railNav}>
-        {NAV.map((n) => {
-          const active = isNavActive(pathname, n.href);
-          return (
-            <Pressable
-              key={n.href}
-              style={[styles.railItem, active && styles.railItemActive]}
-              onPress={() => router.push(n.href)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-            >
-              {active && <View style={styles.railActiveIndicator} />}
-              <Icon
-                name={n.icon}
-                size={19}
-                color={active ? theme.accent : theme.muted}
-                strokeWidth={active ? 2.3 : 1.8}
-              />
-              <Text style={[styles.railLabel, active && styles.railLabelActive]}>
-                {n.label}
-              </Text>
-              {active && <View style={styles.activeDot} />}
-            </Pressable>
-          );
-        })}
+      <View>
+        <Pressable onPress={() => router.push("/(app)/home")} accessibilityRole="button" accessibilityLabel="Draftoryn Home">
+          <Brand />
+        </Pressable>
+
+        {/* Workspace Context Indicator */}
+        <View style={styles.workspaceCard}>
+          <View style={styles.workspaceDot} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.workspaceLabel}>WORKSPACE</Text>
+            <Text style={styles.workspaceName} numberOfLines={1}>Primary Workspace</Text>
+          </View>
+          <View style={styles.workspaceBadge}>
+            <Text style={styles.workspaceBadgeText}>LIVE</Text>
+          </View>
+        </View>
+
+        {/* Navigation links */}
+        <View style={styles.railNav}>
+          <Text style={styles.navGroupLabel}>STUDIO</Text>
+          {NAV.map((n) => {
+            const active = isNavActive(pathname, n.href);
+            return (
+              <Pressable
+                key={n.href}
+                style={[styles.railItem, active && styles.railItemActive]}
+                onPress={() => router.push(n.href)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                {active && <View style={styles.railActiveIndicator} />}
+                <Icon
+                  name={n.icon}
+                  size={16}
+                  color={active ? theme.accent : theme.muted}
+                  strokeWidth={active ? 2.2 : 1.7}
+                />
+                <Text style={[styles.railLabel, active && styles.railLabelActive]}>
+                  {n.label}
+                </Text>
+                {active && <View style={styles.activeDot} />}
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
+
+      {/* User block at bottom */}
       <View style={styles.railUser}>
         <View style={styles.avatar}>
-          <Icon name="User" size={16} color={theme.muted} />
+          <Icon name="User" size={14} color={theme.mutedLight} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.userName} numberOfLines={1}>{name ?? "Account"}</Text>
-          <Text style={styles.userEmail} numberOfLines={1}>{email ?? ""}</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.userName} numberOfLines={1}>{name ?? "Operator"}</Text>
+          <Text style={styles.userEmail} numberOfLines={1}>{email ?? "user@draftoryn.io"}</Text>
         </View>
-        <Pressable onPress={() => signOut()} hitSlop={8} accessibilityLabel="Sign out">
-          <Icon name="LogOut" size={18} color={theme.muted} />
+        <Pressable onPress={() => signOut()} hitSlop={8} accessibilityLabel="Sign out" style={styles.logoutBtn}>
+          <Icon name="LogOut" size={15} color={theme.muted} />
         </Pressable>
       </View>
     </View>
@@ -170,59 +192,79 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 const styles = StyleSheet.create({
   brand: { flexDirection: "row", alignItems: "center", gap: 10 },
-  brandMark: { width: 30, height: 30, borderRadius: 8, backgroundColor: theme.accent, alignItems: "center", justifyContent: "center" },
-  brandText: { fontFamily: theme.font.serifSemi, fontSize: 19, color: theme.text },
-  rail: { width: 248, backgroundColor: theme.surface, borderRightWidth: 1, borderColor: theme.border },
-  railInner: { flex: 1, padding: 20, paddingTop: 26, justifyContent: "space-between" },
-  railNav: { gap: 6, marginTop: 28 },
+  brandMark: { width: 28, height: 28, borderRadius: theme.radiusSm, backgroundColor: theme.accent, alignItems: "center", justifyContent: "center" },
+  brandText: { fontFamily: theme.font.sansBlack, fontSize: 16, letterSpacing: 1.2, color: theme.text },
+  brandSub: { fontFamily: theme.font.mono, fontSize: 9, letterSpacing: 1.5, color: theme.muted, marginTop: 1 },
+  workspaceCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: theme.surface2,
+    borderRadius: theme.radiusSm,
+    borderWidth: 1,
+    borderColor: theme.border,
+    marginTop: 18,
+  },
+  workspaceDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.ok },
+  workspaceLabel: { fontFamily: theme.font.mono, fontSize: 8.5, letterSpacing: 1.5, color: theme.muted, textTransform: "uppercase" },
+  workspaceName: { fontFamily: theme.font.sansSemi, fontSize: 12, color: theme.text },
+  workspaceBadge: { paddingVertical: 2, paddingHorizontal: 5, backgroundColor: theme.okBg, borderRadius: 2 },
+  workspaceBadgeText: { fontFamily: theme.font.monoMedium, fontSize: 8.5, color: theme.ok, letterSpacing: 0.8 },
+  navGroupLabel: { fontFamily: theme.font.monoMedium, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: theme.textDim, marginBottom: 8, marginTop: 16 },
+  rail: { width: 224, backgroundColor: theme.surface, borderRightWidth: 1, borderColor: theme.border },
+  railInner: { flex: 1, padding: 16, paddingTop: 20, justifyContent: "space-between" },
+  railNav: { marginTop: 4 },
   railItem: {
     position: "relative",
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: theme.radiusSm,
     borderWidth: 1,
     borderColor: "transparent",
+    marginBottom: 2,
   },
   railItemActive: {
-    backgroundColor: "rgba(59, 130, 246, 0.12)",
-    borderColor: "rgba(59, 130, 246, 0.28)",
+    backgroundColor: theme.surface2,
+    borderColor: theme.borderLight,
   },
   railActiveIndicator: {
     position: "absolute",
-    left: 0,
-    top: 6,
-    bottom: 6,
-    width: 3.5,
+    left: -1,
+    top: 5,
+    bottom: 5,
+    width: 2.5,
     backgroundColor: theme.accent,
-    borderTopRightRadius: 3,
-    borderBottomRightRadius: 3,
+    borderRadius: 1,
   },
   railLabel: {
     fontFamily: theme.font.sansMedium,
-    fontSize: 14,
+    fontSize: 13,
     color: theme.muted,
     flex: 1,
   },
   railLabelActive: {
     fontFamily: theme.font.sansSemi,
-    fontSize: 14,
-    color: theme.accent,
+    fontSize: 13,
+    color: theme.text,
     fontWeight: "600",
   },
   activeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: theme.accent,
   },
-  railUser: { flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 16, borderTopWidth: 1, borderColor: theme.border },
-  avatar: { width: 32, height: 32, borderRadius: 999, backgroundColor: theme.surface2, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
-  avatarActive: { borderColor: theme.accent, backgroundColor: "rgba(59, 130, 246, 0.15)" },
-  userName: { fontFamily: theme.font.sansMedium, fontSize: 13, color: theme.text },
-  userEmail: { fontFamily: theme.font.mono, fontSize: 10, color: theme.muted },
+  railUser: { flexDirection: "row", alignItems: "center", gap: 9, paddingTop: 14, borderTopWidth: 1, borderColor: theme.border },
+  avatar: { width: 28, height: 28, borderRadius: theme.radiusSm, backgroundColor: theme.surface2, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.border },
+  avatarActive: { borderColor: theme.accent, backgroundColor: theme.accentSubtle },
+  userName: { fontFamily: theme.font.sansMedium, fontSize: 12, color: theme.text },
+  userEmail: { fontFamily: theme.font.mono, fontSize: 9.5, color: theme.muted },
+  logoutBtn: { padding: 4 },
   shellWeb: { flex: 1, flexDirection: "row", backgroundColor: theme.bg },
   contentWeb: { flex: 1, backgroundColor: theme.bg },
   shellMobile: { flex: 1, backgroundColor: theme.bg },

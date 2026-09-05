@@ -1,10 +1,17 @@
 import { clientHttp, type AuthLike } from "./client";
 
 export interface OnboardingData {
+  persona?: "cybersecurity_professional" | "client" | "technical_professional" | string;
   role?: string;
   documentFocus?: string;
+  focusAreas?: string[];
+  firstDocumentDef?: string;
   organizationName?: string;
+  representativeName?: string;
+  workspaceName?: string;
+  defaultExportFormat?: string;
   experienceLevel?: string;
+  [key: string]: unknown;
 }
 
 export interface UserMeResponse {
@@ -53,6 +60,11 @@ export async function saveOnboardingProgress(
     completed?: boolean;
     step?: number;
     role?: string;
+    persona?: string;
+    workspaceName?: string;
+    organizationName?: string;
+    representativeName?: string;
+    defaultExportFormat?: string;
     onboardingData?: OnboardingData;
   },
 ): Promise<boolean> {

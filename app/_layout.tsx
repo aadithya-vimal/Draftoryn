@@ -15,6 +15,8 @@ import {
   SourceSans3_400Regular,
   SourceSans3_500Medium,
   SourceSans3_600SemiBold,
+  SourceSans3_700Bold,
+  SourceSans3_900Black,
 } from "@expo-google-fonts/source-sans-3";
 import { IBMPlexMono_400Regular, IBMPlexMono_500Medium } from "@expo-google-fonts/ibm-plex-mono";
 
@@ -48,6 +50,8 @@ export default function RootLayout() {
     SourceSans3_400Regular,
     SourceSans3_500Medium,
     SourceSans3_600SemiBold,
+    SourceSans3_700Bold,
+    SourceSans3_900Black,
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
   });

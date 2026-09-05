@@ -14,71 +14,77 @@ import {
 } from "react-native";
 
 // ---------------------------------------------------------------------------
-// Dark Editorial SaaS Design Tokens
-// Near-black navy/indigo canvas (#07080F), deep navy/purple surfaces (#101223, #171932),
-// thin borders (#23264A), high-contrast white typography, electric blue (#3B82F6),
-// and vivid magenta/pink (#EC4899) secondary accents.
+// Technical Editorial / Professional Documentation Design Tokens
+// Near-black charcoal canvas (#0B0C0E), structured surfaces (#14161C, #1A1D24),
+// hairline borders (#232732, #2E3342), off-white typography (#F3F4F6),
+// and sharp restrained cobalt blue (#2563EB) accents.
+// Zero AI gradients, zero glowing blobs, zero decorative serifs.
 // ---------------------------------------------------------------------------
 export const theme = {
-  bg: "#07080F",
-  bgAlt: "#0B0C18",
-  surface: "#101223",
-  surface2: "#171932",
-  surfaceHover: "#1D2040",
-  border: "#23264A",
-  borderLight: "#2E335E",
-  borderActive: "#3B82F6",
-  text: "#FFFFFF",
-  textSecondary: "#C5CBE3",
-  muted: "#787F9E",
-  mutedLight: "#9EA6C7",
-  accent: "#3B82F6", // electric blue
-  accentHover: "#60A5FA",
-  accentSecondary: "#EC4899", // vivid magenta/pink
+  bg: "#0B0C0E",
+  bgAlt: "#101216",
+  surface: "#14161C",
+  surface2: "#1A1D24",
+  surfaceHover: "#20242E",
+  border: "#232732",
+  borderLight: "#2E3342",
+  borderActive: "#2563EB",
+  text: "#F3F4F6",
+  textSecondary: "#C5C9D3",
+  muted: "#7D8597",
+  mutedLight: "#9EA6B8",
+  textDim: "#4B5263",
+  accent: "#2563EB", // restrained technical blue
+  accentHover: "#3B82F6",
+  accentSubtle: "rgba(37, 99, 235, 0.12)",
+  accentSecondary: "#475569", // technical slate neutral
   accentForeground: "#FFFFFF",
   danger: "#EF4444",
-  dangerBg: "rgba(239, 68, 68, 0.15)",
+  dangerBg: "rgba(239, 68, 68, 0.12)",
   warn: "#F59E0B",
-  warnBg: "rgba(245, 158, 11, 0.15)",
+  warnBg: "rgba(245, 158, 11, 0.12)",
   ok: "#10B981",
-  okBg: "rgba(16, 185, 129, 0.15)",
-  info: "#38BDF8",
-  infoBg: "rgba(56, 189, 248, 0.15)",
-  radius: 8,
-  radiusSm: 6,
+  okBg: "rgba(16, 185, 129, 0.12)",
+  info: "#0284C7",
+  infoBg: "rgba(2, 132, 199, 0.12)",
+  radius: 6,
+  radiusSm: 4,
   spacing: 12,
-  // Typography families (loaded via expo-font in app/_layout.tsx)
+  // Typography families: bold, technical, confident, compact modern sans & mono
   font: {
-    serif: "PlayfairDisplay_400Regular",
-    serifSemi: "PlayfairDisplay_600SemiBold",
-    serifBold: "PlayfairDisplay_700Bold",
-    serifBlack: "PlayfairDisplay_900Black",
     sans: "SourceSans3_400Regular",
     sansMedium: "SourceSans3_500Medium",
     sansSemi: "SourceSans3_600SemiBold",
+    sansBold: "SourceSans3_700Bold",
+    sansBlack: "SourceSans3_900Black",
     mono: "IBMPlexMono_400Regular",
     monoMedium: "IBMPlexMono_500Medium",
+    // Fallbacks mapped to technical sans
+    serif: "SourceSans3_400Regular",
+    serifSemi: "SourceSans3_600SemiBold",
+    serifBold: "SourceSans3_700Bold",
+    serifBlack: "SourceSans3_900Black",
   } as const,
   shadowSm: {
     shadowColor: "#000000",
     shadowOpacity: 0.35,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   } as ViewStyle,
   shadowMd: {
     shadowColor: "#000000",
-    shadowOpacity: 0.55,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
-  } as ViewStyle,
-  shadowGlow: {
-    shadowColor: "#3B82F6",
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+  } as ViewStyle,
+  shadowGlow: {
+    shadowColor: "#000000",
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   } as ViewStyle,
 };
 
@@ -107,7 +113,7 @@ export function Heading({
 }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const font = level === 1 ? theme.font.serifBlack : level === 2 ? theme.font.serifBold : theme.font.serifSemi;
+  const font = level === 1 ? theme.font.sansBlack : level === 2 ? theme.font.sansBold : theme.font.sansSemi;
   const baseStyle =
     level === 1
       ? isMobile ? styles.h1Mobile : styles.h1
@@ -427,7 +433,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: "rgba(7, 8, 15, 0.88)",
+    backgroundColor: "rgba(11, 12, 14, 0.92)",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 999,
@@ -445,8 +451,8 @@ const styles = StyleSheet.create({
     ...theme.shadowMd,
   },
   loadingMsg: {
-    fontFamily: theme.font.serifSemi,
-    fontSize: 18,
+    fontFamily: theme.font.sansSemi,
+    fontSize: 17,
     color: theme.text,
     textAlign: "center",
     marginBottom: 4,

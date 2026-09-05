@@ -6,6 +6,7 @@ import { listDocuments } from "../../src/data/documents";
 import {
   CATEGORIES,
   definitionsByCategory,
+  getDefinition,
 } from "../../src/engine/definitions/catalog";
 import type { DocumentCategory } from "../../src/engine/types";
 import type { DocumentSummary } from "../../src/repository/types";
@@ -14,11 +15,10 @@ import {
   Icon,
   StatusBadge,
   Skeleton,
-  PageIllustration,
 } from "../../src/ui/components";
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
-import { OnboardingModal } from "../../src/ui/OnboardingModal";
-import { fetchUserMe, type OnboardingData } from "../../src/data/onboarding";
+import { OnboardingFlow } from "../../src/ui/OnboardingFlow";
+import { fetchUserMe, type OnboardingData, type UserMeResponse } from "../../src/data/onboarding";
 
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime();
@@ -46,113 +46,156 @@ export default function Home() {
   const user = useAppUser();
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const isMobile = width < 860;
   const [docs, setDocs] = useState<DocumentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [onboardingData, setOnboardingData] = useState<OnboardingData | undefined>(undefined);
+  const [userData, setUserData] = useState<UserMeResponse | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
     if (!user.isLoaded || !user.isSignedIn || !user.userId) {
       setLoading(false);
       return;
     }
-    let active = true;
     setLoading(true);
     listDocuments(user)
-      .then((result) => {
-        if (active) setDocs(result);
-      })
-      .catch(() => {
-        if (active) setDocs([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      .then((result) => setDocs(result))
+      .catch(() => setDocs([]))
+      .finally(() => setLoading(false));
 
     fetchUserMe(user).then((res) => {
-      if (!active || !res) return;
+      if (!res) return;
+      setUserData(res);
       if (!res.user.onboardingCompleted) {
-        setOnboardingData(res.user.onboardingData);
         setOnboardingOpen(true);
       }
     });
+  };
 
-    return () => {
-      active = false;
-    };
+  useEffect(() => {
+    loadData();
   }, [user.userId, user.isLoaded, user.isSignedIn]);
 
-  const greeting = user.name ? `, ${user.name.split(" ")[0]}` : "";
+  const workspaceName = userData?.workspace?.name || "Primary Workspace";
+  const userRole = userData?.user?.role || "Security Professional";
+  const persona = userData?.user?.onboardingData?.persona || "cybersecurity_professional";
+
+  // Recommend starting specifications based on persona
+  const recommendedDefs =
+    persona === "client"
+      ? ["pentest_agreement", "roe", "pentest_report", "third_party_assessment"]
+      : persona === "technical_professional"
+      ? ["threat_model", "security_architecture", "cloud_assessment", "app_assessment"]
+      : ["pentest_agreement", "roe", "incident_plan", "threat_intel_report"];
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
       <View style={[styles.container, !isMobile && styles.containerWeb]}>
-        {/* Hero */}
-        <View style={[styles.hero, !isMobile && styles.heroRow]}>
-          <View style={[styles.heroText, !isMobile && { paddingRight: 32 }]}>
-            <Text style={styles.kicker}>Professional Document Studio</Text>
-            <Heading
-              level={1}
-              style={isMobile ? styles.wordmarkMobile : styles.wordmark}
-            >
+        
+        {/* Workspace Metadata Header */}
+        <View style={styles.workspaceHeader}>
+          <View style={styles.workspaceHeaderLeft}>
+            <View style={styles.liveIndicator} />
+            <Text style={styles.workspaceTag}>
+              WORKSPACE // {workspaceName.toUpperCase()}
+            </Text>
+            <View style={styles.personaPill}>
+              <Text style={styles.personaPillText}>{userRole.toUpperCase()}</Text>
+            </View>
+          </View>
+          <Text style={styles.persistenceTag}>NEON DB // SYNCHRONIZED</Text>
+        </View>
+
+        {/* Hero Banner with Asymmetric Editorial Layout */}
+        <View style={[styles.heroRow, isMobile && styles.heroRowMobile]}>
+          <View style={[styles.heroTextCol, isMobile ? { width: "100%" } : { flex: 1.2, paddingRight: 36 }]}>
+            <Text style={styles.kicker}>SPECIFICATION & DOCUMENTATION STUDIO</Text>
+            <Heading level={1} style={isMobile ? styles.h1Mobile : styles.h1}>
               Draftoryn
             </Heading>
-            <Heading
-              level={3}
-              style={isMobile ? styles.headlineMobile : styles.headline}
-            >
-              Generate professional technical & security documents
-            </Heading>
-            <Text style={[styles.subcopy, { fontSize: isMobile ? 14 : 15, lineHeight: isMobile ? 20 : 22 }]}>
-              System specifications, authorized agreements, assessments, and architectural plans — drafted from a curated
-              catalog of structured, expert-grade templates.
+            <Text style={styles.heroDescription}>
+              Professional technical agreements, security evaluations, threat models, and architectural
+              specifications. Built with rigorous document schemas, strict typographics, and single-source-of-truth
+              persistence.
             </Text>
+
             <View style={[styles.ctaRow, isMobile && { flexDirection: "column", width: "100%", gap: 10 }]}>
               <Button
-                label="Create document"
+                label="Create New Document →"
                 onPress={() => router.push("/document/new?def=pentest_agreement")}
                 style={isMobile ? { width: "100%" } : undefined}
               />
-              {!isMobile ? <View style={styles.ctaSpacer} /> : null}
               <Button
-                label="Browse catalog"
+                label="Browse 30 Specifications"
                 variant="secondary"
                 onPress={() => router.push("/(app)/discover")}
                 style={isMobile ? { width: "100%" } : undefined}
               />
             </View>
-            <Text style={styles.greeting}>
-              Welcome back{user.isLoaded && user.isSignedIn ? greeting : ""}
-            </Text>
           </View>
-          {!isMobile ? (
-            <View style={styles.heroArt}>
-              <PageIllustration width={240} height={290} />
+
+          {/* Right Column: Live Document Specimen Callout */}
+          {!isMobile && (
+            <View style={styles.specimenCol}>
+              <View style={styles.specimenCard}>
+                <View style={styles.specimenTop}>
+                  <View style={styles.specimenBadge}>
+                    <Text style={styles.specimenBadgeText}>SPECIMEN</Text>
+                  </View>
+                  <Text style={styles.specimenId}>SPEC-SEC-AUTH-001</Text>
+                </View>
+                <Text style={styles.specimenTitle}>Penetration Testing Authorization</Text>
+                <Text style={styles.specimenBlurb}>
+                  Standardized legal and operational framework granting formal testing permissions, defining boundary scopes, and emergency contact protocols.
+                </Text>
+                <View style={styles.specimenDivider} />
+                <View style={styles.specimenMetaRow}>
+                  <Text style={styles.specimenMetaKey}>FORMATS</Text>
+                  <Text style={styles.specimenMetaVal}>PDF • Markdown • DOCX • HTML</Text>
+                </View>
+                <View style={styles.specimenMetaRow}>
+                  <Text style={styles.specimenMetaKey}>SCHEMA</Text>
+                  <Text style={styles.specimenMetaVal}>Strict Model + 7 Verified Sections</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.specimenAction}
+                  onPress={() => router.push("/document/new?def=pentest_agreement")}
+                >
+                  <Text style={styles.specimenActionText}>Instantiate This Specification →</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          ) : null}
+          )}
         </View>
 
-        {/* Categories section */}
-        <SectionLabel>Browse by category</SectionLabel>
-        <View style={styles.catGrid}>
-          {CATEGORIES.map((cat) => {
-            const visual = CATEGORY_VISUALS[cat];
-            const defs = definitionsByCategory(cat);
+        {/* Recommended Starter Documents */}
+        <SectionLabel>Recommended for your role</SectionLabel>
+        <View style={styles.starterGrid}>
+          {recommendedDefs.map((defId) => {
+            const def = getDefinition(defId);
+            if (!def) return null;
+            const visual = CATEGORY_VISUALS[def.category];
             return (
               <TouchableOpacity
-                key={cat}
-                style={[styles.catCard, { width: isMobile ? "100%" : "31.5%", marginRight: isMobile ? 0 : "2.75%" }]}
-                onPress={() => router.push(`/(app)/discover?category=${cat}`)}
+                key={defId}
+                style={[styles.starterCard, { width: isMobile ? "100%" : "48.5%" }]}
+                onPress={() => router.push(`/document/new?def=${defId}`)}
               >
-                <Card style={styles.catInner} accentTop hover>
-                  <View style={[styles.catIconWrap, { backgroundColor: `${visual.accent}14` }]}>
-                    <Icon name={visual.icon} size={22} color={visual.accent} />
+                <Card hover style={styles.starterCardInner}>
+                  <View style={styles.starterCardHeader}>
+                    <View style={styles.starterIconWrap}>
+                      <Icon name={visual.icon} size={15} color={visual.accent} />
+                    </View>
+                    <Text style={styles.starterCategoryText}>{categoryLabel(def.category).toUpperCase()}</Text>
+                    <View style={{ flex: 1 }} />
+                    <Icon name="ArrowRight" size={14} color={theme.muted} />
                   </View>
-                  <Text style={styles.catLabel}>{visual.label}</Text>
-                  <Text style={styles.catBlurb}>{visual.blurb}</Text>
-                  <View style={styles.catFooter}>
-                    <Text style={styles.catCount}>{defs.length} templates</Text>
+                  <Text style={styles.starterTitle}>{def.name}</Text>
+                  <Text style={styles.starterSummary}>{def.description}</Text>
+                  <View style={styles.starterFooter}>
+                    <Text style={styles.starterMetaText}>
+                      {def.sections.length} sections • {def.fields.length} parameters
+                    </Text>
                   </View>
                 </Card>
               </TouchableOpacity>
@@ -160,12 +203,12 @@ export default function Home() {
           })}
         </View>
 
-        {/* Recent documents */}
-        <SectionLabel>Recent documents</SectionLabel>
+        {/* Recent Work / Documents Grid */}
+        <SectionLabel>Your workspace documents</SectionLabel>
         {loading ? (
           <View style={styles.docGrid}>
-            {[1, 2, 3].map((i) => (
-              <Card key={i} style={[styles.docCard, { width: isMobile ? "100%" : "48%" }]}>
+            {[1, 2].map((i) => (
+              <Card key={i} style={[styles.docCard, { width: isMobile ? "100%" : "48.5%" }]}>
                 <Skeleton width="60%" height={18} />
                 <Skeleton width="40%" height={12} style={{ marginTop: 8 }} />
                 <Skeleton width="30%" height={12} style={{ marginTop: 14 }} />
@@ -174,11 +217,11 @@ export default function Home() {
           </View>
         ) : docs.length === 0 ? (
           <EmptyState
-            title="No documents drafted yet"
-            subtitle="Your recent work will appear here. Choose a template or create your first document above."
+            title="No documents created in this workspace yet"
+            subtitle="Choose one of the recommended specifications above or launch a custom agreement."
             action={
               <Button
-                label="Create document"
+                label="Create your first document"
                 onPress={() => router.push("/document/new?def=pentest_agreement")}
               />
             }
@@ -188,10 +231,10 @@ export default function Home() {
             {docs.slice(0, 8).map((d) => (
               <TouchableOpacity
                 key={d.id}
-                style={[styles.docCard, { width: isMobile ? "100%" : "48%", marginRight: isMobile ? 0 : "2%" }]}
+                style={[styles.docCard, { width: isMobile ? "100%" : "48.5%" }]}
                 onPress={() => router.push(`/document/${d.id}`)}
               >
-                <Card hover>
+                <Card hover style={styles.docCardInner}>
                   <Text style={styles.docTitle}>{d.title}</Text>
                   <Text style={styles.docCategory}>{categoryLabel(d.category)}</Text>
                   <View style={styles.docMetaRow}>
@@ -203,13 +246,46 @@ export default function Home() {
             ))}
           </View>
         )}
+
+        {/* 6 Technical Disciplines */}
+        <SectionLabel>Explore all 6 disciplines</SectionLabel>
+        <View style={styles.catGrid}>
+          {CATEGORIES.map((cat) => {
+            const visual = CATEGORY_VISUALS[cat];
+            const defs = definitionsByCategory(cat);
+            return (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.catCard, { width: isMobile ? "100%" : "31.5%", marginRight: isMobile ? 0 : "2.75%" }]}
+                onPress={() => router.push(`/(app)/discover?category=${cat}`)}
+              >
+                <Card style={styles.catInner} hover>
+                  <View style={styles.catHeader}>
+                    <View style={styles.catIconWrap}>
+                      <Icon name={visual.icon} size={18} color={visual.accent} />
+                    </View>
+                    <Text style={styles.catCountBadge}>{defs.length} SPECS</Text>
+                  </View>
+                  <Text style={styles.catLabel}>{visual.label}</Text>
+                  <Text style={styles.catBlurb}>{visual.blurb}</Text>
+                </Card>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
       </View>
+
+      {/* Persona-driven Onboarding Modal */}
       {onboardingOpen && (
-        <OnboardingModal
+        <OnboardingFlow
           open={onboardingOpen}
           user={user}
-          initialData={onboardingData}
-          onComplete={() => setOnboardingOpen(false)}
+          initialData={userData?.user?.onboardingData}
+          onComplete={() => {
+            setOnboardingOpen(false);
+            loadData();
+          }}
         />
       )}
     </ScrollView>
@@ -218,14 +294,68 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  body: { paddingTop: 20, paddingBottom: 40, paddingHorizontal: 16 },
+  body: { paddingTop: 24, paddingBottom: 60, paddingHorizontal: 16 },
   container: { width: "100%", alignSelf: "center" },
   containerWeb: { maxWidth: 1080, paddingHorizontal: 8 },
 
-  hero: { marginBottom: 28 },
-  heroRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  heroText: { flex: 1 },
-  heroArt: { alignItems: "center", justifyContent: "center" },
+  workspaceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: theme.radiusSm,
+    marginBottom: 24,
+  },
+  workspaceHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  liveIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.ok,
+  },
+  workspaceTag: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: theme.text,
+  },
+  personaPill: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    backgroundColor: theme.surface2,
+    borderRadius: 3,
+  },
+  personaPillText: {
+    fontFamily: theme.font.mono,
+    fontSize: 9.5,
+    letterSpacing: 1,
+    color: theme.mutedLight,
+  },
+  persistenceTag: {
+    fontFamily: theme.font.mono,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: theme.muted,
+  },
+
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 36,
+  },
+  heroRowMobile: {
+    flexDirection: "column",
+  },
+  heroTextCol: {},
   kicker: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
@@ -234,78 +364,195 @@ const styles = StyleSheet.create({
     color: theme.accent,
     marginBottom: 8,
   },
-  wordmark: { fontSize: 56, lineHeight: 62, letterSpacing: -1.5, marginBottom: 8 },
-  wordmarkMobile: { fontSize: 34, lineHeight: 40, letterSpacing: -0.5, marginBottom: 8 },
-  headline: { fontSize: 24, lineHeight: 30, marginBottom: 8, color: theme.text },
-  headlineMobile: { fontSize: 18, lineHeight: 24, marginBottom: 8, color: theme.text },
-  subcopy: {
-    fontFamily: theme.font.sans,
-    color: theme.muted,
-    maxWidth: 560,
-    marginBottom: 16,
-  },
-  ctaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap" },
-  ctaSpacer: { width: 12 },
-  greeting: {
-    fontFamily: theme.font.sans,
-    fontSize: 13,
-    color: theme.muted,
-    marginTop: 12,
-  },
-
-  catGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 12 },
-  catCard: { marginBottom: 14 },
-  catInner: { marginBottom: 0, padding: 16 },
-  catIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: theme.radiusSm,
-    alignItems: "center",
-    justifyContent: "center",
+  h1: {
+    fontFamily: theme.font.sansBlack,
+    fontSize: 44,
+    lineHeight: 50,
+    letterSpacing: -1,
+    color: theme.text,
     marginBottom: 12,
   },
-  catLabel: {
-    fontFamily: theme.font.serifSemi,
-    fontSize: 17,
+  h1Mobile: {
+    fontFamily: theme.font.sansBlack,
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: -0.5,
     color: theme.text,
+    marginBottom: 12,
+  },
+  heroDescription: {
+    fontFamily: theme.font.sans,
+    fontSize: 15,
+    lineHeight: 23,
+    color: theme.mutedLight,
+    marginBottom: 22,
+  },
+  ctaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  specimenCol: {
+    flex: 0.9,
+  },
+  specimenCard: {
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: theme.radius,
+    padding: 20,
+    gap: 8,
+  },
+  specimenTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
   },
-  catBlurb: {
+  specimenBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    backgroundColor: theme.accentSubtle,
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: theme.accent,
+  },
+  specimenBadgeText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 9,
+    letterSpacing: 1,
+    color: theme.accent,
+  },
+  specimenId: {
+    fontFamily: theme.font.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: theme.muted,
+  },
+  specimenTitle: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 17,
+    color: theme.text,
+  },
+  specimenBlurb: {
+    fontFamily: theme.font.sans,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: theme.muted,
+  },
+  specimenDivider: {
+    height: 1,
+    backgroundColor: theme.border,
+    marginVertical: 4,
+  },
+  specimenMetaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  specimenMetaKey: {
+    fontFamily: theme.font.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: theme.muted,
+  },
+  specimenMetaVal: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    color: theme.mutedLight,
+  },
+  specimenAction: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderColor: theme.border,
+  },
+  specimenActionText: {
+    fontFamily: theme.font.sansSemi,
+    fontSize: 12,
+    color: theme.accent,
+  },
+
+  starterGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 32,
+    rowGap: 14,
+  },
+  starterCard: {},
+  starterCardInner: {
+    padding: 18,
+    gap: 6,
+    marginBottom: 0,
+  },
+  starterCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  starterIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  starterCategoryText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 9.5,
+    letterSpacing: 1.5,
+    color: theme.muted,
+  },
+  starterTitle: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 16,
+    color: theme.text,
+  },
+  starterSummary: {
     fontFamily: theme.font.sans,
     fontSize: 13,
     lineHeight: 18,
     color: theme.muted,
-    marginBottom: 10,
   },
-  catFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  starterFooter: {
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderColor: theme.border,
   },
-  catCount: {
-    fontFamily: theme.font.monoMedium,
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    color: theme.accent,
+  starterMetaText: {
+    fontFamily: theme.font.mono,
+    fontSize: 10,
+    color: theme.mutedLight,
   },
 
-  docGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 12 },
-  docCard: { width: "100%", marginBottom: 14 },
-  docCardWeb: { width: "31.5%", marginRight: "2.75%", marginBottom: 18 },
+  docGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 32,
+    rowGap: 14,
+  },
+  docCard: {},
+  docCardInner: {
+    padding: 18,
+    marginBottom: 0,
+  },
   docTitle: {
-    fontFamily: theme.font.serifSemi,
-    fontSize: 18,
+    fontFamily: theme.font.sansBold,
+    fontSize: 16,
     color: theme.text,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   docCategory: {
-    fontFamily: theme.font.monoMedium,
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: "uppercase",
+    fontFamily: theme.font.sans,
+    fontSize: 12.5,
     color: theme.muted,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   docMetaRow: {
     flexDirection: "row",
@@ -313,10 +560,54 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   docUpdated: {
-    fontFamily: theme.font.sans,
-    fontSize: 12,
+    fontFamily: theme.font.mono,
+    fontSize: 11,
     color: theme.muted,
   },
 
-  skeletonGap: { height: 10 },
+  catGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    rowGap: 14,
+    marginBottom: 20,
+  },
+  catCard: {
+    marginBottom: 0,
+  },
+  catInner: {
+    padding: 18,
+    gap: 6,
+    marginBottom: 0,
+  },
+  catHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  catIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  catCountBadge: {
+    fontFamily: theme.font.mono,
+    fontSize: 9.5,
+    letterSpacing: 1,
+    color: theme.muted,
+  },
+  catLabel: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 15,
+    color: theme.text,
+  },
+  catBlurb: {
+    fontFamily: theme.font.sans,
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: theme.muted,
+  },
 });

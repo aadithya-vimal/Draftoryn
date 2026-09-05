@@ -300,8 +300,13 @@ export async function updateUserOnboarding(
     step?: number;
     onboardingData?: Record<string, unknown>;
     role?: string;
+    persona?: string;
+    workspaceName?: string;
+    organizationName?: string;
+    representativeName?: string;
+    defaultExportFormat?: string;
   },
-): Promise<DbUser> {
+): Promise<{ user: DbUser; workspace?: DbWorkspace; settings?: DbUserSettings }> {
   return withRls(userId, async (sql) => {
     // Ensure user exists first
     await getOrCreateUser(userId);
@@ -318,13 +323,18 @@ export async function updateUserOnboarding(
       sets.push(`onboarding_step = $${idx++}`);
       vals.push(Number(updates.step));
     }
-    if (updates.onboardingData !== undefined) {
-      sets.push(`onboarding_data = $${idx++}::jsonb`);
-      vals.push(JSON.stringify(updates.onboardingData));
-    }
-    if (updates.role !== undefined) {
+    const combinedData = {
+      ...(updates.onboardingData ?? {}),
+      ...(updates.persona ? { persona: updates.persona } : {}),
+      ...(updates.organizationName ? { organizationName: updates.organizationName } : {}),
+      ...(updates.representativeName ? { representativeName: updates.representativeName } : {}),
+    };
+    sets.push(`onboarding_data = $${idx++}::jsonb`);
+    vals.push(JSON.stringify(combinedData));
+
+    if (updates.role || updates.persona) {
       sets.push(`role = $${idx++}`);
-      vals.push(updates.role);
+      vals.push(updates.persona || updates.role);
     }
 
     const query = `UPDATE users SET ${sets.join(", ")} WHERE id = $1 RETURNING id, email, name, avatar_url, role, onboarding_completed, onboarding_step, onboarding_data, created_at, updated_at`;
@@ -342,7 +352,7 @@ export async function updateUserOnboarding(
     }>;
 
     const u = rows[0]!;
-    return {
+    const user: DbUser = {
       id: u.id,
       email: u.email,
       name: u.name,
@@ -354,6 +364,69 @@ export async function updateUserOnboarding(
       createdAt: u.created_at,
       updatedAt: u.updated_at,
     };
+
+    // 2. Synchronize workspace name if provided
+    let workspace: DbWorkspace | undefined;
+    if (updates.workspaceName) {
+      const wsRows = (await sql(
+        `UPDATE workspaces SET name = $1, updated_at = now()
+         WHERE owner_id = $2 AND is_default = true
+         RETURNING id, owner_id, name, slug, is_default, settings, created_at, updated_at`,
+        [updates.workspaceName, userId],
+      )) as Array<{
+        id: string;
+        owner_id: string;
+        name: string;
+        slug: string;
+        is_default: boolean;
+        settings: Record<string, unknown>;
+        created_at: string;
+        updated_at: string;
+      }>;
+      if (wsRows[0]) {
+        const w = wsRows[0];
+        workspace = {
+          id: w.id,
+          ownerId: w.owner_id,
+          name: w.name,
+          slug: w.slug,
+          isDefault: Boolean(w.is_default),
+          settings: w.settings ?? {},
+          createdAt: w.created_at,
+          updatedAt: w.updated_at,
+        };
+      }
+    }
+
+    // 3. Synchronize user settings (tester or client profile, export format)
+    let settings: DbUserSettings | undefined;
+    if (updates.organizationName || updates.representativeName || updates.defaultExportFormat) {
+      const currentSettings = await getUserSettings(userId);
+      const isClient = updates.persona === "client" || user.role === "client";
+      const testerProfile = isClient
+        ? currentSettings.testerProfile
+        : {
+            ...currentSettings.testerProfile,
+            ...(updates.organizationName ? { testingOrganization: updates.organizationName } : {}),
+            ...(updates.representativeName ? { testerName: updates.representativeName } : {}),
+          };
+      const clientProfile = isClient
+        ? {
+            ...currentSettings.clientProfile,
+            ...(updates.organizationName ? { clientOrganization: updates.organizationName } : {}),
+            ...(updates.representativeName ? { clientRepresentative: updates.representativeName } : {}),
+          }
+        : currentSettings.clientProfile;
+
+      const exportFormat = updates.defaultExportFormat || currentSettings.defaultExportFormat;
+      settings = await putUserSettings(userId, {
+        defaultExportFormat: exportFormat,
+        testerProfile,
+        clientProfile,
+      });
+    }
+
+    return { user, workspace, settings };
   });
 }
 

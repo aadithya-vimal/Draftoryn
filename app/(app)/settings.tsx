@@ -27,7 +27,7 @@ import {
   type UserExportFormat,
   type UserSettings,
 } from "../../src/lib/userSettings";
-import { fetchUserMe } from "../../src/data/onboarding";
+import { fetchUserMe, saveOnboardingProgress } from "../../src/data/onboarding";
 import {
   validateEmail,
   validatePhone,
@@ -103,6 +103,11 @@ export default function Settings() {
 
   const handleSaveProfiles = async () => {
     setSaveStatus("saving");
+    if (workspace?.name) {
+      await saveOnboardingProgress(user, {
+        workspaceName: workspace.name,
+      });
+    }
     await saveUserSettings({
       defaultExportFormat: exportFormat as UserExportFormat,
       compactLists,
@@ -140,7 +145,7 @@ export default function Settings() {
         ) : saveStatus === "saved" ? (
           <View style={[styles.saveBadge, styles.saveBadgeSuccess]}>
             <Icon name="Check" size={14} color={theme.ok} />
-            <Text style={[styles.saveBadgeText, { color: theme.ok }]}>Saved to device</Text>
+            <Text style={[styles.saveBadgeText, { color: theme.ok }]}>Saved to Neon DB</Text>
           </View>
         ) : null}
       </View>
@@ -197,6 +202,16 @@ export default function Settings() {
                   <Text style={styles.neonSyncText}>Neon PostgreSQL · Source of Truth</Text>
                 </View>
               </View>
+            </View>
+            <View style={{ marginTop: 14 }}>
+              <Text style={styles.inputLabel}>Workspace Name</Text>
+              <TextInput
+                style={styles.textInput}
+                value={workspace?.name ?? ""}
+                onChangeText={(v) => setWorkspace((w) => (w ? { ...w, name: v } : { id: "default", name: v }))}
+                placeholder="Primary Security Workspace"
+                placeholderTextColor={theme.muted}
+              />
             </View>
           </Card>
 
