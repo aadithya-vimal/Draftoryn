@@ -5,15 +5,14 @@ import { ClerkProvider } from "@clerk/expo";
 import { CLERK_PUBLISHABLE_KEY, getTokenCache } from "../src/auth/clerk";
 import { theme } from "../src/ui/primitives";
 import { Redirect } from "expo-router";
-import {
-  InterTight_400Regular,
-  InterTight_500Medium,
-  InterTight_600SemiBold,
-  InterTight_700Bold,
-  InterTight_800ExtraBold,
-  InterTight_900Black,
-} from "@expo-google-fonts/inter-tight";
-import { IBMPlexMono_400Regular, IBMPlexMono_500Medium } from "@expo-google-fonts/ibm-plex-mono";
+import { InterTight_400Regular } from "@expo-google-fonts/inter-tight/400Regular";
+import { InterTight_500Medium } from "@expo-google-fonts/inter-tight/500Medium";
+import { InterTight_600SemiBold } from "@expo-google-fonts/inter-tight/600SemiBold";
+import { InterTight_700Bold } from "@expo-google-fonts/inter-tight/700Bold";
+import { InterTight_800ExtraBold } from "@expo-google-fonts/inter-tight/800ExtraBold";
+import { InterTight_900Black } from "@expo-google-fonts/inter-tight/900Black";
+import { IBMPlexMono_400Regular } from "@expo-google-fonts/ibm-plex-mono/400Regular";
+import { IBMPlexMono_500Medium } from "@expo-google-fonts/ibm-plex-mono/500Medium";
 
 function FontSplash() {
   return (
