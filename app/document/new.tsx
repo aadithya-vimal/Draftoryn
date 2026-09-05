@@ -350,8 +350,29 @@ export default function NewDocumentScreen() {
     setGeneratingWithAi(useAi);
     setError("");
     try {
+      const activeProvider = userSettings.aiSettings?.defaultProvider || "openai";
+      const key =
+        activeProvider === "openai"
+          ? userSettings.aiSettings?.openaiApiKey
+          : activeProvider === "anthropic"
+          ? userSettings.aiSettings?.anthropicApiKey
+          : activeProvider === "groq"
+          ? userSettings.aiSettings?.groqApiKey
+          : userSettings.aiSettings?.geminiApiKey;
+      const model =
+        activeProvider === "openai"
+          ? userSettings.aiSettings?.openaiModel
+          : activeProvider === "anthropic"
+          ? userSettings.aiSettings?.anthropicModel
+          : activeProvider === "groq"
+          ? userSettings.aiSettings?.groqModel
+          : userSettings.aiSettings?.geminiModel;
+
       const gen: GeneratedDocument = await generateDocumentClient(def.id, source, {
         useAi,
+        provider: activeProvider,
+        model,
+        apiKey: key,
         getToken: user.getToken,
       });
       const version: DocumentVersion = createVersion(
@@ -630,7 +651,19 @@ export default function NewDocumentScreen() {
               onPress={() => onGenerate(false)}
             />
             <Button
-              label={busy && generatingWithAi ? "Synthesizing…" : "Populate with AI"}
+              label={
+                busy && generatingWithAi
+                  ? "Synthesizing…"
+                  : `Populate with ${
+                      userSettings.aiSettings?.defaultProvider === "anthropic"
+                        ? "Claude"
+                        : userSettings.aiSettings?.defaultProvider === "groq"
+                        ? "Groq"
+                        : userSettings.aiSettings?.defaultProvider === "gemini"
+                        ? "Gemini"
+                        : "AI"
+                    }`
+              }
               variant="secondary"
               disabled={busy}
               onPress={() => onGenerate(true)}

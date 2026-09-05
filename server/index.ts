@@ -21,7 +21,8 @@ if (existsSync(envPath)) {
 }
 
 import { verifyToken } from "@clerk/backend";
-import { runGeneration } from "./generate";
+import { runGeneration, resolveProviderKey } from "./generate";
+import { AI_PROVIDERS, type AiProviderType, executeAiCall } from "../src/engine/ai/providers";
 import {
   getOrCreateUser,
   getUser,
@@ -286,7 +287,15 @@ app.post("/api/generate", async (c) => {
   const auth = await authenticate(c as never);
   if (!auth) return c.json({ error: "Unauthorized. Please sign in to generate documents." }, 401);
 
-  let body: { definitionId?: string; source?: Record<string, unknown>; sectionId?: string; useAi?: boolean };
+  let body: {
+    definitionId?: string;
+    source?: Record<string, unknown>;
+    sectionId?: string;
+    useAi?: boolean;
+    provider?: AiProviderType;
+    model?: string;
+    apiKey?: string;
+  };
   try {
     body = await c.req.json();
   } catch {
@@ -299,11 +308,88 @@ app.post("/api/generate", async (c) => {
     const doc = await runGeneration(body.definitionId, body.source ?? {}, {
       sectionId: body.sectionId,
       useAi: Boolean(body.useAi),
+      provider: body.provider,
+      model: body.model,
+      apiKey: body.apiKey,
     });
     return c.json(doc);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";
     return c.json({ error: message }, 500);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// AI Providers & Diagnostics Endpoints
+// ---------------------------------------------------------------------------
+app.get("/api/ai/providers", async (c) => {
+  const auth = await authenticate(c as never);
+  if (!auth) return c.json({ error: "Unauthorized." }, 401);
+
+  const providers = (Object.keys(AI_PROVIDERS) as AiProviderType[]).map((id) => {
+    const info = AI_PROVIDERS[id];
+    const { apiKey } = resolveProviderKey(id);
+    return {
+      id,
+      name: info.name,
+      defaultModel: info.defaultModel,
+      models: info.models,
+      description: info.description,
+      docsUrl: info.docsUrl,
+      isConfiguredOnServer: Boolean(apiKey),
+    };
+  });
+  return c.json({ providers });
+});
+
+app.post("/api/ai/test", async (c) => {
+  const auth = await authenticate(c as never);
+  if (!auth) return c.json({ error: "Unauthorized." }, 401);
+
+  let body: { provider?: AiProviderType; apiKey?: string; model?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON request body" }, 400);
+  }
+
+  const provider: AiProviderType = body.provider || "openai";
+  const { apiKey } = resolveProviderKey(provider, body.apiKey);
+  if (!apiKey) {
+    return c.json({
+      success: false,
+      error: `No API key provided or configured on server for "${AI_PROVIDERS[provider]?.name ?? provider}".`,
+    }, 400);
+  }
+
+  const model = body.model?.trim() || AI_PROVIDERS[provider].defaultModel;
+  const start = Date.now();
+  try {
+    await executeAiCall({
+      provider,
+      model,
+      apiKey,
+      systemPrompt: "You are an automated connectivity testing service. Output strictly valid JSON.",
+      userPrompt: "Respond with {\"status\": \"ok\", \"verified\": true}",
+      schema: "{\"type\": \"object\", \"required\": [\"status\", \"verified\"], \"properties\": {\"status\": {\"type\": \"string\"}, \"verified\": {\"type\": \"boolean\"}}}",
+      temperature: 0.1,
+    });
+    const latencyMs = Date.now() - start;
+    return c.json({
+      success: true,
+      provider,
+      model,
+      latencyMs,
+      message: `Successfully connected to ${AI_PROVIDERS[provider].name} (${model}) in ${latencyMs}ms.`,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Connection test failed.";
+    return c.json({
+      success: false,
+      provider,
+      model,
+      error: message,
+    }, 500);
   }
 });
 

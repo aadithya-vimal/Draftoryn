@@ -34,6 +34,7 @@ export interface DbUserSettings {
   sessionTimeoutMinutes: number;
   testerProfile: Record<string, unknown>;
   clientProfile: Record<string, unknown>;
+  aiSettings?: Record<string, unknown>;
   updatedAt: string;
 }
 
@@ -216,7 +217,7 @@ export async function getOrCreateUser(
 
     // 3. Ensure user settings exist
     const settingsRows = (await sql(
-      `SELECT user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, updated_at
+      `SELECT user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, ai_settings, updated_at
        FROM user_settings WHERE user_id = $1`,
       [userId],
     )) as Array<{
@@ -227,6 +228,7 @@ export async function getOrCreateUser(
       session_timeout_minutes: number;
       tester_profile: Record<string, unknown>;
       client_profile: Record<string, unknown>;
+      ai_settings?: Record<string, unknown>;
       updated_at: string;
     }>;
 
@@ -241,12 +243,13 @@ export async function getOrCreateUser(
         sessionTimeoutMinutes: s.session_timeout_minutes ?? 15,
         testerProfile: s.tester_profile ?? {},
         clientProfile: s.client_profile ?? {},
+        aiSettings: s.ai_settings ?? {},
         updatedAt: s.updated_at,
       };
     } else {
       await sql(
-        `INSERT INTO user_settings (user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, updated_at)
-         VALUES ($1, 'pdf', false, 'dark', 15, '{}'::jsonb, '{}'::jsonb, now())
+        `INSERT INTO user_settings (user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, ai_settings, updated_at)
+         VALUES ($1, 'pdf', false, 'dark', 15, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, now())
          ON CONFLICT (user_id) DO NOTHING`,
         [userId],
       );
@@ -258,6 +261,7 @@ export async function getOrCreateUser(
         sessionTimeoutMinutes: 15,
         testerProfile: {},
         clientProfile: {},
+        aiSettings: {},
         updatedAt: new Date().toISOString(),
       };
     }
@@ -530,7 +534,7 @@ export async function updateUserOnboarding(
 export async function getUserSettings(userId: string): Promise<DbUserSettings> {
   return withRls(userId, async (sql) => {
     const rows = (await sql(
-      `SELECT user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, updated_at
+      `SELECT user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, ai_settings, updated_at
        FROM user_settings WHERE user_id = $1`,
       [userId],
     )) as Array<{
@@ -541,6 +545,7 @@ export async function getUserSettings(userId: string): Promise<DbUserSettings> {
       session_timeout_minutes: number;
       tester_profile: Record<string, unknown>;
       client_profile: Record<string, unknown>;
+      ai_settings?: Record<string, unknown>;
       updated_at: string;
     }>;
 
@@ -554,6 +559,7 @@ export async function getUserSettings(userId: string): Promise<DbUserSettings> {
         sessionTimeoutMinutes: s.session_timeout_minutes ?? 15,
         testerProfile: s.tester_profile ?? {},
         clientProfile: s.client_profile ?? {},
+        aiSettings: s.ai_settings ?? {},
         updatedAt: s.updated_at,
       };
     }
@@ -568,6 +574,7 @@ export async function getUserSettings(userId: string): Promise<DbUserSettings> {
       sessionTimeoutMinutes: 15,
       testerProfile: {},
       clientProfile: {},
+      aiSettings: {},
       updatedAt: new Date().toISOString(),
     };
   });
@@ -582,6 +589,7 @@ export async function putUserSettings(
     sessionTimeoutMinutes?: number;
     testerProfile?: Record<string, unknown>;
     clientProfile?: Record<string, unknown>;
+    aiSettings?: Record<string, unknown>;
   },
 ): Promise<DbUserSettings> {
   return withRls(userId, async (sql) => {
@@ -596,11 +604,12 @@ export async function putUserSettings(
       sessionTimeoutMinutes: settings.sessionTimeoutMinutes ?? existing.sessionTimeoutMinutes,
       testerProfile: settings.testerProfile ? { ...existing.testerProfile, ...settings.testerProfile } : existing.testerProfile,
       clientProfile: settings.clientProfile ? { ...existing.clientProfile, ...settings.clientProfile } : existing.clientProfile,
+      aiSettings: settings.aiSettings ? { ...(existing.aiSettings || {}), ...settings.aiSettings } : (existing.aiSettings || {}),
     };
 
     await sql(
-      `INSERT INTO user_settings (user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, now())
+      `INSERT INTO user_settings (user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, ai_settings, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb, now())
        ON CONFLICT (user_id) DO UPDATE SET
          default_export_format = EXCLUDED.default_export_format,
          compact_lists = EXCLUDED.compact_lists,
@@ -608,6 +617,7 @@ export async function putUserSettings(
          session_timeout_minutes = EXCLUDED.session_timeout_minutes,
          tester_profile = EXCLUDED.tester_profile,
          client_profile = EXCLUDED.client_profile,
+         ai_settings = EXCLUDED.ai_settings,
          updated_at = now()`,
       [
         userId,
@@ -617,6 +627,7 @@ export async function putUserSettings(
         updated.sessionTimeoutMinutes,
         JSON.stringify(updated.testerProfile),
         JSON.stringify(updated.clientProfile),
+        JSON.stringify(updated.aiSettings),
       ],
     );
 
@@ -628,6 +639,7 @@ export async function putUserSettings(
       sessionTimeoutMinutes: updated.sessionTimeoutMinutes,
       testerProfile: updated.testerProfile,
       clientProfile: updated.clientProfile,
+      aiSettings: updated.aiSettings,
       updatedAt: new Date().toISOString(),
     };
   });

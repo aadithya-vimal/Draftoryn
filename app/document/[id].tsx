@@ -321,9 +321,30 @@ export default function DocumentEditor() {
       if (!def || !user.getToken) return;
       setRegeneratingSectionId(sid);
       try {
+        const activeProvider = userSettings.aiSettings?.defaultProvider || "openai";
+        const key =
+          activeProvider === "openai"
+            ? userSettings.aiSettings?.openaiApiKey
+            : activeProvider === "anthropic"
+            ? userSettings.aiSettings?.anthropicApiKey
+            : activeProvider === "groq"
+            ? userSettings.aiSettings?.groqApiKey
+            : userSettings.aiSettings?.geminiApiKey;
+        const model =
+          activeProvider === "openai"
+            ? userSettings.aiSettings?.openaiModel
+            : activeProvider === "anthropic"
+            ? userSettings.aiSettings?.anthropicModel
+            : activeProvider === "groq"
+            ? userSettings.aiSettings?.groqModel
+            : userSettings.aiSettings?.geminiModel;
+
         const gen = await generateDocumentClient(def.id, sourceRef.current, {
           sectionId: sid,
           useAi: true,
+          provider: activeProvider,
+          model,
+          apiKey: key,
           getToken: user.getToken,
         });
         const found = gen.sections.find((s) => s.id === sid);
@@ -342,7 +363,7 @@ export default function DocumentEditor() {
         setRegeneratingSectionId(null);
       }
     },
-    [def, user, updateSections],
+    [def, user, userSettings, updateSections],
   );
 
   const regenerateAll = useCallback(
@@ -351,8 +372,29 @@ export default function DocumentEditor() {
       const useSrc = src ?? sourceRef.current;
       setBusy(true);
       try {
+        const activeProvider = userSettings.aiSettings?.defaultProvider || "openai";
+        const key =
+          activeProvider === "openai"
+            ? userSettings.aiSettings?.openaiApiKey
+            : activeProvider === "anthropic"
+            ? userSettings.aiSettings?.anthropicApiKey
+            : activeProvider === "groq"
+            ? userSettings.aiSettings?.groqApiKey
+            : userSettings.aiSettings?.geminiApiKey;
+        const model =
+          activeProvider === "openai"
+            ? userSettings.aiSettings?.openaiModel
+            : activeProvider === "anthropic"
+            ? userSettings.aiSettings?.anthropicModel
+            : activeProvider === "groq"
+            ? userSettings.aiSettings?.groqModel
+            : userSettings.aiSettings?.geminiModel;
+
         const gen = await generateDocumentClient(def.id, useSrc, {
           useAi: true,
+          provider: activeProvider,
+          model,
+          apiKey: key,
           getToken: user.getToken,
         });
         updateSections(() =>

@@ -1,5 +1,6 @@
 import { getPlatformStorage } from "./storage";
 import { clientHttp, type AuthLike } from "../data/client";
+import type { AiProviderType } from "../engine/ai/providers";
 
 export type UserExportFormat = "pdf" | "docx" | "markdown" | "html" | "json" | "xml" | "yaml";
 
@@ -22,6 +23,30 @@ export interface ClientProfile {
 
 export type ThemeMode = "dark" | "light";
 
+export interface AiSettings {
+  defaultProvider: AiProviderType;
+  openaiApiKey?: string;
+  openaiModel?: string;
+  anthropicApiKey?: string;
+  anthropicModel?: string;
+  groqApiKey?: string;
+  groqModel?: string;
+  geminiApiKey?: string;
+  geminiModel?: string;
+}
+
+export const DEFAULT_AI_SETTINGS: AiSettings = {
+  defaultProvider: "openai",
+  openaiApiKey: "",
+  openaiModel: "gpt-4o-mini",
+  anthropicApiKey: "",
+  anthropicModel: "claude-3-5-sonnet-20241022",
+  groqApiKey: "",
+  groqModel: "llama-3.3-70b-versatile",
+  geminiApiKey: "",
+  geminiModel: "gemini-1.5-flash",
+};
+
 export interface UserSettings {
   defaultExportFormat: UserExportFormat;
   compactLists: boolean;
@@ -29,6 +54,7 @@ export interface UserSettings {
   sessionTimeoutMinutes: number;
   testerProfile: TesterProfile;
   clientProfile: ClientProfile;
+  aiSettings: AiSettings;
 }
 
 export const DEFAULT_USER_SETTINGS: UserSettings = {
@@ -51,6 +77,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     clientPhone: "",
     authorizedBy: "",
   },
+  aiSettings: DEFAULT_AI_SETTINGS,
 };
 
 const STORAGE_KEY = "draftoryn_user_settings_v1";
@@ -68,6 +95,7 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
         sessionTimeoutMinutes?: number;
         testerProfile?: Record<string, unknown>;
         clientProfile?: Record<string, unknown>;
+        aiSettings?: Record<string, unknown>;
       }>("/api/settings", { method: "GET" }, user);
 
       if (remote) {
@@ -89,6 +117,10 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
           clientProfile: {
             ...DEFAULT_USER_SETTINGS.clientProfile,
             ...((remote.clientProfile as Partial<ClientProfile>) || {}),
+          },
+          aiSettings: {
+            ...DEFAULT_USER_SETTINGS.aiSettings,
+            ...((remote.aiSettings as Partial<AiSettings>) || {}),
           },
         };
         await storage.set(STORAGE_KEY, JSON.stringify(merged));
@@ -117,6 +149,10 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
         ...DEFAULT_USER_SETTINGS.clientProfile,
         ...(parsed.clientProfile || {}),
       },
+      aiSettings: {
+        ...DEFAULT_USER_SETTINGS.aiSettings,
+        ...(parsed.aiSettings || {}),
+      },
     };
   } catch {
     return { ...DEFAULT_USER_SETTINGS };
@@ -142,6 +178,10 @@ export async function saveUserSettings(
       ...current.clientProfile,
       ...(settings.clientProfile || {}),
     },
+    aiSettings: {
+      ...current.aiSettings,
+      ...(settings.aiSettings || {}),
+    },
   };
 
   // Cache locally for instant UI responsiveness
@@ -165,6 +205,7 @@ export async function saveUserSettings(
             sessionTimeoutMinutes: updated.sessionTimeoutMinutes,
             testerProfile: updated.testerProfile,
             clientProfile: updated.clientProfile,
+            aiSettings: updated.aiSettings,
           }),
         },
         user,

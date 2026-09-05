@@ -3,12 +3,57 @@ import { getDefinition } from "../engine/definitions/catalog";
 import { generateDocument, regenerateSection } from "../engine/generate";
 import type { GeneratedDocument, Section } from "../engine/types";
 
+import type { AiProviderType } from "../engine/ai/providers";
+
 export interface GenerateOpts {
   sectionId?: string;
   getToken?: () => Promise<string | null>;
   onStageChange?: (stage: string) => void;
   allowLocalFallback?: boolean;
   useAi?: boolean;
+  provider?: AiProviderType;
+  model?: string;
+  apiKey?: string;
+}
+
+export interface TestAiResult {
+  success: boolean;
+  provider?: AiProviderType;
+  model?: string;
+  latencyMs?: number;
+  message?: string;
+  error?: string;
+}
+
+export async function testAiConnection(
+  provider: AiProviderType,
+  getToken?: () => Promise<string | null>,
+  apiKey?: string,
+  model?: string,
+): Promise<TestAiResult> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (getToken) {
+    const token = await getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+
+  try {
+    const res = await fetch(apiUrl("/api/ai/test"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ provider, apiKey, model }),
+    });
+
+    const data = (await res.json()) as TestAiResult;
+    return data;
+  } catch (err) {
+    return {
+      success: false,
+      provider,
+      model,
+      error: err instanceof Error ? err.message : "Network error testing connection.",
+    };
+  }
 }
 
 export async function serverGenerate(
@@ -22,7 +67,11 @@ export async function serverGenerate(
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  opts.onStageChange?.(opts.useAi ? "Synthesizing document with AI engine" : "Building structured document");
+  opts.onStageChange?.(
+    opts.useAi
+      ? `Synthesizing document with ${opts.provider ? opts.provider.toUpperCase() : "AI"}`
+      : "Building structured document",
+  );
   const res = await fetch(apiUrl("/api/generate"), {
     method: "POST",
     headers,
@@ -31,6 +80,9 @@ export async function serverGenerate(
       source,
       sectionId: opts.sectionId,
       useAi: Boolean(opts.useAi),
+      provider: opts.provider,
+      model: opts.model,
+      apiKey: opts.apiKey,
     }),
   });
 

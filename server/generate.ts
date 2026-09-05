@@ -3,24 +3,62 @@ import { generateDocument, regenerateSection } from "../src/engine/generate";
 import { buildDocumentPrompt, buildSectionPrompt } from "../src/engine/ai/prompt";
 import { validateGeneratedDocument } from "../src/engine/validation";
 import type { GeneratedDocument, Section } from "../src/engine/types";
+import {
+  type AiProviderType,
+  AI_PROVIDERS,
+  executeAiCall,
+  cleanAndParseJson,
+} from "../src/engine/ai/providers";
 
-function getAiConfig() {
-  const apiKey = process.env.DRAFTORYN_AI_API_KEY || process.env.OPENAI_API_KEY || process.env.AI_API_KEY;
-  const baseUrl = process.env.DRAFTORYN_AI_BASE_URL || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-  const model = process.env.DRAFTORYN_AI_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
-  return { apiKey, baseUrl, model };
+export interface GenerationOptions {
+  sectionId?: string;
+  useAi?: boolean;
+  provider?: AiProviderType;
+  model?: string;
+  apiKey?: string;
 }
 
-// Server-side generation entrypoint. AI keys live only on the server.
+export function resolveProviderKey(
+  provider: AiProviderType,
+  userKey?: string,
+): { apiKey?: string; envVar: string } {
+  if (userKey && userKey.trim()) {
+    return { apiKey: userKey.trim(), envVar: "CLIENT_PROVIDED" };
+  }
+  switch (provider) {
+    case "openai":
+      return {
+        apiKey: process.env.OPENAI_API_KEY || process.env.DRAFTORYN_AI_API_KEY || process.env.AI_API_KEY,
+        envVar: "OPENAI_API_KEY",
+      };
+    case "anthropic":
+      return {
+        apiKey: process.env.ANTHROPIC_API_KEY,
+        envVar: "ANTHROPIC_API_KEY",
+      };
+    case "groq":
+      return {
+        apiKey: process.env.GROQ_API_KEY,
+        envVar: "GROQ_API_KEY",
+      };
+    case "gemini":
+      return {
+        apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
+        envVar: "GEMINI_API_KEY",
+      };
+  }
+}
+
+// Server-side generation entrypoint. Supports OpenAI, Anthropic, Groq, and Google Gemini.
 export async function runGeneration(
   definitionId: string,
   source: Record<string, unknown>,
-  opts: { sectionId?: string; useAi?: boolean } = {},
+  opts: GenerationOptions = {},
 ): Promise<GeneratedDocument | Section> {
   const def = getDefinition(definitionId);
   if (!def) throw new Error(`Unknown document definition: ${definitionId}`);
 
-  // Default: Manual fill / structural baseline generation
+  // Default: Manual structural baseline generation
   if (!opts.useAi) {
     if (opts.sectionId) {
       const section = regenerateSection(def, opts.sectionId, source);
@@ -37,29 +75,33 @@ export async function runGeneration(
 
   if (filledEntries.length === 0) {
     throw new Error(
-      "AI synthesis requires context. Please fill out organization, scope, or objective details before generating with AI.",
+      "AI synthesis requires context. Please enter organization, scope, or engagement details before generating with AI.",
     );
   }
 
-  const { apiKey, baseUrl, model } = getAiConfig();
+  const provider: AiProviderType = opts.provider || (process.env.DRAFTORYN_AI_PROVIDER as AiProviderType) || "openai";
+  const { apiKey, envVar } = resolveProviderKey(provider, opts.apiKey);
   if (!apiKey) {
+    const providerName = AI_PROVIDERS[provider]?.name ?? provider;
     throw new Error(
-      "AI inference service is not configured on the server. Please set DRAFTORYN_AI_API_KEY or generate manually.",
+      `AI service for "${providerName}" is not configured. Please enter your API key in Settings or set ${envVar} on the server.`,
     );
   }
+
+  const model = opts.model?.trim() || AI_PROVIDERS[provider]?.defaultModel || "gpt-4o-mini";
 
   if (opts.sectionId) {
     const secDef = def.sections.find((s) => s.id === opts.sectionId);
     if (!secDef) throw new Error(`Unknown section: ${opts.sectionId}`);
     const baseDoc = generateDocument(def, source);
-    const aiSection = await generateAiSection(def, secDef, baseDoc.model, source, apiKey, baseUrl, model);
+    const aiSection = await generateAiSection(def, secDef, baseDoc.model, source, provider, apiKey, model);
     if (aiSection) return aiSection;
     const fallback = regenerateSection(def, opts.sectionId, source);
     if (!fallback) throw new Error(`Unknown section: ${opts.sectionId}`);
     return fallback;
   }
 
-  const aiDoc = await generateAiDocument(def, source, apiKey, baseUrl, model);
+  const aiDoc = await generateAiDocument(def, source, provider, apiKey, model);
   if (aiDoc) return aiDoc;
 
   // Fallback to structural baseline if AI synthesis could not complete
@@ -69,37 +111,25 @@ export async function runGeneration(
 async function generateAiDocument(
   def: NonNullable<ReturnType<typeof getDefinition>>,
   source: Record<string, unknown>,
+  provider: AiProviderType,
   apiKey: string,
-  baseUrl: string,
   model: string,
 ): Promise<GeneratedDocument | null> {
   const req = buildDocumentPrompt(def);
+  const userPrompt = `${req.user}\n\nUser context:\n${JSON.stringify(source, null, 2)}`;
 
-  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model,
-      temperature: 0.15,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: `${req.system}\n\nRespond strictly with valid JSON conforming to:\n${req.schema}` },
-        { role: "user", content: `${req.user}\n\nUser context:\n${JSON.stringify(source, null, 2)}` },
-      ],
-    }),
+  const raw = await executeAiCall({
+    provider,
+    apiKey,
+    model,
+    systemPrompt: req.system,
+    userPrompt,
+    schema: req.schema,
+    temperature: 0.15,
   });
 
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`AI inference failed (${res.status}): ${errBody.slice(0, 200)}`);
-  }
-
-  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const text = json.choices?.[0]?.message?.content;
-  if (!text) throw new Error("AI engine returned an empty response.");
-
   try {
-    const parsed = JSON.parse(text) as { sections?: Section[] };
+    const parsed = cleanAndParseJson<{ sections?: Section[] }>(raw);
     if (Array.isArray(parsed.sections) && parsed.sections.length > 0) {
       const base = generateDocument(def, source);
       const combinedSections = base.sections.map((sec) => {
@@ -143,39 +173,27 @@ async function generateAiDocument(
 async function generateAiSection(
   def: NonNullable<ReturnType<typeof getDefinition>>,
   secDef: NonNullable<ReturnType<typeof getDefinition>>["sections"][number],
-  model: GeneratedDocument["model"],
+  modelData: GeneratedDocument["model"],
   source: Record<string, unknown>,
+  provider: AiProviderType,
   apiKey: string,
-  baseUrl: string,
   aiModel: string,
 ): Promise<Section | null> {
-  const req = buildSectionPrompt(def, secDef, model);
+  const req = buildSectionPrompt(def, secDef, modelData);
+  const userPrompt = `${req.user}\n\nSource input:\n${JSON.stringify(source, null, 2)}`;
 
-  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: aiModel,
-      temperature: 0.15,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: `${req.system}\n\nRespond strictly with valid JSON conforming to:\n${req.schema}` },
-        { role: "user", content: `${req.user}\n\nSource input:\n${JSON.stringify(source, null, 2)}` },
-      ],
-    }),
+  const raw = await executeAiCall({
+    provider,
+    apiKey,
+    model: aiModel,
+    systemPrompt: req.system,
+    userPrompt,
+    schema: req.schema,
+    temperature: 0.15,
   });
 
-  if (!res.ok) {
-    const errBody = await res.text();
-    throw new Error(`AI section inference failed (${res.status}): ${errBody.slice(0, 200)}`);
-  }
-
-  const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const text = json.choices?.[0]?.message?.content;
-  if (!text) return null;
-
   try {
-    const parsed = JSON.parse(text) as { sections?: Section[] };
+    const parsed = cleanAndParseJson<{ sections?: Section[] }>(raw);
     const found = parsed.sections?.find((s) => s.id === secDef.id) || parsed.sections?.[0];
     if (found && Array.isArray(found.blocks) && found.blocks.length > 0) {
       const cleanBlocks = found.blocks.filter((b) => {

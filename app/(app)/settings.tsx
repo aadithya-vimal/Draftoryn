@@ -29,7 +29,14 @@ import {
   type ThemeMode,
   type UserExportFormat,
   type UserSettings,
+  type AiSettings,
+  DEFAULT_AI_SETTINGS,
 } from "../../src/lib/userSettings";
+import {
+  AI_PROVIDERS,
+  type AiProviderType,
+} from "../../src/engine/ai/providers";
+import { testAiConnection, type TestAiResult } from "../../src/data/generate";
 import { useSessionTimeout } from "../../src/ui/SessionTimeoutProvider";
 import { fetchUserMe, saveOnboardingProgress } from "../../src/data/onboarding";
 import {
@@ -92,6 +99,12 @@ export default function Settings() {
     authorizedBy: "",
   });
 
+  const [aiSettings, setAiSettings] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
+  const [activeAiTab, setActiveAiTab] = useState<AiProviderType>("openai");
+  const [showApiKey, setShowApiKey] = useState<boolean>(false);
+  const [testingAi, setTestingAi] = useState<boolean>(false);
+  const [testResult, setTestResult] = useState<TestAiResult | null>(null);
+
   // Load persisted settings (with local fallback)
   useEffect(() => {
     let mounted = true;
@@ -102,6 +115,12 @@ export default function Settings() {
       if (s.sessionTimeoutMinutes) setSessionTimeoutMinutes(s.sessionTimeoutMinutes);
       setTesterProfile(s.testerProfile);
       setClientProfile(s.clientProfile);
+      if (s.aiSettings) {
+        setAiSettings(s.aiSettings);
+        if (s.aiSettings.defaultProvider) {
+          setActiveAiTab(s.aiSettings.defaultProvider);
+        }
+      }
       setLoading(false);
     });
 
@@ -109,6 +128,48 @@ export default function Settings() {
       mounted = false;
     };
   }, [user.userId, user.isSignedIn, user.isLoaded]);
+
+  const updateAiSetting = (patch: Partial<AiSettings>) => {
+    setAiSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveUserSettings({ aiSettings: next }, user).catch(console.error);
+      return next;
+    });
+  };
+
+  const handleTestAi = async () => {
+    setTestingAi(true);
+    setTestResult(null);
+    try {
+      const key =
+        activeAiTab === "openai"
+          ? aiSettings.openaiApiKey
+          : activeAiTab === "anthropic"
+          ? aiSettings.anthropicApiKey
+          : activeAiTab === "groq"
+          ? aiSettings.groqApiKey
+          : aiSettings.geminiApiKey;
+      const model =
+        activeAiTab === "openai"
+          ? aiSettings.openaiModel
+          : activeAiTab === "anthropic"
+          ? aiSettings.anthropicModel
+          : activeAiTab === "groq"
+          ? aiSettings.groqModel
+          : aiSettings.geminiModel;
+
+      const res = await testAiConnection(activeAiTab, user.getToken, key, model);
+      setTestResult(res);
+    } catch (e) {
+      setTestResult({
+        success: false,
+        provider: activeAiTab,
+        error: e instanceof Error ? e.message : "Connection test failed.",
+      });
+    } finally {
+      setTestingAi(false);
+    }
+  };
 
   const [wsError, setWsError] = useState<string | null>(null);
 
@@ -226,6 +287,7 @@ export default function Settings() {
         sessionTimeoutMinutes,
         testerProfile,
         clientProfile,
+        aiSettings,
       }, user);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2500);
@@ -492,6 +554,173 @@ export default function Settings() {
               value={currentThemeMode}
               onChange={handleThemeChange}
             />
+          </Card>
+
+          {/* AI Providers & Engine Configuration */}
+          <SectionLabel>AI Providers & Engine Configuration</SectionLabel>
+          <Card>
+            <View style={styles.prefRow}>
+              <View style={styles.prefText}>
+                <Text style={styles.prefLabel}>Supported AI Providers</Text>
+                <Text style={styles.prefHint}>
+                  Draftoryn supports OpenAI, Anthropic Claude, Groq, and Google Gemini. Select your preferred engine or enter your own API key for dedicated model access.
+                </Text>
+              </View>
+            </View>
+
+            {/* Provider Tabs */}
+            <View style={styles.aiProviderTabs}>
+              {(["openai", "anthropic", "groq", "gemini"] as AiProviderType[]).map((p) => {
+                const info = AI_PROVIDERS[p];
+                const isSelected = activeAiTab === p;
+                const isDefault = aiSettings.defaultProvider === p;
+                return (
+                  <Pressable
+                    key={p}
+                    style={[styles.aiProviderTab, isSelected && styles.aiProviderTabSelected]}
+                    onPress={() => {
+                      setActiveAiTab(p);
+                      setTestResult(null);
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Text style={[styles.aiProviderTabText, isSelected && styles.aiProviderTabTextSelected]}>
+                        {info.name}
+                      </Text>
+                      {isDefault && (
+                        <View style={styles.aiDefaultBadge}>
+                          <Text style={styles.aiDefaultBadgeText}>DEFAULT</Text>
+                        </View>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Active Provider Details Card */}
+            <View style={styles.aiActivePanel}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <View style={{ flex: 1, minWidth: 180 }}>
+                  <Text style={styles.aiProviderHeading}>{AI_PROVIDERS[activeAiTab].name}</Text>
+                  <Text style={styles.aiProviderDesc}>{AI_PROVIDERS[activeAiTab].description}</Text>
+                </View>
+                {aiSettings.defaultProvider !== activeAiTab ? (
+                  <Button
+                    label="Set as Default"
+                    variant="secondary"
+                    onPress={() => {
+                      updateAiSetting({ defaultProvider: activeAiTab });
+                      showSavedFeedback();
+                    }}
+                  />
+                ) : (
+                  <View style={styles.aiActiveDefaultPill}>
+                    <Icon name="CheckCircle" size={13} color={theme.ok} />
+                    <Text style={styles.aiActiveDefaultPillText}>Active Default</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Model Selection */}
+              <View style={{ gap: 6, marginTop: 14 }}>
+                <Text style={styles.inputLabel}>Model Selection</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {AI_PROVIDERS[activeAiTab].models.map((m) => {
+                    const currentModel =
+                      activeAiTab === "openai"
+                        ? aiSettings.openaiModel || AI_PROVIDERS.openai.defaultModel
+                        : activeAiTab === "anthropic"
+                        ? aiSettings.anthropicModel || AI_PROVIDERS.anthropic.defaultModel
+                        : activeAiTab === "groq"
+                        ? aiSettings.groqModel || AI_PROVIDERS.groq.defaultModel
+                        : aiSettings.geminiModel || AI_PROVIDERS.gemini.defaultModel;
+                    const isModelChosen = currentModel === m;
+                    return (
+                      <Pressable
+                        key={m}
+                        style={[styles.aiModelChip, isModelChosen && styles.aiModelChipSelected]}
+                        onPress={() => {
+                          if (activeAiTab === "openai") updateAiSetting({ openaiModel: m });
+                          else if (activeAiTab === "anthropic") updateAiSetting({ anthropicModel: m });
+                          else if (activeAiTab === "groq") updateAiSetting({ groqModel: m });
+                          else if (activeAiTab === "gemini") updateAiSetting({ geminiModel: m });
+                        }}
+                      >
+                        <Text style={[styles.aiModelChipText, isModelChosen && styles.aiModelChipTextSelected]}>
+                          {m}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Custom API Key Input */}
+              <View style={{ gap: 6, marginTop: 14 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                  <Text style={styles.inputLabel}>Custom API Key (Optional)</Text>
+                  <Pressable onPress={() => setShowApiKey((v) => !v)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Icon name={showApiKey ? "EyeOff" : "Eye"} size={13} color={theme.muted} />
+                    <Text style={{ fontFamily: theme.font.mono, fontSize: 11, color: theme.muted }}>
+                      {showApiKey ? "Hide" : "Show"}
+                    </Text>
+                  </Pressable>
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  value={
+                    activeAiTab === "openai"
+                      ? aiSettings.openaiApiKey || ""
+                      : activeAiTab === "anthropic"
+                      ? aiSettings.anthropicApiKey || ""
+                      : activeAiTab === "groq"
+                      ? aiSettings.groqApiKey || ""
+                      : aiSettings.geminiApiKey || ""
+                  }
+                  onChangeText={(val) => {
+                    if (activeAiTab === "openai") updateAiSetting({ openaiApiKey: val });
+                    else if (activeAiTab === "anthropic") updateAiSetting({ anthropicApiKey: val });
+                    else if (activeAiTab === "groq") updateAiSetting({ groqApiKey: val });
+                    else if (activeAiTab === "gemini") updateAiSetting({ geminiApiKey: val });
+                  }}
+                  placeholder={AI_PROVIDERS[activeAiTab].keyPlaceholder}
+                  placeholderTextColor={theme.muted}
+                  secureTextEntry={!showApiKey}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <Text style={{ fontFamily: theme.font.sans, fontSize: 11.5, color: theme.muted, lineHeight: 16 }}>
+                  Leave blank to use Draftoryn server configuration, or provide your personal key for direct quota.
+                </Text>
+              </View>
+
+              {/* Test Connection Row */}
+              <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderColor: theme.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                <View style={{ flex: 1, minWidth: 200 }}>
+                  <Text style={{ fontFamily: theme.font.sansSemi, fontSize: 13, color: theme.text }}>Verify Connection</Text>
+                  <Text style={{ fontFamily: theme.font.sans, fontSize: 12, color: theme.muted }}>
+                    Send a test ping to {AI_PROVIDERS[activeAiTab].name} to verify your API key and latency.
+                  </Text>
+                </View>
+                <Button
+                  label={testingAi ? "Testing…" : `Test ${AI_PROVIDERS[activeAiTab].name}`}
+                  variant="secondary"
+                  disabled={testingAi}
+                  onPress={handleTestAi}
+                />
+              </View>
+
+              {/* Test Result Banner */}
+              {testResult && (
+                <View style={[styles.aiTestResultBox, testResult.success ? styles.aiTestSuccess : styles.aiTestError]}>
+                  <Icon name={testResult.success ? "CheckCircle" : "AlertCircle"} size={16} color={testResult.success ? theme.ok : "#D94A4A"} />
+                  <Text style={[styles.aiTestResultText, { color: testResult.success ? theme.ok : "#D94A4A" }]}>
+                    {testResult.success ? testResult.message : testResult.error}
+                  </Text>
+                </View>
+              )}
+            </View>
           </Card>
 
           {/* Security & Session Inactivity Timeout */}
@@ -1201,5 +1430,124 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.sansMedium,
     fontSize: 13,
     color: theme.ok,
+  },
+
+  // AI Configuration Styles
+  aiProviderTabs: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginVertical: 14,
+  },
+  aiProviderTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  aiProviderTabSelected: {
+    backgroundColor: theme.surfaceHover,
+    borderColor: theme.borderActive,
+  },
+  aiProviderTabText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 13,
+    color: theme.muted,
+  },
+  aiProviderTabTextSelected: {
+    color: theme.text,
+    fontFamily: theme.font.sansBold,
+  },
+  aiDefaultBadge: {
+    backgroundColor: theme.accent,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  aiDefaultBadgeText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 9,
+    color: "#FFFFFF",
+    letterSpacing: 0.8,
+  },
+  aiActivePanel: {
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 8,
+    padding: 16,
+  },
+  aiProviderHeading: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 15,
+    color: theme.text,
+    marginBottom: 2,
+  },
+  aiProviderDesc: {
+    fontFamily: theme.font.sans,
+    fontSize: 12.5,
+    color: theme.muted,
+    lineHeight: 18,
+  },
+  aiActiveDefaultPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.radiusSm,
+    backgroundColor: "rgba(49, 183, 122, 0.12)",
+    borderWidth: 1,
+    borderColor: theme.ok,
+  },
+  aiActiveDefaultPillText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12,
+    color: theme.ok,
+  },
+  aiModelChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  aiModelChipSelected: {
+    borderColor: theme.borderActive,
+    backgroundColor: theme.surfaceHover,
+  },
+  aiModelChipText: {
+    fontFamily: theme.font.mono,
+    fontSize: 12,
+    color: theme.muted,
+  },
+  aiModelChipTextSelected: {
+    color: theme.text,
+    fontFamily: theme.font.monoMedium,
+  },
+  aiTestResultBox: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: theme.radiusSm,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  aiTestSuccess: {
+    backgroundColor: "rgba(49, 183, 122, 0.08)",
+    borderColor: theme.ok,
+  },
+  aiTestError: {
+    backgroundColor: "rgba(217, 74, 74, 0.08)",
+    borderColor: "#D94A4A",
+  },
+  aiTestResultText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12.5,
+    flex: 1,
   },
 });
