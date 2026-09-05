@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -231,6 +232,11 @@ export function OnboardingFlow({
         {/* Top Header Bar */}
         <View style={styles.topBar}>
           <View style={styles.topBarLeft}>
+            <Image
+              source={require("../../assets/icon.png")}
+              style={styles.topLogoIcon}
+              resizeMode="contain"
+            />
             <Text style={styles.topWordmark}>Draftoryn</Text>
             <View style={styles.topDot} />
             <Text style={styles.topSystemTag}>WORKSPACE INITIALIZATION</Text>
@@ -253,6 +259,11 @@ export function OnboardingFlow({
           {/* ========================================================================= */}
           {step === 1 && (
             <View style={styles.stepBlock}>
+              <Image
+                source={require("../../assets/logo.png")}
+                style={styles.welcomeBannerLogo}
+                resizeMode="contain"
+              />
               <Text style={styles.eyebrow}>WELCOME / 01</Text>
               <Heading level={1} style={styles.stepHeadline}>
                 Let's set up your workspace.
@@ -575,6 +586,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  topLogoIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+  },
+  welcomeBannerLogo: {
+    width: 220,
+    height: 70,
+    marginBottom: 24,
+    alignSelf: "flex-start",
   },
   topWordmark: {
     fontFamily: theme.font.sansBold,

@@ -1,6 +1,8 @@
 <div align="center">
 
-# Draftoryn
+<img src="./assets/logo.png" alt="Draftoryn — Professional Documentation" width="460" />
+
+<br/><br/>
 
 **Authoritative Cybersecurity Document Studio**
 

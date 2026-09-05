@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -458,7 +459,14 @@ export default function Settings() {
           <SectionLabel>About</SectionLabel>
           <Card>
             <View style={styles.aboutRow}>
-              <Text style={styles.aboutName}>Draftoryn</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Image
+                  source={require("../../../assets/icon.png")}
+                  style={{ width: 24, height: 24, borderRadius: 5 }}
+                  resizeMode="contain"
+                />
+                <Text style={styles.aboutName}>Draftoryn</Text>
+              </View>
               <Text style={styles.aboutVersion}>Version 2.0.0</Text>
             </View>
             <Text style={styles.bodyText}>

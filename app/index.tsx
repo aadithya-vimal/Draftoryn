@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Redirect, useRouter } from "expo-router";
 import { useAppUser } from "../src/auth/clerk";
 import { Button, Card, Heading, theme } from "../src/ui/primitives";
@@ -28,10 +28,14 @@ export default function LandingPage() {
       {/* ========================================================================= */}
       <View style={styles.header}>
         <View style={styles.headerInner}>
-          {/* Left: Simple wordmark with blue brand dot */}
+          {/* Left: Real brand mark with wordmark */}
           <View style={styles.headerLeft}>
+            <Image
+              source={require("../assets/icon.png")}
+              style={styles.headerLogoImg}
+              resizeMode="contain"
+            />
             <Text style={styles.wordmark}>Draftoryn</Text>
-            <View style={styles.wordmarkDot} />
           </View>
 
           {/* Center: Navigation */}
@@ -380,7 +384,14 @@ export default function LandingPage() {
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.footerInner}>
-          <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <Image
+              source={require("../assets/logo.png")}
+              style={styles.footerLogoBanner}
+              resizeMode="contain"
+            />
+            <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
+          </View>
           <Text style={styles.footerText}>NEON POSTGRESQL · CLERK AUTH</Text>
         </View>
       </View>
@@ -418,7 +429,12 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
+  },
+  headerLogoImg: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
   },
   wordmark: {
     fontFamily: theme.font.sansBold,
@@ -426,11 +442,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     color: "#F5F3EE",
   },
-  wordmarkDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: "#2F6BFF",
+  footerLogoBanner: {
+    width: 90,
+    height: 24,
   },
   headerNav: {
     flexDirection: "row",

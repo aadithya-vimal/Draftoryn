@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { useAppUser } from "../../src/auth/clerk";
 import { listDocuments } from "../../src/data/documents";
@@ -109,7 +109,14 @@ export default function Home() {
         {/* Hero Banner with Asymmetric Editorial Layout */}
         <View style={[styles.heroRow, isMobile && styles.heroRowMobile]}>
           <View style={[styles.heroTextCol, isMobile ? { width: "100%" } : { flex: 1.2, paddingRight: 36 }]}>
-            <Text style={styles.kicker}>SPECIFICATION & DOCUMENTATION STUDIO</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 }}>
+              <Image
+                source={require("../../assets/icon.png")}
+                style={{ width: 32, height: 32, borderRadius: 6 }}
+                resizeMode="contain"
+              />
+              <Text style={styles.kicker}>SPECIFICATION & DOCUMENTATION STUDIO</Text>
+            </View>
             <Heading level={1} style={isMobile ? styles.h1Mobile : styles.h1}>
               Draftoryn
             </Heading>

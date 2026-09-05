@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { useAppUser } from "../auth/clerk";
 import { Icon } from "./components";
@@ -13,25 +13,12 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/(app)/home", label: "Home", icon: "Home" },
-  { href: "/(app)/discover", label: "Discover", icon: "Compass" },
-  { href: "/(app)/library", label: "Library", icon: "Library" },
-  { href: "/(app)/settings", label: "Settings", icon: "Settings" },
+  { href: "/(app)/discover", label: "Catalog", icon: "Compass" },
+  { href: "/(app)/library", label: "Library", icon: "Folder" },
 ];
 
-function normalizePath(p: string): string {
-  if (!p) return "/";
-  return (
-    p
-      .replace(/\/\([^)]+\)/g, "")
-      .replace(/\/+$/, "") || "/"
-  );
-}
-
-function isNavActive(pathname: string, href: string): boolean {
-  const current = normalizePath(pathname);
-  const target = normalizePath(href);
+function isNavActive(current: string, target: string): boolean {
   if (current === target) return true;
-  if (target === "/home" && (current === "/" || current === "/home")) return true;
   if (target !== "/" && current.startsWith(target + "/")) return true;
   return false;
 }
@@ -39,9 +26,11 @@ function isNavActive(pathname: string, href: string): boolean {
 function Brand() {
   return (
     <View style={styles.brand}>
-      <View style={styles.brandMark}>
-        <Icon name="Shield" size={16} color={theme.accentForeground} strokeWidth={2.2} />
-      </View>
+      <Image
+        source={require("../../assets/icon.png")}
+        style={styles.brandMarkImg}
+        resizeMode="contain"
+      />
       <View>
         <Text style={styles.brandText}>DRAFTORYN</Text>
         <Text style={styles.brandSub}>DOC STUDIO // V1</Text>
@@ -192,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 const styles = StyleSheet.create({
   brand: { flexDirection: "row", alignItems: "center", gap: 10 },
-  brandMark: { width: 28, height: 28, borderRadius: theme.radiusSm, backgroundColor: theme.accent, alignItems: "center", justifyContent: "center" },
+  brandMarkImg: { width: 28, height: 28, borderRadius: 6 },
   brandText: { fontFamily: theme.font.sansBlack, fontSize: 16, letterSpacing: 1.2, color: theme.text },
   brandSub: { fontFamily: theme.font.mono, fontSize: 9, letterSpacing: 1.5, color: theme.muted, marginTop: 1 },
   workspaceCard: {

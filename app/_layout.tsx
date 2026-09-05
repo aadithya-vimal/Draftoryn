@@ -55,6 +55,8 @@ export default function RootLayout() {
       <Head>
         <title>Draftoryn — Professional Technical & Security Document Studio</title>
         <meta name="description" content="Professional document studio for software requirements, architecture specifications, and security assessment scopes." />
+        <link rel="icon" type="image/png" href="/assets/favicon.png" />
+        <link rel="apple-touch-icon" href="/assets/icon.png" />
       </Head>
       <Stack screenOptions={{ headerShown: false, title: "Draftoryn" }}>
         <Stack.Screen name="(auth)" options={{ title: "Draftoryn" }} />

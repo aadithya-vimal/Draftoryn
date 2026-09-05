@@ -5,21 +5,30 @@
     "scheme": "draftoryn",
     "version": "1.0.0",
     "orientation": "default",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#090A0C"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.draftoryn.app"
+      "bundleIdentifier": "com.draftoryn.app",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "package": "com.draftoryn.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0B1220"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#090A0C"
       }
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": ["expo-router"],
     "experiments": {
