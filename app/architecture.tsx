@@ -32,7 +32,7 @@ export default function ArchitecturePage() {
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaKey}>IDENTITY</Text>
-              <Text style={styles.metaVal}>ENTERPRISE MULTI-TENANT</Text>
+              <Text style={styles.metaVal}>MULTI-TENANT WORKSPACES</Text>
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaKey}>EXPORT ENGINE</Text>
@@ -180,7 +180,7 @@ export default function ArchitecturePage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>ENTERPRISE DOCUMENTATION ENGINE</Text>
+          <Text style={styles.footerText}>TECHNICAL DOCUMENTATION PLATFORM</Text>
         </View>
       </View>
     </ScrollView>

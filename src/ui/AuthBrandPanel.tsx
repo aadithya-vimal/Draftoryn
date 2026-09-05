@@ -9,27 +9,25 @@ export function AuthBrandPanel({ isSignUp = false }: { isSignUp?: boolean }) {
       {/* Top Header & Logo */}
       <View style={styles.topSection}>
         <View style={styles.logoRow}>
-          <Image
-            source={require("../../assets/logo.png")}
-            style={styles.logoImg}
-            resizeMode="contain"
-          />
-          <View style={styles.versionBadge}>
-            <Text style={styles.versionBadgeText}>v2.4 // ENTERPRISE</Text>
+          <View style={styles.brandTitleRow}>
+            <Image
+              source={require("../../assets/icon.png")}
+              style={styles.logoIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.brandTitleText}>DRAFTORYN</Text>
           </View>
         </View>
 
         <View style={styles.statementWrap}>
-          <Text style={styles.kicker}>SPECIFICATION & AUTHORIZATION SYSTEM</Text>
+          <Text style={styles.kicker}>TECHNICAL SPECIFICATION PLATFORM</Text>
           <Text style={styles.heading}>
             {isSignUp
-              ? "Initialize your secure documentation workspace"
-              : "Deterministic cybersecurity documentation"}
+              ? "Create your workspace"
+              : "Software engineering and technical documentation"}
           </Text>
           <Text style={styles.subtext}>
-            Draftoryn is professional documentation software designed for technical precision.
-            Produce binding penetration testing authorizations, incident playbooks, threat models,
-            and compliance architectures with mathematical schema discipline.
+            Draftoryn standardizes software engineering and technical documentation. Author system architectures, API contracts, incident playbooks, security models, and engineering RFCs with schema discipline.
           </Text>
         </View>
       </View>
@@ -42,30 +40,30 @@ export function AuthBrandPanel({ isSignUp = false }: { isSignUp?: boolean }) {
             <View style={[styles.dot, { backgroundColor: "#D99A24" }]} />
             <View style={[styles.dot, { backgroundColor: "#31B77A" }]} />
           </View>
-          <Text style={styles.specimenId}>SPEC-SEC-AUTH // RUNTIME VERIFIER</Text>
+          <Text style={styles.specimenId}>SPEC-ENG-ARCH-001 // SPECIFICATION</Text>
           <View style={{ flex: 1 }} />
-          <Text style={styles.specimenTag}>ZERO DRIFT</Text>
+          <Text style={styles.specimenTag}>VALIDATED</Text>
         </View>
 
         <View style={styles.specimenBody}>
           <View style={styles.termLine}>
             <Text style={styles.termPrompt}>$</Text>
-            <Text style={styles.termCmd}>draftoryn compile --spec=sec-auth-001</Text>
+            <Text style={styles.termCmd}>draftoryn validate --spec=sys-arch-001</Text>
           </View>
           <View style={styles.termOutputRow}>
             <Text style={styles.termCheck}>[PASS]</Text>
-            <Text style={styles.termLabel}>TARGET_SCOPE:</Text>
-            <Text style={styles.termVal}>Authorized Production Enclave</Text>
+            <Text style={styles.termLabel}>SYSTEM_SCOPE:</Text>
+            <Text style={styles.termVal}>Distributed Core Services</Text>
           </View>
           <View style={styles.termOutputRow}>
             <Text style={styles.termCheck}>[PASS]</Text>
-            <Text style={styles.termLabel}>SAFE_HARBOR:</Text>
-            <Text style={styles.termVal}>18 U.S.C. § 1030 Explicit Authorization</Text>
+            <Text style={styles.termLabel}>API_CONTRACT:</Text>
+            <Text style={styles.termVal}>Schema & Event Boundaries Validated</Text>
           </View>
           <View style={styles.termOutputRow}>
             <Text style={styles.termCheck}>[PASS]</Text>
-            <Text style={styles.termLabel}>SCHEMA_CHECK:</Text>
-            <Text style={styles.termVal}>Deterministic AST Validated</Text>
+            <Text style={styles.termLabel}>DEPENDENCIES:</Text>
+            <Text style={styles.termVal}>Verified Dependency Graph</Text>
           </View>
           <View style={styles.termOutputRow}>
             <Text style={styles.termCheck}>[READY]</Text>
@@ -78,23 +76,23 @@ export function AuthBrandPanel({ isSignUp = false }: { isSignUp?: boolean }) {
       {/* Feature Pills */}
       <View style={styles.pillRow}>
         <View style={styles.featurePill}>
-          <Icon name="Shield" size={12} color={theme.accent} />
+          <Icon name="Layers" size={12} color={theme.accent} />
           <Text style={styles.featurePillText}>Workspace Isolation</Text>
         </View>
         <View style={styles.featurePill}>
-          <Icon name="Lock" size={12} color={theme.accent} />
-          <Text style={styles.featurePillText}>Row Level Security</Text>
+          <Icon name="FileText" size={12} color={theme.accent} />
+          <Text style={styles.featurePillText}>Multi-format Export</Text>
         </View>
         <View style={styles.featurePill}>
           <Icon name="CheckCircle" size={12} color={theme.ok} />
-          <Text style={styles.featurePillText}>Deterministic Engine</Text>
+          <Text style={styles.featurePillText}>Structured Schemas</Text>
         </View>
       </View>
 
       {/* Footer Status */}
       <View style={styles.footerRow}>
         <View style={styles.statusDot} />
-        <Text style={styles.statusText}>SYSTEM STATUS: ENCRYPTED & OPERATIONAL</Text>
+        <Text style={styles.statusText}>SYSTEM STATUS: OPERATIONAL</Text>
       </View>
     </View>
   );
@@ -116,26 +114,23 @@ const styles = StyleSheet.create({
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     marginBottom: 8,
   },
-  logoImg: {
-    width: 210,
-    height: 52,
+  brandTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  versionBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    backgroundColor: theme.surface2,
-    borderWidth: 1,
-    borderColor: theme.border,
+  logoIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
   },
-  versionBadgeText: {
-    fontFamily: theme.font.monoMedium,
-    fontSize: 9.5,
-    letterSpacing: 1.2,
-    color: theme.muted,
+  brandTitleText: {
+    fontFamily: theme.font.sansBlack,
+    fontSize: 20,
+    letterSpacing: 1.5,
+    color: theme.text,
   },
   statementWrap: {
     gap: 10,

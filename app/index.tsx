@@ -36,18 +36,18 @@ export default function LandingPage() {
             <Text style={styles.heroEyebrow}>DOCUMENTATION SYSTEM / 01</Text>
             
             <Text style={[styles.heroHeadline, isMobile ? styles.heroHeadlineMobile : isTablet ? styles.heroHeadlineTablet : styles.heroHeadlineDesktop]}>
-              Technical specifications and security agreements.
+              Engineering specifications, architectures, and technical documentation.
             </Text>
 
             <Text style={styles.heroBody}>
               Draftoryn is professional documentation software designed for technical precision.
-              Construct verified penetration testing agreements, incident playbooks, threat models,
-              and compliance architectures with mathematical schema discipline.
+              Construct verified engineering specifications, system architectures, incident playbooks,
+              API contracts, and security agreements with structured schemas.
             </Text>
 
             <View style={[styles.heroActionRow, isMobile && { flexDirection: "column", width: "100%", gap: 10 }]}>
               <Button
-                label="Initialize Workspace →"
+                label="Create Workspace →"
                 onPress={() => router.push("/(auth)/signup")}
                 style={isMobile ? { width: "100%" } : styles.ctaPrimary}
               />
@@ -65,9 +65,9 @@ export default function LandingPage() {
             <View style={styles.productFrame}>
               <View style={styles.frameTitlebar}>
                 <View style={styles.frameStatusDot} />
-                <Text style={styles.frameSpecId}>SPEC-SEC-AUTH-001 // EDITOR VIEW</Text>
+                <Text style={styles.frameSpecId}>SPEC-ENG-AUTH-001 // EDITOR</Text>
                 <View style={{ flex: 1 }} />
-                <Text style={styles.frameMetaTag}>PERSISTENT RECORD</Text>
+                <Text style={styles.frameMetaTag}>SPECIFICATION</Text>
               </View>
               
               <View style={styles.frameEditor}>
@@ -331,7 +331,7 @@ export default function LandingPage() {
             Ready to generate authoritative documentation?
           </Heading>
           <Text style={styles.finalLead}>
-            Provision your workspace with enterprise authentication and structured database persistence.
+            Create your workspace and start authoring engineering specifications.
           </Text>
           <Button
             label="Initialize Workspace Now →"
@@ -352,7 +352,7 @@ export default function LandingPage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>ENTERPRISE DOCUMENTATION ENGINE</Text>
+          <Text style={styles.footerText}>TECHNICAL DOCUMENTATION PLATFORM</Text>
         </View>
       </View>
     </ScrollView>
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   },
   frameParamDivider: {
     height: 1,
-    backgroundColor: "#272B32",
+    backgroundColor: theme.border,
   },
   frameSectionOutline: {
     gap: 6,
@@ -719,8 +719,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   catalogRowActive: {
-    borderColor: theme.borderLight,
-    backgroundColor: "#181B21",
+    borderColor: theme.borderActive,
+    backgroundColor: theme.surfaceHover,
   },
   catalogRowTop: {
     flexDirection: "row",
@@ -776,7 +776,7 @@ const styles = StyleSheet.create({
   },
   catalogRowDivider: {
     height: 1,
-    backgroundColor: "#272B32",
+    backgroundColor: theme.border,
     marginTop: 8,
   },
 

@@ -37,13 +37,10 @@ import {
   validatePhone,
 } from "../../src/engine/validation";
 import {
-  listWorkspaces,
-  createWorkspace,
   updateWorkspace,
-  setDefaultWorkspace,
-  deleteWorkspace,
   type WorkspaceRecord,
 } from "../../src/data/workspaces";
+import { useWorkspace } from "../../src/context/WorkspaceContext";
 
 type ExportOption = "pdf" | "docx" | "markdown" | "html" | "json";
 
@@ -51,16 +48,25 @@ export default function Settings() {
   const user = useAppUser();
   const { name, email, isLoaded, isSignedIn, signOut } = user;
 
+  const {
+    workspaces,
+    activeWorkspace,
+    setActiveWorkspace,
+    createAndSelectWorkspace,
+    deleteAndSelectWorkspace,
+    reloadWorkspaces,
+  } = useWorkspace();
+
   const [loading, setLoading] = useState<boolean>(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [manageOpen, setManageOpen] = useState<boolean>(false);
-  const [workspace, setWorkspace] = useState<{ id: string; name: string } | null>(null);
 
-  const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
   const [newWsName, setNewWsName] = useState<string>("");
   const [isCreatingWs, setIsCreatingWs] = useState<boolean>(false);
   const [editingWsId, setEditingWsId] = useState<string | null>(null);
   const [editingWsName, setEditingWsName] = useState<string>("");
+  const [deleteWsTarget, setDeleteWsTarget] = useState<WorkspaceRecord | null>(null);
+  const [isDeletingWs, setIsDeletingWs] = useState<boolean>(false);
 
   const { mode: currentThemeMode, setMode: setCurrentThemeMode } = useTheme();
   const { triggerTestWarning } = useSessionTimeout();
@@ -86,21 +92,7 @@ export default function Settings() {
     authorizedBy: "",
   });
 
-  const loadWorkspacesData = async () => {
-    if (!user.isSignedIn) return;
-    try {
-      const list = await listWorkspaces(user);
-      setWorkspaces(list);
-      const def = list.find((w) => w.isDefault) || list[0] || null;
-      if (def) {
-        setWorkspace({ id: def.id, name: def.name });
-      }
-    } catch (e) {
-      console.warn("Could not load workspaces in settings", e);
-    }
-  };
-
-  // Load persisted settings from Neon (with local fallback)
+  // Load persisted settings (with local fallback)
   useEffect(() => {
     let mounted = true;
     getUserSettings(user).then((s) => {
@@ -112,14 +104,6 @@ export default function Settings() {
       setClientProfile(s.clientProfile);
       setLoading(false);
     });
-
-    if (user.isSignedIn) {
-      loadWorkspacesData();
-      fetchUserMe(user).then((data) => {
-        if (!mounted || !data) return;
-        setWorkspace({ id: data.workspace.id, name: data.workspace.name });
-      });
-    }
 
     return () => {
       mounted = false;
@@ -134,9 +118,8 @@ export default function Settings() {
     setIsCreatingWs(true);
     setWsError(null);
     try {
-      await createWorkspace(user, trimmed);
+      await createAndSelectWorkspace(trimmed);
       setNewWsName("");
-      await loadWorkspacesData();
       showSavedFeedback();
     } catch (e) {
       console.error("Failed to create workspace:", e);
@@ -153,7 +136,7 @@ export default function Settings() {
     try {
       await updateWorkspace(user, id, { name: trimmed });
       setEditingWsId(null);
-      await loadWorkspacesData();
+      await reloadWorkspaces();
       showSavedFeedback();
     } catch (e) {
       console.error("Failed to update workspace:", e);
@@ -161,24 +144,28 @@ export default function Settings() {
     }
   };
 
-  const handleSetDefaultWorkspace = async (id: string) => {
+  const handleSelectActiveWorkspace = async (w: WorkspaceRecord) => {
     try {
-      await setDefaultWorkspace(user, id);
-      await loadWorkspacesData();
+      await setActiveWorkspace(w);
       showSavedFeedback();
     } catch (e) {
-      console.error("Failed to set default workspace:", e);
+      console.error("Failed to set active workspace:", e);
     }
   };
 
-  const handleDeleteWorkspace = async (id: string) => {
+  const handleConfirmDeleteWorkspace = async () => {
+    if (!deleteWsTarget || isDeletingWs) return;
     if (workspaces.length <= 1) return;
+    setIsDeletingWs(true);
     try {
-      await deleteWorkspace(user, id);
-      await loadWorkspacesData();
+      await deleteAndSelectWorkspace(deleteWsTarget.id);
+      setDeleteWsTarget(null);
       showSavedFeedback();
     } catch (e) {
       console.error("Failed to delete workspace:", e);
+      setWsError(e instanceof Error ? e.message : "Failed to delete workspace.");
+    } finally {
+      setIsDeletingWs(false);
     }
   };
 
@@ -227,9 +214,9 @@ export default function Settings() {
   const handleSaveProfiles = async () => {
     setSaveStatus("saving");
     try {
-      if (workspace?.name) {
+      if (activeWorkspace?.name) {
         await saveOnboardingProgress(user, {
-          workspaceName: workspace.name,
+          workspaceName: activeWorkspace.name,
         });
       }
       await saveUserSettings({
@@ -327,20 +314,20 @@ export default function Settings() {
                 <Icon name="Database" size={20} color={theme.accent} />
               </View>
               <View style={styles.workspaceMeta}>
-                <Text style={styles.workspaceName}>Encrypted Relational Workspaces</Text>
+                <Text style={styles.workspaceName}>Workspaces</Text>
                 <View style={styles.neonSyncRow}>
                   <View style={styles.neonDot} />
-                  <Text style={styles.neonSyncText}>Transactional persistence · Isolated schemas</Text>
+                  <Text style={styles.neonSyncText}>Isolate documents and specifications across projects</Text>
                 </View>
               </View>
             </View>
 
             <View style={{ marginTop: 16, gap: 10 }}>
               {workspaces.map((w) => {
-                const isDef = w.isDefault;
+                const isActive = activeWorkspace ? activeWorkspace.id === w.id : Boolean(w.isDefault);
                 const isEditing = editingWsId === w.id;
                 return (
-                  <View key={w.id} style={[styles.wsItemCard, isDef && styles.wsItemCardActive]}>
+                  <View key={w.id} style={[styles.wsItemCard, isActive && styles.wsItemCardActive]}>
                     {isEditing ? (
                       <View style={{ gap: 8 }}>
                         <TextInput
@@ -375,9 +362,14 @@ export default function Settings() {
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                             <Text style={styles.wsItemTitle} numberOfLines={1}>{w.name}</Text>
-                            {isDef && (
+                            {isActive && (
                               <View style={styles.wsActivePill}>
-                                <Text style={styles.wsActivePillText}>DEFAULT</Text>
+                                <Text style={styles.wsActivePillText}>ACTIVE</Text>
+                              </View>
+                            )}
+                            {w.isDefault && !isActive && (
+                              <View style={[styles.wsActivePill, { backgroundColor: theme.surface2 }]}>
+                                <Text style={[styles.wsActivePillText, { color: theme.muted }]}>DEFAULT</Text>
                               </View>
                             )}
                           </View>
@@ -385,11 +377,11 @@ export default function Settings() {
                         </View>
 
                         <View style={styles.wsItemActions}>
-                          {!isDef && (
+                          {!isActive && (
                             <Button
                               label="Make Active"
                               variant="secondary"
-                              onPress={() => handleSetDefaultWorkspace(w.id)}
+                              onPress={() => handleSelectActiveWorkspace(w)}
                               style={styles.wsActionBtn}
                             />
                           )}
@@ -406,7 +398,7 @@ export default function Settings() {
                             <Button
                               label="Delete"
                               variant="danger"
-                              onPress={() => handleDeleteWorkspace(w.id)}
+                              onPress={() => setDeleteWsTarget(w)}
                               style={styles.wsActionBtn}
                             />
                           )}
@@ -436,6 +428,7 @@ export default function Settings() {
                   disabled={!newWsName.trim() || isCreatingWs}
                 />
               </View>
+              {wsError ? <Text style={styles.fieldError}>{wsError}</Text> : null}
             </View>
           </Card>
 
@@ -786,7 +779,7 @@ export default function Settings() {
         <Text style={styles.bodyText}>
           Your Draftoryn account is handled securely, including your
           sign-in, email, and password. Multi-factor authentication and credentials
-          are encrypted with enterprise security standards.
+          are encrypted with security standards.
         </Text>
         <Button
           label="Close"
@@ -794,6 +787,36 @@ export default function Settings() {
           onPress={() => setManageOpen(false)}
           style={styles.actionButton}
         />
+      </Dialog>
+
+      {/* Delete Workspace Confirmation Dialog */}
+      <Dialog
+        open={Boolean(deleteWsTarget)}
+        onClose={() => setDeleteWsTarget(null)}
+        title="Delete Workspace"
+      >
+        <View style={{ gap: 16 }}>
+          <Text style={{ fontFamily: theme.font.sans, fontSize: 14, color: theme.text, lineHeight: 22 }}>
+            Are you sure you want to delete workspace{" "}
+            <Text style={{ fontFamily: theme.font.sansBold, color: theme.text }}>
+              "{deleteWsTarget?.name}"
+            </Text>
+            ? This will permanently delete the workspace and all documents associated with it. This action cannot be undone.
+          </Text>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+            <Button
+              label="Cancel"
+              variant="secondary"
+              onPress={() => setDeleteWsTarget(null)}
+            />
+            <Button
+              label={isDeletingWs ? "Deleting…" : "Delete Workspace"}
+              variant="danger"
+              onPress={handleConfirmDeleteWorkspace}
+              disabled={isDeletingWs}
+            />
+          </View>
+        </View>
       </Dialog>
     </ScrollView>
 

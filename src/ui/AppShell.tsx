@@ -241,15 +241,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <Dialog
       open={wsModalOpen}
       onClose={() => setWsModalOpen(false)}
-      title="Security Workspaces"
+      title="Workspaces"
     >
       <Text style={styles.wsModalHint}>
-        Workspaces isolate specifications, assessments, and client deliverables with dedicated access boundaries.
+        Workspaces isolate specifications, documents, and project deliverables with dedicated access boundaries.
       </Text>
 
       <View style={styles.wsList}>
         {workspaces.map((w) => {
-          const isSelected = activeWs?.id === w.id || w.isDefault;
+          const isSelected = activeWs ? activeWs.id === w.id : Boolean(w.isDefault);
           return (
             <Pressable
               key={w.id}

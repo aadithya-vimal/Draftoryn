@@ -174,7 +174,7 @@ export default function SpecificationsPage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>ENTERPRISE DOCUMENTATION ENGINE</Text>
+          <Text style={styles.footerText}>TECHNICAL DOCUMENTATION PLATFORM</Text>
         </View>
       </View>
     </ScrollView>

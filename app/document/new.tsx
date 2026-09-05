@@ -223,13 +223,13 @@ export default function NewDocumentScreen() {
               <Icon name="Shield" size={24} color={theme.accent} />
             </View>
             <Text style={{ fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 1.5, color: theme.accent, textTransform: "uppercase", marginBottom: 8 }}>
-              AUTHENTICATION REQUIRED // SECURE STORAGE
+              AUTHENTICATION REQUIRED
             </Text>
             <Heading level={2} style={{ textAlign: "center", marginBottom: 12 }}>
               Sign In to Create Documents
             </Heading>
             <Text style={{ fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
-              Draftoryn is an enterprise security documentation platform. All documents and drafts are persisted and encrypted in your database workspace. You must be authenticated to access or submit specification forms.
+              All documents and drafts are saved to your workspace. Please sign in to create or edit specifications.
             </Text>
             <Button
               label="Sign In / Register"

@@ -28,12 +28,13 @@ export default function SignUpScreen() {
         </View>
 
         {isMobile ? (
-          <View style={[styles.mobileBrand, { marginBottom: 24 }]}>
+          <View style={styles.mobileBrand}>
             <Image
-              source={require("../../assets/logo.png")}
-              style={styles.mobileLogoImg}
+              source={require("../../assets/icon.png")}
+              style={styles.brandIcon}
               resizeMode="contain"
             />
+            <Text style={styles.brandText}>DRAFTORYN</Text>
           </View>
         ) : null}
 
@@ -70,7 +71,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: theme.text,
   },
-  mobileBrand: { alignItems: "center" },
-  mobileLogoImg: { width: 180, height: 48 },
+  mobileBrand: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginBottom: 24,
+  },
+  brandIcon: { width: 36, height: 36, borderRadius: 8 },
+  brandText: {
+    fontFamily: theme.font.sansBlack,
+    fontSize: 20,
+    letterSpacing: 1.5,
+    color: theme.text,
+  },
   formInner: { width: "100%", maxWidth: 420 },
 });
