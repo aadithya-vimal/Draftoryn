@@ -19,7 +19,8 @@ import {
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
 import { OnboardingFlow } from "../../src/ui/OnboardingFlow";
 import { fetchUserMe, type OnboardingData, type UserMeResponse } from "../../src/data/onboarding";
-import { listWorkspaces, type WorkspaceRecord } from "../../src/data/workspaces";
+import { type WorkspaceRecord } from "../../src/data/workspaces";
+import { useWorkspace } from "../../src/context/WorkspaceContext";
 
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime();
@@ -49,11 +50,11 @@ export default function Home() {
   const { mode, toggleTheme } = useTheme();
   const { width } = useWindowDimensions();
   const isMobile = width < 860;
+  const { activeWorkspace } = useWorkspace();
   const [docs, setDocs] = useState<DocumentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [userData, setUserData] = useState<UserMeResponse | null>(null);
-  const [workspaceRecord, setWorkspaceRecord] = useState<WorkspaceRecord | null>(null);
 
   const loadData = () => {
     if (!user.isLoaded || !user.isSignedIn || !user.userId) {
@@ -61,17 +62,10 @@ export default function Home() {
       return;
     }
     setLoading(true);
-    listDocuments(user)
+    listDocuments(user, activeWorkspace?.id)
       .then((result) => setDocs(result))
       .catch(() => setDocs([]))
       .finally(() => setLoading(false));
-
-    listWorkspaces(user)
-      .then((wsList) => {
-        const def = wsList.find((w) => w.isDefault) || wsList[0] || null;
-        setWorkspaceRecord(def);
-      })
-      .catch(() => {});
 
     fetchUserMe(user).then((res) => {
       if (!res) return;
@@ -84,9 +78,9 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
-  }, [user.userId, user.isLoaded, user.isSignedIn]);
+  }, [user.userId, user.isLoaded, user.isSignedIn, activeWorkspace?.id]);
 
-  const workspaceName = workspaceRecord?.name || userData?.workspace?.name || "Primary Workspace";
+  const workspaceName = activeWorkspace?.name || userData?.workspace?.name || "Primary Workspace";
   const userRole = userData?.user?.role || "Security Professional";
   const persona = userData?.user?.onboardingData?.persona || "cybersecurity_professional";
 

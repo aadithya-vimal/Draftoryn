@@ -874,13 +874,18 @@ export async function deleteWorkspace(
 
 export async function listDocuments(ownerId: string, workspaceId?: string): Promise<DocumentSummary[]> {
   return withRls(ownerId, async (sql) => {
-    await getOrCreateUser(ownerId);
+    const { workspace } = await getOrCreateUser(ownerId);
+    let resolvedWsId = workspaceId;
+    if (resolvedWsId === "default" || resolvedWsId === "primary") {
+      resolvedWsId = workspace.id;
+    }
+
     let query = "SELECT data, workspace_id, category FROM documents WHERE owner_id = $1";
     const params: unknown[] = [ownerId];
 
-    if (workspaceId) {
-      query += " AND workspace_id = $2";
-      params.push(workspaceId);
+    if (resolvedWsId) {
+      query += " AND (workspace_id = $2 OR (workspace_id IS NULL AND $2 = $3))";
+      params.push(resolvedWsId, workspace.id);
     }
     query += " ORDER BY updated_at DESC";
 
@@ -915,7 +920,10 @@ export async function getDocument(ownerId: string, id: string): Promise<Document
 export async function putDocument(ownerId: string, record: DocumentRecord, workspaceId?: string): Promise<void> {
   return withRls(ownerId, async (sql) => {
     const { user, workspace } = await getOrCreateUser(ownerId);
-    const targetWorkspaceId = workspaceId || record.workspaceId || workspace.id;
+    let targetWorkspaceId = workspaceId || record.workspaceId || workspace.id;
+    if (targetWorkspaceId === "default" || targetWorkspaceId === "primary") {
+      targetWorkspaceId = workspace.id;
+    }
     const def = getDefinition(record.definitionId);
     const category = def?.category ?? "offensive_security";
 

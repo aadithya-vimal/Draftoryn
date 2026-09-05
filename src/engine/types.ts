@@ -119,6 +119,7 @@ export interface Org {
   contactName?: string;
   contactEmail?: string;
   address?: string;
+  phone?: string;
 }
 
 export interface Person {

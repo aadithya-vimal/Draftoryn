@@ -107,7 +107,6 @@ export default function Settings() {
       if (!mounted) return;
       setExportFormat((s.defaultExportFormat as ExportOption) || "pdf");
       setCompactLists(Boolean(s.compactLists));
-      if (s.themeMode) setCurrentThemeMode(s.themeMode);
       if (s.sessionTimeoutMinutes) setSessionTimeoutMinutes(s.sessionTimeoutMinutes);
       setTesterProfile(s.testerProfile);
       setClientProfile(s.clientProfile);

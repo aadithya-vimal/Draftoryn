@@ -372,9 +372,9 @@ const styles = StyleSheet.create({
   // 01. Header
   header: {
     height: 72,
-    backgroundColor: "#101216",
+    backgroundColor: theme.surface,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
+    borderColor: theme.border,
     justifyContent: "center",
   },
   headerInner: {
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.sansBold,
     fontSize: 18,
     letterSpacing: -0.5,
-    color: "#F5F3EE",
+    color: theme.text,
   },
   footerLogoBanner: {
     width: 90,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
     letterSpacing: 1.54,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
   },
   headerRight: {
     flexDirection: "row",
@@ -428,8 +428,8 @@ const styles = StyleSheet.create({
     paddingVertical: 72,
     paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
-    backgroundColor: "#090A0C",
+    borderColor: theme.border,
+    backgroundColor: theme.bg,
   },
   heroContainer: {
     maxWidth: 1180,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   },
   heroHeadline: {
     fontFamily: theme.font.sansBold,
-    color: "#F5F3EE",
+    color: theme.text,
     marginBottom: 20,
   },
   heroHeadlineDesktop: {
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.sans,
     fontSize: 16,
     lineHeight: 24.8, // 1.55
-    color: "#A1A5AD",
+    color: theme.textSecondary,
     marginBottom: 32,
     maxWidth: 520,
   },
@@ -489,9 +489,9 @@ const styles = StyleSheet.create({
 
   heroUiCol: {},
   productFrame: {
-    backgroundColor: "#101216",
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: "#343941",
+    borderColor: theme.borderLight,
     borderRadius: 10,
     overflow: "hidden",
     shadowColor: "#000000",
@@ -502,9 +502,9 @@ const styles = StyleSheet.create({
   },
   frameTitlebar: {
     height: 38,
-    backgroundColor: "#15181D",
+    backgroundColor: theme.surface2,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
+    borderColor: theme.border,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
@@ -520,13 +520,13 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.mono,
     fontSize: 10,
     letterSpacing: 1.2,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
   },
   frameMetaTag: {
     fontFamily: theme.font.monoMedium,
     fontSize: 9.5,
     letterSpacing: 1,
-    color: "#727780",
+    color: theme.muted,
   },
   frameEditor: {
     padding: 22,
@@ -544,12 +544,12 @@ const styles = StyleSheet.create({
   frameDocTitle: {
     fontFamily: theme.font.sansBold,
     fontSize: 18,
-    color: "#F5F3EE",
+    color: theme.text,
   },
   frameParamBlock: {
-    backgroundColor: "#15181D",
+    backgroundColor: theme.surface2,
     borderWidth: 1,
-    borderColor: "#272B32",
+    borderColor: theme.border,
     borderRadius: 6,
     padding: 14,
     gap: 8,
@@ -563,12 +563,12 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.mono,
     fontSize: 10,
     letterSpacing: 1.2,
-    color: "#727780",
+    color: theme.muted,
   },
   frameParamVal: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    color: "#F5F3EE",
+    color: theme.text,
   },
   frameParamDivider: {
     height: 1,
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.monoMedium,
     fontSize: 10,
     letterSpacing: 1.5,
-    color: "#727780",
+    color: theme.muted,
     marginBottom: 4,
   },
   frameSectionItem: {
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
   frameSectionName: {
     fontFamily: theme.font.sansMedium,
     fontSize: 13,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
   },
 
   // 03. Large Product Composition
@@ -606,8 +606,8 @@ const styles = StyleSheet.create({
     paddingVertical: 72,
     paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
-    backgroundColor: "#101216",
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   compositionHeader: {
     marginBottom: 36,
@@ -624,14 +624,14 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
     letterSpacing: -1.2,
-    color: "#F5F3EE",
+    color: theme.text,
     marginBottom: 12,
   },
   sectionLead: {
     fontFamily: theme.font.sans,
     fontSize: 16,
     lineHeight: 24.8,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
     maxWidth: 720,
   },
   compositionGrid: {
@@ -639,9 +639,9 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   compositionCard: {
-    backgroundColor: "#15181D",
+    backgroundColor: theme.surface2,
     borderWidth: 1,
-    borderColor: "#272B32",
+    borderColor: theme.border,
     borderRadius: 8,
     padding: 24,
     gap: 8,
@@ -655,13 +655,13 @@ const styles = StyleSheet.create({
   compCardTitle: {
     fontFamily: theme.font.sansBold,
     fontSize: 18,
-    color: "#F5F3EE",
+    color: theme.text,
   },
   compCardBody: {
     fontFamily: theme.font.sans,
     fontSize: 14,
     lineHeight: 21,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
   },
 
   // 04. Document Story
@@ -669,14 +669,14 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
     paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
-    backgroundColor: "#090A0C",
+    borderColor: theme.border,
+    backgroundColor: theme.bg,
   },
   storyEyebrow: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
     letterSpacing: 1.54,
-    color: "#727780",
+    color: theme.muted,
     marginBottom: 18,
   },
   storyQuote: {
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 42,
     letterSpacing: -1.2,
-    color: "#F5F3EE",
+    color: theme.text,
     marginBottom: 18,
     maxWidth: 880,
   },
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.sans,
     fontSize: 16,
     lineHeight: 24.8,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
     maxWidth: 760,
   },
 
@@ -701,8 +701,8 @@ const styles = StyleSheet.create({
     paddingVertical: 72,
     paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
-    backgroundColor: "#101216",
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   catalogSectionHeader: {
     marginBottom: 32,
@@ -711,15 +711,15 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   catalogRow: {
-    backgroundColor: "#15181D",
+    backgroundColor: theme.surface2,
     borderWidth: 1,
-    borderColor: "#272B32",
+    borderColor: theme.border,
     borderRadius: 8,
     padding: 20,
     gap: 8,
   },
   catalogRowActive: {
-    borderColor: "#343941",
+    borderColor: theme.borderLight,
     backgroundColor: "#181B21",
   },
   catalogRowTop: {
@@ -730,24 +730,24 @@ const styles = StyleSheet.create({
   catalogRowNum: {
     fontFamily: theme.font.monoMedium,
     fontSize: 14,
-    color: "#727780",
+    color: theme.muted,
   },
   catalogRowTitle: {
     fontFamily: theme.font.sansBold,
     fontSize: 17,
     letterSpacing: 0.5,
-    color: "#F5F3EE",
+    color: theme.text,
   },
   catalogRowCount: {
     fontFamily: theme.font.mono,
     fontSize: 11,
     letterSpacing: 1,
-    color: "#727780",
+    color: theme.muted,
   },
   catalogRowBlurb: {
     fontFamily: theme.font.sans,
     fontSize: 14,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
     lineHeight: 20,
     paddingLeft: 30,
   },
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderColor: "#272B32",
+    borderColor: theme.border,
     gap: 10,
     paddingLeft: 30,
   },
@@ -767,12 +767,12 @@ const styles = StyleSheet.create({
   catalogDocName: {
     fontFamily: theme.font.sansMedium,
     fontSize: 14,
-    color: "#F5F3EE",
+    color: theme.text,
   },
   catalogDocSections: {
     fontFamily: theme.font.mono,
     fontSize: 11,
-    color: "#727780",
+    color: theme.muted,
   },
   catalogRowDivider: {
     height: 1,
@@ -785,8 +785,8 @@ const styles = StyleSheet.create({
     paddingVertical: 72,
     paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
-    backgroundColor: "#090A0C",
+    borderColor: theme.border,
+    backgroundColor: theme.bg,
   },
   workflowGrid: {
     flexDirection: "row",
@@ -808,13 +808,13 @@ const styles = StyleSheet.create({
   workflowStepTitle: {
     fontFamily: theme.font.sansBold,
     fontSize: 18,
-    color: "#F5F3EE",
+    color: theme.text,
   },
   workflowStepBody: {
     fontFamily: theme.font.sans,
     fontSize: 14,
     lineHeight: 21,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
   },
 
   // 07. Professional Output (Paper sheet aesthetic)
@@ -822,8 +822,8 @@ const styles = StyleSheet.create({
     paddingVertical: 72,
     paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
-    backgroundColor: "#101216",
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
   },
   paperSheet: {
     backgroundColor: "#F5F3EE", // Warm White
@@ -897,14 +897,14 @@ const styles = StyleSheet.create({
     paddingVertical: 72,
     paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
-    backgroundColor: "#090A0C",
+    borderColor: theme.border,
+    backgroundColor: theme.bg,
   },
   visionEyebrow: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
     letterSpacing: 1.54,
-    color: "#727780",
+    color: theme.muted,
     marginBottom: 16,
   },
   visionText: {
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 36,
     letterSpacing: -0.8,
-    color: "#F5F3EE",
+    color: theme.text,
     maxWidth: 920,
   },
 
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
   finalCtaSection: {
     paddingVertical: 80,
     paddingHorizontal: 48,
-    backgroundColor: "#101216",
+    backgroundColor: theme.surface,
     alignItems: "center",
   },
   finalCtaContainer: {
@@ -941,14 +941,14 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 38,
     letterSpacing: -1,
-    color: "#F5F3EE",
+    color: theme.text,
     textAlign: "center",
     marginBottom: 14,
   },
   finalLead: {
     fontFamily: theme.font.sans,
     fontSize: 16,
-    color: "#A1A5AD",
+    color: theme.textSecondary,
     textAlign: "center",
     marginBottom: 28,
   },
@@ -956,9 +956,9 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     height: 60,
-    backgroundColor: "#090A0C",
+    backgroundColor: theme.bg,
     borderTopWidth: 1,
-    borderColor: "#272B32",
+    borderColor: theme.border,
     justifyContent: "center",
   },
   footerInner: {
@@ -974,6 +974,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.mono,
     fontSize: 10,
     letterSpacing: 1,
-    color: "#727780",
+    color: theme.muted,
   },
 });

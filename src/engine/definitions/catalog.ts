@@ -57,6 +57,7 @@ function orgFields(prefix: "client" | "provider"): FieldDef[] {
     text(prefix + "ContactName", cap + " primary contact name", { mapsTo: prefix, mapsKey: "contactName" }),
     text(prefix + "ContactEmail", cap + " contact email", { mapsTo: prefix, mapsKey: "contactEmail" }),
     text(prefix + "Department", cap + " department / unit", { mapsTo: prefix, mapsKey: "department" }),
+    text(prefix + "Phone", cap + " direct / emergency phone", { mapsTo: prefix, mapsKey: "phone" }),
   ];
 }
 

@@ -1,49 +1,42 @@
-import { Image, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { SignIn } from "@clerk/expo/web";
-import { theme } from "../../src/ui/primitives";
-import { PageIllustration } from "../../src/ui/components";
-
-function AuthBrandPanel() {
-  return (
-    <View style={styles.brandPanel}>
-      <View style={styles.brand}>
-        <Image
-          source={require("../../assets/logo.png")}
-          style={styles.authLogoBanner}
-          resizeMode="contain"
-        />
-      </View>
-      <View style={styles.brandBody}>
-        <Text style={styles.brandHead}>Professional technical & security document generation</Text>
-        <Text style={styles.brandSub}>
-          Discover vetted document templates, answer guided questions, and produce professional, export-ready
-          engineering specifications, assessments, and security documents.
-        </Text>
-        <View style={styles.brandArt}>
-          <PageIllustration width={200} height={252} />
-        </View>
-      </View>
-    </View>
-  );
-}
+import { theme, useTheme } from "../../src/ui/primitives";
+import { Icon } from "../../src/ui/components";
+import { AuthBrandPanel } from "../../src/ui/AuthBrandPanel";
 
 export default function Login() {
   const { width } = useWindowDimensions();
-  const isMobile = width < 840;
+  const isMobile = width < 860;
+  const { mode, toggleTheme } = useTheme();
 
   return (
     <View style={[styles.screen, isMobile && { flexDirection: "column" }]}>
       {!isMobile ? <AuthBrandPanel /> : null}
-      <View style={[styles.formPanel, isMobile && { padding: 16 }]}>
+      <View style={[styles.formPanel, isMobile && { padding: 20 }]}>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={toggleTheme}
+            style={styles.themeToggleBtn}
+            accessibilityRole="button"
+            accessibilityLabel={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+          >
+            <Icon name={mode === "dark" ? "Sun" : "Moon"} size={13} color={theme.text} />
+            <Text style={styles.themeToggleText}>
+              {mode === "dark" ? "LIGHT" : "DARK"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {isMobile ? (
-          <View style={[styles.brand, { marginBottom: 24 }]}>
+          <View style={[styles.mobileBrand, { marginBottom: 24 }]}>
             <Image
               source={require("../../assets/logo.png")}
-              style={styles.authLogoBanner}
+              style={styles.mobileLogoImg}
               resizeMode="contain"
             />
           </View>
         ) : null}
+
         <View style={styles.formInner}>
           <SignIn fallbackRedirectUrl="/(app)/home" signUpUrl="/(auth)/signup" />
         </View>
@@ -54,21 +47,30 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, flexDirection: "row", backgroundColor: theme.bg },
-  brandPanel: {
-    width: "42%",
-    backgroundColor: theme.surface,
-    borderRightWidth: 1,
-    borderColor: theme.border,
-    padding: 40,
-    paddingTop: 48,
-    justifyContent: "space-between",
+  formPanel: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, position: "relative" },
+  topBar: {
+    position: "absolute",
+    top: 24,
+    right: 28,
   },
-  brand: { flexDirection: "row", alignItems: "center" },
-  authLogoBanner: { width: 170, height: 48 },
-  brandBody: { flex: 1, justifyContent: "center", gap: 16, maxWidth: 360 },
-  brandHead: { fontFamily: theme.font.sansSemi, fontSize: 26, color: theme.text, lineHeight: 32 },
-  brandSub: { fontFamily: theme.font.sans, fontSize: 15, color: theme.muted, lineHeight: 22 },
-  brandArt: { marginTop: 18, alignItems: "flex-start" },
-  formPanel: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  formInner: { width: "100%", maxWidth: 380 },
+  themeToggleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
+  },
+  themeToggleText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: theme.text,
+  },
+  mobileBrand: { alignItems: "center" },
+  mobileLogoImg: { width: 180, height: 48 },
+  formInner: { width: "100%", maxWidth: 420 },
 });

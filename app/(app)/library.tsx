@@ -3,6 +3,7 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWind
 import { router } from "expo-router";
 import { useAppUser } from "../../src/auth/clerk";
 import { listDocuments, deleteDocument } from "../../src/data/documents";
+import { useWorkspace } from "../../src/context/WorkspaceContext";
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
 import type { DocumentCategory, DocumentStatus } from "../../src/engine/types";
 import type { DocumentSummary } from "../../src/repository/types";
@@ -119,6 +120,7 @@ function DocumentCard({
 
 export default function Library() {
   const user = useAppUser();
+  const { activeWorkspace } = useWorkspace();
   const [docs, setDocs] = useState<DocumentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export default function Library() {
     if (!user.isLoaded || !user.isSignedIn || !user.userId) return;
     setLoading(true);
     setError(null);
-    listDocuments(user)
+    listDocuments(user, activeWorkspace?.id)
       .then((res) => setDocs(res))
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : "Failed to load documents.";
@@ -141,7 +143,7 @@ export default function Library() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.isLoaded, user.isSignedIn, user.userId]);
+  }, [user.isLoaded, user.isSignedIn, user.userId, activeWorkspace?.id]);
 
   const filtered = docs.filter((d) => {
     if (!query.trim()) return true;
@@ -190,7 +192,7 @@ export default function Library() {
     >
       <View style={[styles.header, isMobile && styles.headerMobile]}>
         <View style={isMobile ? { width: "100%", marginBottom: 12 } : { flex: 1 }}>
-          <SectionLabel>Workspace</SectionLabel>
+          <SectionLabel>{activeWorkspace ? `Workspace // ${activeWorkspace.name}` : "Workspace"}</SectionLabel>
           <Heading level={1} style={styles.title}>
             Library
           </Heading>

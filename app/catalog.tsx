@@ -5,6 +5,7 @@ import { PublicHeader } from "../src/ui/PublicHeader";
 import { Button, Card, Heading, Input, theme } from "../src/ui/primitives";
 import { CATEGORIES, DOCUMENT_DEFINITIONS, definitionsByCategory } from "../src/engine/definitions/catalog";
 import { CATEGORY_VISUALS } from "../src/ui/categories";
+import { DraggableScrollView } from "../src/ui/DraggableScrollView";
 import type { DocumentCategory, DocumentDefinition } from "../src/engine/types";
 
 const ALL = "__all__" as const;
@@ -54,7 +55,7 @@ export default function CatalogPage() {
           />
 
           {/* Category Filter Chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+          <DraggableScrollView contentContainerStyle={styles.chipsRow}>
             <Pressable
               style={[styles.chip, activeCategory === ALL && styles.chipActive]}
               onPress={() => setActiveCategory(ALL)}
@@ -78,7 +79,7 @@ export default function CatalogPage() {
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </DraggableScrollView>
         </View>
       </View>
 

@@ -48,6 +48,7 @@ import { generateDocumentClient } from "../../src/data/generate";
 import { createDocumentRecord } from "../../src/data/documents";
 import { createVersion } from "../../src/engine/serialization";
 import { useAppUser } from "../../src/auth/clerk";
+import { useWorkspace } from "../../src/context/WorkspaceContext";
 import type { DocumentStatus, FieldDef, GeneratedDocument } from "../../src/engine/types";
 import type { DocumentRecord, DocumentVersion } from "../../src/repository/types";
 
@@ -135,6 +136,7 @@ export default function NewDocumentScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const user = useAppUser();
+  const { activeWorkspace } = useWorkspace();
   const { mode, toggleTheme } = useTheme();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 992;
@@ -367,6 +369,7 @@ export default function NewDocumentScreen() {
         id,
         definitionId: def.id,
         ownerId: user.userId ?? "anonymous",
+        workspaceId: activeWorkspace?.id ?? "default",
         title: gen.title,
         status: "ready",
         createdAt: now,

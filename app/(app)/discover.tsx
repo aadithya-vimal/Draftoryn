@@ -10,6 +10,7 @@ import type { DocumentCategory, DocumentDefinition } from "../../src/engine/type
 import { Card, Heading, Input, SectionLabel, theme } from "../../src/ui/primitives";
 import { Icon } from "../../src/ui/components";
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
+import { DraggableScrollView } from "../../src/ui/DraggableScrollView";
 
 const ALL = "__all__" as const;
 
@@ -79,9 +80,7 @@ export default function Discover() {
       />
 
       {/* Category filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
+      <DraggableScrollView
         contentContainerStyle={styles.chipRow}
       >
         <Pressable
@@ -122,7 +121,7 @@ export default function Discover() {
             </Pressable>
           );
         })}
-      </ScrollView>
+      </DraggableScrollView>
 
       {isFiltered ? (
         <View style={styles.filterBar}>

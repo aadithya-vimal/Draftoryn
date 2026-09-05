@@ -4,12 +4,8 @@ import { usePathname, useRouter } from "expo-router";
 import { useAppUser } from "../auth/clerk";
 import { Dialog, Icon } from "./components";
 import { Button, theme, useTheme } from "./primitives";
-import {
-  listWorkspaces,
-  createWorkspace,
-  setDefaultWorkspace,
-  type WorkspaceRecord,
-} from "../data/workspaces";
+import { useWorkspace } from "../context/WorkspaceContext";
+import type { WorkspaceRecord } from "../data/workspaces";
 
 interface NavItem {
   href: string;
@@ -63,38 +59,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isMobile = width < 840;
   const { isDark, toggleTheme } = useTheme();
 
-  const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
-  const [activeWs, setActiveWs] = useState<WorkspaceRecord | null>(null);
+  const {
+    workspaces,
+    activeWorkspace: activeWs,
+    setActiveWorkspace,
+    createAndSelectWorkspace,
+  } = useWorkspace();
   const [wsModalOpen, setWsModalOpen] = useState<boolean>(false);
   const [newWsName, setNewWsName] = useState<string>("");
   const [creatingWs, setCreatingWs] = useState<boolean>(false);
 
-  const loadWorkspaces = async () => {
-    if (!isSignedIn) return;
-    try {
-      const list = await listWorkspaces(user);
-      setWorkspaces(list);
-      const def = list.find((w) => w.isDefault) || list[0] || null;
-      setActiveWs(def);
-    } catch (e) {
-      console.warn("Could not load workspaces in AppShell", e);
-    }
-  };
-
-  useEffect(() => {
-    loadWorkspaces();
-  }, [isSignedIn, userId]);
-
   const handleSelectWorkspace = async (ws: WorkspaceRecord) => {
     try {
-      await setDefaultWorkspace(user, ws.id);
-      setActiveWs(ws);
-      setWorkspaces((prev) =>
-        prev.map((w) => ({
-          ...w,
-          isDefault: w.id === ws.id,
-        })),
-      );
+      await setActiveWorkspace(ws);
       setWsModalOpen(false);
     } catch (e) {
       console.error("Failed to select workspace", e);
@@ -106,10 +83,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!trimmed || creatingWs) return;
     setCreatingWs(true);
     try {
-      const created = await createWorkspace(user, trimmed);
-      await setDefaultWorkspace(user, created.id);
+      await createAndSelectWorkspace(trimmed);
       setNewWsName("");
-      await loadWorkspaces();
       setWsModalOpen(false);
     } catch (e) {
       console.error("Failed to create workspace", e);
