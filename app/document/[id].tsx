@@ -52,6 +52,7 @@ import {
   SectionLabel,
   Spinner,
   theme,
+  useTheme,
 } from "../../src/ui/primitives";
 import {
   Badge,
@@ -138,6 +139,7 @@ export default function DocumentEditor() {
   const params = useLocalSearchParams();
   const id = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : "";
   const user = useAppUser();
+  const { mode, toggleTheme } = useTheme();
 
   const [record, setRecord] = useState<DocumentRecord | null>(null);
   const defIdParam = typeof params.def === "string" ? params.def : Array.isArray(params.def) ? params.def[0] : "";
@@ -151,7 +153,11 @@ export default function DocumentEditor() {
   const [userSettings, setUserSettings] = useState<UserSettings>(DEFAULT_USER_SETTINGS);
   const [sectionOffsets, setSectionOffsets] = useState<Record<string, number>>({});
   const scrollViewRef = useRef<any>(null);
+  const isScrollingToRef = useRef(false);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleScroll = useCallback((e: any) => {
+    if (isScrollingToRef.current) return;
     const y = e.nativeEvent.contentOffset.y;
     const entries = Object.entries(sectionOffsets);
     if (entries.length === 0) return;
@@ -164,6 +170,20 @@ export default function DocumentEditor() {
       }
     }
   }, [sectionOffsets, selectedId]);
+
+  const scrollToSection = useCallback((sid: string) => {
+    setSelectedId(sid);
+    isScrollingToRef.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      isScrollingToRef.current = false;
+    }, 700);
+
+    const offset = sectionOffsets[sid];
+    if (scrollViewRef.current && offset !== undefined) {
+      scrollViewRef.current.scrollTo({ y: Math.max(0, offset - 10), animated: true });
+    }
+  }, [sectionOffsets]);
 
   useEffect(() => {
     if (user.isLoaded && !user.isSignedIn) {
@@ -557,10 +577,7 @@ export default function DocumentEditor() {
         key={s.id}
         activeOpacity={0.92}
         onPress={() => {
-          setSelectedId(s.id);
-          if (scrollViewRef.current && sectionOffsets[s.id] !== undefined) {
-            scrollViewRef.current.scrollTo({ y: sectionOffsets[s.id], animated: true });
-          }
+          scrollToSection(s.id);
         }}
         style={[styles.canvasSection, isSelected && styles.canvasSectionSelected]}
         onLayout={(event) => {
@@ -668,21 +685,25 @@ export default function DocumentEditor() {
                   { opacity: pressed ? 0.7 : 1 },
                 ]}
                 onPress={() => {
-                  setSelectedId(s.id);
+                  scrollToSection(s.id);
                   onPick?.();
                 }}
               >
-                <Text
-                  style={[
-                    styles.navItemTitle,
-                    isCurrent && styles.navItemTitleActive,
-                    s.hidden && styles.navItemHidden,
-                  ]}
-                  numberOfLines={2}
-                >
-                  {s.title}
-                </Text>
-                <SectionStatusBadge status={s.status} />
+                <View style={styles.navItemTextCol}>
+                  <Text
+                    style={[
+                      styles.navItemTitle,
+                      isCurrent && styles.navItemTitleActive,
+                      s.hidden && styles.navItemHidden,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {s.title}
+                  </Text>
+                  <View style={styles.navItemBadgeRow}>
+                    <SectionStatusBadge status={s.status} />
+                  </View>
+                </View>
               </Pressable>
               <Pressable
                 onPress={(e) => {
@@ -816,6 +837,24 @@ export default function DocumentEditor() {
         />
         <Button label="Save version" variant="secondary" onPress={saveVersion} />
         <Button label="Export" onPress={() => setExportOpen(true)} />
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={styles.topActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+        >
+          <Icon name={mode === "dark" ? "Sun" : "Moon"} size={13} color={theme.text} />
+          <Text style={styles.topActionBtnText}>{mode === "dark" ? "LIGHT" : "DARK"}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/(app)/settings")}
+          style={styles.topActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <Icon name="Settings" size={13} color={theme.text} />
+          <Text style={styles.topActionBtnText}>SETTINGS</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1056,6 +1095,22 @@ export default function DocumentEditor() {
           placeholderTextColor={theme.muted}
         />
         {model ? <StatusBadge status="editing" /> : null}
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={styles.topActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+        >
+          <Icon name={mode === "dark" ? "Sun" : "Moon"} size={13} color={theme.text} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/(app)/settings")}
+          style={styles.topActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <Icon name="Settings" size={13} color={theme.text} />
+        </TouchableOpacity>
       </View>
       <View style={styles.saveStatusContainerMobile}>
         {saveState === "saving" ? (
@@ -1287,7 +1342,7 @@ const styles = StyleSheet.create({
   },
   screenWeb: { flex: 1, backgroundColor: theme.bg, padding: 16, paddingTop: 20 },
   columns: { flexDirection: "row", gap: 16, flex: 1, maxWidth: 1280, alignSelf: "center", width: "100%" },
-  leftCol: { width: 240 },
+  leftCol: { width: 280 },
   centerCol: { flex: 1, minWidth: 0 },
   rightCol: { width: 280 },
   leftCard: { padding: 14, maxHeight: "100%" },
@@ -1369,12 +1424,32 @@ const styles = StyleSheet.create({
   navItem: { flexDirection: "row", alignItems: "center", borderRadius: theme.radiusSm, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, marginBottom: 8, overflow: "hidden" },
   navItemActive: { borderColor: theme.accent, backgroundColor: "rgba(59, 130, 246, 0.12)" },
   navItemMuted: { opacity: 0.6 },
-  navItemMain: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 9, paddingHorizontal: 10, gap: 8 },
-  navItemTitle: { color: theme.text, fontSize: 13, fontFamily: theme.font.sansMedium, flexShrink: 1 },
+  navItemMain: { flex: 1, paddingVertical: 8, paddingHorizontal: 12 },
+  navItemTextCol: { flex: 1, minWidth: 0, gap: 5 },
+  navItemBadgeRow: { flexDirection: "row", alignItems: "center" },
+  navItemTitle: { color: theme.text, fontSize: 13, fontFamily: theme.font.sansMedium, lineHeight: 18 },
   navItemTitleActive: { color: theme.accent, fontFamily: theme.font.sansSemi },
   navItemHidden: { color: theme.muted, textDecorationLine: "line-through" },
-  navToggle: { paddingHorizontal: 10, paddingVertical: 9, borderLeftWidth: 1, borderColor: theme.border },
+  navToggle: { paddingHorizontal: 10, justifyContent: "center", alignItems: "center", borderLeftWidth: 1, borderColor: theme.border },
   navAdd: { marginTop: 4 },
+
+  topActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  topActionBtnText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    color: theme.text,
+  },
 
   ctxButton: { marginBottom: 8, width: "100%" },
   detailRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },

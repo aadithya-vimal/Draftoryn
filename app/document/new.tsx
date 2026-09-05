@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 
 import {
   theme,
+  useTheme,
   Heading,
   SectionLabel,
   Card,
@@ -134,6 +135,7 @@ export default function NewDocumentScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const user = useAppUser();
+  const { mode, toggleTheme } = useTheme();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 992;
 
@@ -240,14 +242,14 @@ export default function NewDocumentScreen() {
 
   if (!def) {
     return (
-      <Screen title="New document">
+      <Screen title="Select Document Specification">
         <Card accentTop style={styles.centerCard}>
-          <Icon name="FileQuestion" size={28} color={theme.muted} />
-          <Heading level={3} style={styles.unknownTitle}>Unknown document type</Heading>
-          <Text style={styles.muted}>We couldn’t find the document template you’re looking for.</Text>
+          <Icon name="FileQuestion" size={28} color={theme.accent} />
+          <Heading level={3} style={styles.unknownTitle}>Select a Document Specification</Heading>
+          <Text style={styles.muted}>Choose from 30 standardized technical cybersecurity and systems specifications.</Text>
           <View style={styles.unknownActions}>
             <Button
-              label="Back to Discover"
+              label="Browse Specifications Catalog →"
               onPress={() => router.replace("/(app)/discover")}
             />
           </View>
@@ -404,6 +406,26 @@ export default function NewDocumentScreen() {
           {completionPct}% filled · Step {step + 1} of {totalSteps}
         </Text>
       </View>
+      <View style={styles.topBarActionsRow}>
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={styles.topBarActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+        >
+          <Icon name={mode === "dark" ? "Sun" : "Moon"} size={14} color={theme.text} />
+          <Text style={styles.topBarActionText}>{mode === "dark" ? "LIGHT" : "DARK"}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/(app)/settings")}
+          style={styles.topBarActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <Icon name="Settings" size={14} color={theme.text} />
+          <Text style={styles.topBarActionText}>SETTINGS</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -419,6 +441,23 @@ export default function NewDocumentScreen() {
           <Icon name={visual.icon} size={12} color={visual.accent} />
           <Text style={styles.topBarCat}>{visual.label}</Text>
         </View>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={styles.topBarActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+        >
+          <Icon name={mode === "dark" ? "Sun" : "Moon"} size={13} color={theme.text} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/(app)/settings")}
+          style={styles.topBarActionBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+        >
+          <Icon name="Settings" size={13} color={theme.text} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.mobileTopBarTitleRow}>
@@ -894,4 +933,26 @@ const styles = StyleSheet.create({
   unknownTitle: { marginTop: 12, marginBottom: 6 },
   unknownActions: { marginTop: 18 },
   muted: { fontFamily: theme.font.sans, fontSize: 14, color: theme.muted },
+  topBarActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  topBarActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  topBarActionText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    color: theme.text,
+  },
 });

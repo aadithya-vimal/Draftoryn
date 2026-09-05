@@ -8,9 +8,14 @@ export interface OnboardingData {
   firstDocumentDef?: string;
   organizationName?: string;
   representativeName?: string;
+  contactEmail?: string;
+  department?: string;
+  phone?: string;
   workspaceName?: string;
   defaultExportFormat?: string;
   experienceLevel?: string;
+  testerProfile?: Record<string, unknown>;
+  clientProfile?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -64,7 +69,12 @@ export async function saveOnboardingProgress(
     workspaceName?: string;
     organizationName?: string;
     representativeName?: string;
+    contactEmail?: string;
+    department?: string;
+    phone?: string;
     defaultExportFormat?: string;
+    testerProfile?: Record<string, unknown>;
+    clientProfile?: Record<string, unknown>;
     onboardingData?: OnboardingData;
   },
 ): Promise<boolean> {
@@ -79,7 +89,7 @@ export async function saveOnboardingProgress(
     );
     return true;
   } catch (e) {
-    console.error("[onboarding] Failed to save onboarding to Neon:", e);
+    console.error("[onboarding] Failed to save onboarding:", e);
     return false;
   }
 }

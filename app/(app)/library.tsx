@@ -253,7 +253,7 @@ export default function Library() {
               subtitle="Your generated reports and assessments will appear here. Start from a template to draft your first document."
               action={
                 <View style={styles.emptyActions}>
-                  <Button label="Create document" onPress={() => router.push("/document/new?def=pentest_agreement")} />
+                  <Button label="Create document" onPress={() => router.push("/(app)/discover")} />
                   <View style={{ width: 12 }} />
                   <Button
                     label="Browse catalog"

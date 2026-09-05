@@ -127,10 +127,13 @@ export default function Settings() {
     };
   }, [user.userId, user.isSignedIn, user.isLoaded]);
 
+  const [wsError, setWsError] = useState<string | null>(null);
+
   const handleCreateNewWorkspace = async () => {
     const trimmed = newWsName.trim();
     if (!trimmed || isCreatingWs) return;
     setIsCreatingWs(true);
+    setWsError(null);
     try {
       await createWorkspace(user, trimmed);
       setNewWsName("");
@@ -138,6 +141,7 @@ export default function Settings() {
       showSavedFeedback();
     } catch (e) {
       console.error("Failed to create workspace:", e);
+      setWsError(e instanceof Error ? e.message : "Failed to create workspace.");
     } finally {
       setIsCreatingWs(false);
     }
@@ -146,6 +150,7 @@ export default function Settings() {
   const handleUpdateWorkspace = async (id: string) => {
     const trimmed = editingWsName.trim();
     if (!trimmed) return;
+    setWsError(null);
     try {
       await updateWorkspace(user, id, { name: trimmed });
       setEditingWsId(null);
@@ -153,6 +158,7 @@ export default function Settings() {
       showSavedFeedback();
     } catch (e) {
       console.error("Failed to update workspace:", e);
+      setWsError(e instanceof Error ? e.message : "Failed to update workspace name.");
     }
   };
 
@@ -245,7 +251,7 @@ export default function Settings() {
 
   const showSavedFeedback = () => {
     setSaveStatus("saved");
-    setTimeout(() => setSaveStatus("idle"), 2500);
+    setTimeout(() => setSaveStatus("idle"), 3500);
   };
 
   const handleSignOut = async () => {
@@ -257,7 +263,8 @@ export default function Settings() {
   const displayEmail = email ?? "No email on file";
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
       <View style={styles.headerRow}>
         <Heading level={2} style={styles.title}>
           Settings
@@ -355,10 +362,14 @@ export default function Settings() {
                           <Button
                             label="Cancel"
                             variant="secondary"
-                            onPress={() => setEditingWsId(null)}
+                            onPress={() => {
+                              setEditingWsId(null);
+                              setWsError(null);
+                            }}
                             style={{ minWidth: 70 }}
                           />
                         </View>
+                        {wsError ? <Text style={styles.fieldError}>{wsError}</Text> : null}
                       </View>
                     ) : (
                       <View style={styles.wsItemContent}>
@@ -714,12 +725,24 @@ export default function Settings() {
           {/* Save Button Bar */}
           <View style={styles.saveButtonBar}>
             <Button
-              label={saveStatus === "saving" ? "Saving profiles…" : "Save Profiles & Preferences"}
-              variant="primary"
+              label={
+                saveStatus === "saving"
+                  ? "Saving profiles & preferences…"
+                  : saveStatus === "saved"
+                  ? "✓ Saved to Database!"
+                  : "Save Profiles & Preferences"
+              }
+              variant={saveStatus === "saved" ? "secondary" : "primary"}
               onPress={handleSaveProfiles}
               disabled={saveStatus === "saving"}
-              style={styles.saveButtonFull}
+              style={(saveStatus === "saved" ? [styles.saveButtonFull, styles.saveButtonSaved] : styles.saveButtonFull) as any}
             />
+            {saveStatus === "saved" && (
+              <View style={styles.saveInlineConfirmation}>
+                <Icon name="Check" size={14} color={theme.ok} />
+                <Text style={styles.saveInlineConfirmationText}>All configuration parameters saved to your workspace.</Text>
+              </View>
+            )}
           </View>
 
           {/* About */}
@@ -774,7 +797,17 @@ export default function Settings() {
         />
       </Dialog>
     </ScrollView>
-  );
+
+    {/* Floating unmissable toast confirmation */}
+    {saveStatus === "saved" && (
+      <View style={styles.floatingSavedToast}>
+        <View style={styles.floatingSavedDot} />
+        <Icon name="Check" size={16} color={theme.ok} />
+        <Text style={styles.floatingSavedText}>Settings and profiles saved successfully.</Text>
+      </View>
+    )}
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
@@ -1104,5 +1137,47 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     alignItems: "center",
+  },
+  floatingSavedToast: {
+    position: "absolute",
+    bottom: 24,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: theme.surface,
+    borderColor: theme.ok,
+    borderWidth: 1.5,
+    borderRadius: theme.radiusSm,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    ...theme.shadowMd,
+    zIndex: 9999,
+  },
+  floatingSavedDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.ok,
+  },
+  floatingSavedText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 14,
+    color: theme.text,
+  },
+  saveButtonSaved: {
+    borderColor: theme.ok,
+  },
+  saveInlineConfirmation: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 10,
+    alignSelf: "center",
+  },
+  saveInlineConfirmationText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 13,
+    color: theme.ok,
   },
 });

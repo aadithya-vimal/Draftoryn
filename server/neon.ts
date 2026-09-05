@@ -376,7 +376,7 @@ export async function updateUserOnboarding(
     // 2. Synchronize workspace name if provided
     let workspace: DbWorkspace | undefined;
     if (updates.workspaceName) {
-      const wsRows = (await sql(
+      let wsRows = (await sql(
         `UPDATE workspaces SET name = $1, updated_at = now()
          WHERE owner_id = $2 AND is_default = true
          RETURNING id, owner_id, name, slug, is_default, settings, created_at, updated_at`,
@@ -391,6 +391,24 @@ export async function updateUserOnboarding(
         created_at: string;
         updated_at: string;
       }>;
+      if (wsRows.length === 0) {
+        // Fallback: update the first workspace for the user and make it default
+        wsRows = (await sql(
+          `UPDATE workspaces SET name = $1, is_default = true, updated_at = now()
+           WHERE id = (SELECT id FROM workspaces WHERE owner_id = $2 ORDER BY created_at ASC LIMIT 1)
+           RETURNING id, owner_id, name, slug, is_default, settings, created_at, updated_at`,
+          [updates.workspaceName, userId],
+        )) as Array<{
+          id: string;
+          owner_id: string;
+          name: string;
+          slug: string;
+          is_default: boolean;
+          settings: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        }>;
+      }
       if (wsRows[0]) {
         const w = wsRows[0];
         workspace = {
@@ -408,21 +426,88 @@ export async function updateUserOnboarding(
 
     // 3. Synchronize user settings (tester or client profile, export format)
     let settings: DbUserSettings | undefined;
-    if (updates.organizationName || updates.representativeName || updates.defaultExportFormat) {
+    const incomingTester = (updates as any).testerProfile || {};
+    const incomingClient = (updates as any).clientProfile || {};
+    if (
+      updates.organizationName ||
+      updates.representativeName ||
+      (updates as any).contactEmail ||
+      (updates as any).department ||
+      (updates as any).phone ||
+      (updates as any).testerProfile ||
+      (updates as any).clientProfile ||
+      updates.defaultExportFormat
+    ) {
       const currentSettings = await getUserSettings(userId);
       const isClient = updates.persona === "client" || user.role === "client";
       const testerProfile = isClient
         ? currentSettings.testerProfile
         : {
             ...currentSettings.testerProfile,
-            ...(updates.organizationName ? { testingOrganization: updates.organizationName } : {}),
-            ...(updates.representativeName ? { testerName: updates.representativeName } : {}),
+            providerName:
+              incomingTester.providerName ||
+              updates.organizationName ||
+              (currentSettings.testerProfile as any)?.providerName ||
+              "",
+            providerContactName:
+              incomingTester.providerContactName ||
+              updates.representativeName ||
+              (currentSettings.testerProfile as any)?.providerContactName ||
+              "",
+            providerContactEmail:
+              incomingTester.providerContactEmail ||
+              (updates as any).contactEmail ||
+              (currentSettings.testerProfile as any)?.providerContactEmail ||
+              user.email ||
+              "",
+            providerDepartment:
+              incomingTester.providerDepartment ||
+              (updates as any).department ||
+              (currentSettings.testerProfile as any)?.providerDepartment ||
+              "",
+            providerPhone:
+              incomingTester.providerPhone ||
+              (updates as any).phone ||
+              (currentSettings.testerProfile as any)?.providerPhone ||
+              "",
+            ...incomingTester,
           };
+
       const clientProfile = isClient
         ? {
             ...currentSettings.clientProfile,
-            ...(updates.organizationName ? { clientOrganization: updates.organizationName } : {}),
-            ...(updates.representativeName ? { clientRepresentative: updates.representativeName } : {}),
+            clientName:
+              incomingClient.clientName ||
+              updates.organizationName ||
+              (currentSettings.clientProfile as any)?.clientName ||
+              "",
+            clientContactName:
+              incomingClient.clientContactName ||
+              updates.representativeName ||
+              (currentSettings.clientProfile as any)?.clientContactName ||
+              "",
+            clientContactEmail:
+              incomingClient.clientContactEmail ||
+              (updates as any).contactEmail ||
+              (currentSettings.clientProfile as any)?.clientContactEmail ||
+              user.email ||
+              "",
+            clientDepartment:
+              incomingClient.clientDepartment ||
+              (updates as any).department ||
+              (currentSettings.clientProfile as any)?.clientDepartment ||
+              "",
+            clientPhone:
+              incomingClient.clientPhone ||
+              (updates as any).phone ||
+              (currentSettings.clientProfile as any)?.clientPhone ||
+              "",
+            authorizedBy:
+              incomingClient.authorizedBy ||
+              updates.representativeName ||
+              (currentSettings.clientProfile as any)?.authorizedBy ||
+              "",
+            ...incomingClient,
           }
         : currentSettings.clientProfile;
 
@@ -619,9 +704,9 @@ export async function updateWorkspace(
   updates: { name?: string; slug?: string; settings?: Record<string, unknown> },
 ): Promise<DbWorkspace> {
   return withRls(userId, async (sql) => {
-    const existing = (await sql(
+    let existing = (await sql(
       `SELECT id, owner_id, name, slug, is_default, settings, created_at, updated_at
-       FROM workspaces WHERE owner_id = $1 AND id = $2`,
+       FROM workspaces WHERE owner_id = $1 AND (id = $2 OR slug = $2)`,
       [userId, workspaceId],
     )) as Array<{
       id: string;
@@ -633,6 +718,23 @@ export async function updateWorkspace(
       created_at: string;
       updated_at: string;
     }>;
+
+    if (existing.length === 0 && (workspaceId === "default" || workspaceId === "primary")) {
+      existing = (await sql(
+        `SELECT id, owner_id, name, slug, is_default, settings, created_at, updated_at
+         FROM workspaces WHERE owner_id = $1 ORDER BY is_default DESC, created_at ASC LIMIT 1`,
+        [userId],
+      )) as Array<{
+        id: string;
+        owner_id: string;
+        name: string;
+        slug: string;
+        is_default: boolean;
+        settings: Record<string, unknown>;
+        created_at: string;
+        updated_at: string;
+      }>;
+    }
 
     const firstExisting = existing[0];
     if (!firstExisting) {
@@ -648,7 +750,7 @@ export async function updateWorkspace(
        SET name = $1, slug = $2, settings = $3::jsonb, updated_at = now()
        WHERE owner_id = $4 AND id = $5
        RETURNING id, owner_id, name, slug, is_default, settings, created_at, updated_at`,
-      [newName, newSlug, JSON.stringify(newSettings || {}), userId, workspaceId],
+      [newName, newSlug, JSON.stringify(newSettings || {}), userId, firstExisting.id],
     )) as Array<{
       id: string;
       owner_id: string;

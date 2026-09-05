@@ -178,7 +178,19 @@ export function OnboardingFlow({
     initialData?.workspaceName || (user.name ? `${user.name.split(" ")[0]}'s Workspace` : "Primary Security Workspace")
   );
   const [organizationName, setOrganizationName] = useState<string>(
-    initialData?.organizationName || ""
+    initialData?.organizationName || (initialData?.testerProfile as any)?.providerName || ""
+  );
+  const [contactName, setContactName] = useState<string>(
+    initialData?.representativeName || (initialData?.testerProfile as any)?.providerContactName || user.name || ""
+  );
+  const [contactEmail, setContactEmail] = useState<string>(
+    initialData?.contactEmail || (initialData?.testerProfile as any)?.providerContactEmail || user.email || ""
+  );
+  const [department, setDepartment] = useState<string>(
+    initialData?.department || (initialData?.testerProfile as any)?.providerDepartment || "Red Team & Offensive Operations"
+  );
+  const [phone, setPhone] = useState<string>(
+    initialData?.phone || (initialData?.testerProfile as any)?.providerPhone || ""
   );
   const [professionalRole, setProfessionalRole] = useState<string>(
     initialData?.role || "Cybersecurity Lead"
@@ -191,6 +203,22 @@ export function OnboardingFlow({
 
   const handleFinish = async (navigateToDoc: boolean = false) => {
     setSaving(true);
+    const testerProfile = {
+      providerName: organizationName,
+      providerContactName: contactName,
+      providerContactEmail: contactEmail,
+      providerDepartment: department,
+      providerPhone: phone,
+    };
+    const clientProfile = {
+      clientName: organizationName,
+      clientContactName: contactName,
+      clientContactEmail: contactEmail,
+      clientDepartment: department,
+      clientPhone: phone,
+      authorizedBy: contactName,
+    };
+
     const finalData: OnboardingData = {
       persona: selectedPersona,
       role: professionalRole,
@@ -198,8 +226,14 @@ export function OnboardingFlow({
       focusAreas: [selectedCategory],
       firstDocumentDef: selectedDocId,
       organizationName,
+      representativeName: contactName,
+      contactEmail,
+      department,
+      phone,
       workspaceName,
       defaultExportFormat,
+      testerProfile,
+      clientProfile,
     };
 
     await saveOnboardingProgress(user, {
@@ -209,7 +243,13 @@ export function OnboardingFlow({
       persona: selectedPersona,
       workspaceName,
       organizationName,
+      representativeName: contactName,
+      contactEmail,
+      department,
+      phone,
       defaultExportFormat,
+      testerProfile,
+      clientProfile,
       onboardingData: finalData,
     });
 
@@ -460,14 +500,65 @@ export function OnboardingFlow({
 
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>
-                    {selectedPersona === "client" ? "ORGANIZATION / COMPANY NAME" : "TESTING FIRM / PRACTICE NAME"}
+                    {selectedPersona === "client" ? "ORGANIZATION / COMPANY NAME" : "TESTING FIRM / ORGANIZATION NAME"}
                   </Text>
                   <TextInput
                     style={styles.formInput}
                     value={organizationName}
                     onChangeText={setOrganizationName}
-                    placeholder={selectedPersona === "client" ? "e.g. Acme Corporation" : "e.g. Apex Cyber Labs LLC"}
+                    placeholder={selectedPersona === "client" ? "e.g. Acme Corporation" : "e.g. Draftoryn Security Consulting Inc."}
                     placeholderTextColor="#727780"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>
+                    {selectedPersona === "client" ? "CLIENT REPRESENTATIVE NAME" : "LEAD ASSESSOR / TESTER NAME"}
+                  </Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={contactName}
+                    onChangeText={setContactName}
+                    placeholder={selectedPersona === "client" ? "e.g. Jane Doe" : "e.g. Alex Mercer"}
+                    placeholderTextColor="#727780"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>
+                    {selectedPersona === "client" ? "PRIMARY CONTACT EMAIL" : "TESTER EMAIL ADDRESS"}
+                  </Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={contactEmail}
+                    onChangeText={setContactEmail}
+                    placeholder="alex@draftoryn.io"
+                    placeholderTextColor="#727780"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>DEPARTMENT / PRACTICE UNIT</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={department}
+                    onChangeText={setDepartment}
+                    placeholder="e.g. Red Team & Offensive Operations"
+                    placeholderTextColor="#727780"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>DIRECT / EMERGENCY PHONE</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="+1 (555) 019-2834"
+                    placeholderTextColor="#727780"
+                    keyboardType="phone-pad"
                   />
                 </View>
 
