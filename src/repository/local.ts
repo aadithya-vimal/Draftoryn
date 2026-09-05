@@ -21,15 +21,23 @@ export class LocalRepository implements Repository {
     await this.storage.set(indexKey(ownerId), JSON.stringify(ids));
   }
 
-  async list(ownerId: string): Promise<DocumentSummary[]> {
+  async list(ownerId: string, workspaceId?: string): Promise<DocumentSummary[]> {
     const ids = await this.index(ownerId);
     const records = await Promise.all(ids.map((id) => this.get(id, ownerId)));
     return records
-      .filter((r): r is DocumentRecord => r !== null && r.ownerId === ownerId)
+      .filter((r): r is DocumentRecord => {
+        if (!r || r.ownerId !== ownerId) return false;
+        if (workspaceId) {
+          // Match matching workspaceId, or match missing workspaceId if looking for default
+          return r.workspaceId === workspaceId || (!r.workspaceId && workspaceId === "default");
+        }
+        return true;
+      })
       .map((r) => ({
         id: r.id,
         definitionId: r.definitionId,
         category: r.versions[r.versions.length - 1]?.model.category ?? "",
+        workspaceId: r.workspaceId,
         title: r.title,
         status: r.status,
         createdAt: r.createdAt,
@@ -64,6 +72,28 @@ export class LocalRepository implements Repository {
     if (rec) {
       const ids = (await this.index(rec.ownerId)).filter((x) => x !== id);
       await this.writeIndex(rec.ownerId, ids);
+    }
+  }
+
+  async removeByWorkspace(workspaceId: string, ownerId: string): Promise<void> {
+    const ids = await this.index(ownerId);
+    for (const id of ids) {
+      const rec = await this.get(id, ownerId);
+      if (rec && (rec.workspaceId === workspaceId || (!rec.workspaceId && workspaceId === "default"))) {
+        await this.remove(id, ownerId);
+      }
+    }
+  }
+
+  async cleanupOrphanedDocuments(ownerId: string, validWorkspaceIds: string[]): Promise<void> {
+    if (!validWorkspaceIds || validWorkspaceIds.length === 0) return;
+    const validSet = new Set(validWorkspaceIds);
+    const ids = await this.index(ownerId);
+    for (const id of ids) {
+      const rec = await this.get(id, ownerId);
+      if (rec && rec.workspaceId && !validSet.has(rec.workspaceId)) {
+        await this.remove(id, ownerId);
+      }
     }
   }
 }

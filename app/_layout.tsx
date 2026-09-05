@@ -3,7 +3,7 @@ import { useFonts } from "expo-font";
 import { ActivityIndicator, Platform, Text, View } from "react-native";
 import { ClerkProvider } from "@clerk/expo";
 import { CLERK_PUBLISHABLE_KEY, getTokenCache } from "../src/auth/clerk";
-import { theme, ThemeProvider } from "../src/ui/primitives";
+import { theme, ThemeProvider, THEME_CSS } from "../src/ui/primitives";
 import { SessionTimeoutProvider } from "../src/ui/SessionTimeoutProvider";
 import { WorkspaceProvider } from "../src/context/WorkspaceContext";
 import { Redirect } from "expo-router";
@@ -74,6 +74,7 @@ export default function RootLayout() {
                 rel="stylesheet"
                 href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter+Tight:ital,wght@0,300..900;1,300..900&display=swap"
               />
+              <style dangerouslySetInnerHTML={{ __html: THEME_CSS }} />
             </Head>
             <Stack screenOptions={{ headerShown: false, title: "Draftoryn" }}>
               <Stack.Screen name="(auth)" options={{ title: "Draftoryn" }} />

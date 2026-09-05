@@ -152,6 +152,100 @@ export const theme = {
 };
 
 // ---------------------------------------------------------------------------
+// Theme CSS Variables Injection (Critical for SPA single-output web mode)
+// ---------------------------------------------------------------------------
+export const THEME_CSS = `
+  :root, [data-theme="dark"] {
+    --color-bg: #090A0C;
+    --color-bg-alt: #101216;
+    --color-surface: #101216;
+    --color-surface2: #15181D;
+    --color-surface-hover: #191C22;
+    --color-border: #272B32;
+    --color-border-light: #343941;
+    --color-border-active: #2F6BFF;
+    --color-text: #F5F3EE;
+    --color-text-secondary: #A1A5AD;
+    --color-muted: #727780;
+    --color-muted-light: #A1A5AD;
+    --color-text-dim: #525760;
+    --color-accent: #2F6BFF;
+    --color-accent-hover: #1F4FD1;
+    --color-accent-subtle: rgba(47, 107, 255, 0.12);
+    --color-accent-secondary: #343941;
+    --color-accent-foreground: #FFFFFF;
+    --color-danger: #D94A4A;
+    --color-danger-bg: rgba(217, 74, 74, 0.12);
+    --color-warn: #D99A24;
+    --color-warn-bg: rgba(217, 154, 36, 0.12);
+    --color-ok: #31B77A;
+    --color-ok-bg: rgba(49, 183, 122, 0.12);
+    --color-info: #2F6BFF;
+    --color-info-bg: rgba(47, 107, 255, 0.12);
+  }
+  [data-theme="light"] {
+    --color-bg: #F6F7F9;
+    --color-bg-alt: #FFFFFF;
+    --color-surface: #FFFFFF;
+    --color-surface2: #F0F2F5;
+    --color-surface-hover: #E8EBEF;
+    --color-border: #D6D9E0;
+    --color-border-light: #E2E5EB;
+    --color-border-active: #1F5EFF;
+    --color-text: #0D0F12;
+    --color-text-secondary: #474C56;
+    --color-muted: #686E7B;
+    --color-muted-light: #8C93A1;
+    --color-text-dim: #A6ACB8;
+    --color-accent: #1F5EFF;
+    --color-accent-hover: #0F4BD9;
+    --color-accent-subtle: rgba(31, 94, 255, 0.09);
+    --color-accent-secondary: #E2E5EB;
+    --color-accent-foreground: #FFFFFF;
+    --color-danger: #DC2626;
+    --color-danger-bg: rgba(220, 38, 38, 0.08);
+    --color-warn: #B45309;
+    --color-warn-bg: rgba(180, 83, 9, 0.08);
+    --color-ok: #15803D;
+    --color-ok-bg: rgba(21, 128, 61, 0.08);
+    --color-info: #1F5EFF;
+    --color-info-bg: rgba(31, 94, 255, 0.08);
+  }
+  body {
+    background-color: var(--color-bg, #090A0C) !important;
+    color: var(--color-text, #F5F3EE) !important;
+  }
+`;
+
+const THEME_STYLE_ID = "draftoryn-theme-styles";
+
+export function injectThemeStyles() {
+  if (typeof document === "undefined") return;
+  if (!document.getElementById(THEME_STYLE_ID)) {
+    const el = document.createElement("style");
+    el.id = THEME_STYLE_ID;
+    el.textContent = THEME_CSS;
+    document.head.appendChild(el);
+  }
+}
+
+// Immediately inject theme CSS into document.head on web
+if (isWeb) {
+  injectThemeStyles();
+}
+
+export function applyDomTheme(targetMode: ThemeMode) {
+  if (typeof document === "undefined") return;
+  injectThemeStyles();
+  document.documentElement.setAttribute("data-theme", targetMode);
+  if (document.body) {
+    document.body.setAttribute("data-theme", targetMode);
+    document.body.style.backgroundColor = targetMode === "light" ? lightColors.bg : darkColors.bg;
+    document.body.style.color = targetMode === "light" ? lightColors.text : darkColors.text;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Theme Context & State Provider
 // ---------------------------------------------------------------------------
 export type ThemeMode = "dark" | "light";
@@ -180,6 +274,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("dark");
 
   useEffect(() => {
+    injectThemeStyles();
     if (typeof window !== "undefined" && window.localStorage) {
       const saved = window.localStorage.getItem("draftoryn_theme_mode") as ThemeMode | null;
       if (saved === "light" || saved === "dark") {
@@ -216,15 +311,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       {children}
     </ThemeContext.Provider>
   );
-}
-
-function applyDomTheme(targetMode: ThemeMode) {
-  if (typeof document === "undefined") return;
-  document.documentElement.setAttribute("data-theme", targetMode);
-  if (document.body) {
-    document.body.style.backgroundColor = targetMode === "light" ? lightColors.bg : darkColors.bg;
-    document.body.style.color = targetMode === "light" ? lightColors.text : darkColors.text;
-  }
 }
 
 export function Screen({ children, title }: { children: React.ReactNode; title?: string }) {

@@ -862,8 +862,11 @@ export async function deleteWorkspace(
       throw new Error("Cannot delete your only workspace. Create another workspace first.");
     }
 
-    const isDeletingDefault = all.find((w) => w.id === workspaceId)?.is_default;
+    // 1. Permanently delete all documents associated with this workspace
+    // (This also cascades to document_versions and document_exports)
+    await sql(`DELETE FROM documents WHERE owner_id = $1 AND workspace_id = $2`, [userId, workspaceId]);
 
+    // 2. Delete the workspace record
     await sql(`DELETE FROM workspaces WHERE owner_id = $1 AND id = $2`, [userId, workspaceId]);
 
     let activeWorkspaceId = "";

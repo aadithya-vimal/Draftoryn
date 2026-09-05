@@ -34,8 +34,10 @@ export interface StorageAdapter {
 }
 
 export interface Repository {
-  list(ownerId: string): Promise<DocumentSummary[]>;
+  list(ownerId: string, workspaceId?: string): Promise<DocumentSummary[]>;
   get(id: string, ownerId: string): Promise<DocumentRecord | null>;
   put(record: DocumentRecord): Promise<void>;
   remove(id: string, ownerId: string): Promise<void>;
+  removeByWorkspace?(workspaceId: string, ownerId: string): Promise<void>;
+  cleanupOrphanedDocuments?(ownerId: string, validWorkspaceIds: string[]): Promise<void>;
 }

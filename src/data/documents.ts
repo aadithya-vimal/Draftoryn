@@ -16,7 +16,7 @@ export async function listDocuments(user: AppUser, workspaceId?: string): Promis
     return list;
   } catch (err) {
     // In case of transient network failure, read offline mirror for the authenticated user only
-    return localRepo.list(user.userId);
+    return localRepo.list(user.userId, workspaceId);
   }
 }
 
@@ -89,4 +89,12 @@ export async function listDocumentVersions(user: AppUser, documentId: string): P
   } catch {
     return [];
   }
+}
+
+export async function deleteWorkspaceDocumentsLocally(workspaceId: string, userId: string): Promise<void> {
+  await localRepo.removeByWorkspace(workspaceId, userId);
+}
+
+export async function cleanupLocalOrphanedDocuments(userId: string, validWorkspaceIds: string[]): Promise<void> {
+  await localRepo.cleanupOrphanedDocuments(userId, validWorkspaceIds);
 }

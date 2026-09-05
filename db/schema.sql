@@ -61,7 +61,7 @@ ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS ai_settings JSONB NOT NULL DE
 -- 4. Documents Table (Core Cybersecurity Document Store)
 CREATE TABLE IF NOT EXISTS documents (
   id            TEXT PRIMARY KEY,
-  workspace_id  TEXT REFERENCES workspaces(id) ON DELETE SET NULL,
+  workspace_id  TEXT REFERENCES workspaces(id) ON DELETE CASCADE,
   owner_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   definition_id TEXT NOT NULL,
   category      TEXT NOT NULL DEFAULT 'offensive_security',
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 
 -- Ensure columns exist if table was previously created with minimal schema
-ALTER TABLE documents ADD COLUMN IF NOT EXISTS workspace_id TEXT REFERENCES workspaces(id) ON DELETE SET NULL;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE;
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'offensive_security';
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS source_data JSONB NOT NULL DEFAULT '{}'::jsonb;
 

@@ -7,6 +7,10 @@ import {
   deleteWorkspace,
   type WorkspaceRecord,
 } from "../data/workspaces";
+import {
+  deleteWorkspaceDocumentsLocally,
+  cleanupLocalOrphanedDocuments,
+} from "../data/documents";
 
 const ACTIVE_WS_STORAGE_KEY = "draftoryn_active_workspace_id";
 
@@ -118,8 +122,19 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [user, reloadWorkspaces],
   );
 
+  // Self-healing: Automatically clean up any local documents whose workspace was deleted
+  useEffect(() => {
+    if (user.userId && workspaces.length > 0) {
+      const validIds = workspaces.map((w) => w.id);
+      cleanupLocalOrphanedDocuments(user.userId, validIds).catch(() => {});
+    }
+  }, [user.userId, workspaces]);
+
   const deleteAndSelectWorkspace = useCallback(
     async (id: string): Promise<void> => {
+      if (user.userId) {
+        await deleteWorkspaceDocumentsLocally(id, user.userId);
+      }
       const result = await deleteWorkspace(user, id);
       if (result.activeWorkspaceId && typeof window !== "undefined" && window.localStorage) {
         window.localStorage.setItem(ACTIVE_WS_STORAGE_KEY, result.activeWorkspaceId);
