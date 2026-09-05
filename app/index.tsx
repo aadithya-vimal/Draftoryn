@@ -6,6 +6,7 @@ import { Button, Card, Heading, theme } from "../src/ui/primitives";
 import { Icon } from "../src/ui/components";
 import { CATEGORIES, definitionsByCategory } from "../src/engine/definitions/catalog";
 import { CATEGORY_VISUALS } from "../src/ui/categories";
+import { PublicHeader } from "../src/ui/PublicHeader";
 
 export default function LandingPage() {
   const { isLoaded, isSignedIn } = useAppUser();
@@ -22,48 +23,7 @@ export default function LandingPage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
-      
-      {/* ========================================================================= */}
-      {/* 01. HEADER (Height: 72px, #101216, 1px solid #272B32)                    */}
-      {/* ========================================================================= */}
-      <View style={styles.header}>
-        <View style={styles.headerInner}>
-          {/* Left: Real brand mark with wordmark */}
-          <View style={styles.headerLeft}>
-            <Image
-              source={require("../assets/icon.png")}
-              style={styles.headerLogoImg}
-              resizeMode="contain"
-            />
-            <Text style={styles.wordmark}>Draftoryn</Text>
-          </View>
-
-          {/* Center: Navigation */}
-          {!isMobile && (
-            <View style={styles.headerNav}>
-              <Text style={styles.headerNavLink}>SPECIFICATIONS</Text>
-              <Text style={styles.headerNavLink}>CATALOG</Text>
-              <Text style={styles.headerNavLink}>WORKFLOW</Text>
-              <Text style={styles.headerNavLink}>ARCHITECTURE</Text>
-            </View>
-          )}
-
-          {/* Right: Sign in & Primary CTA */}
-          <View style={styles.headerRight}>
-            <Button
-              label="Sign In"
-              variant="ghost"
-              onPress={() => router.push("/(auth)/login")}
-              style={{ paddingHorizontal: isMobile ? 8 : 16 }}
-            />
-            <Button
-              label="Get Started"
-              onPress={() => router.push("/(auth)/signup")}
-              style={{ paddingHorizontal: isMobile ? 12 : 20 }}
-            />
-          </View>
-        </View>
-      </View>
+      <PublicHeader activeNav={null} />
 
       {/* ========================================================================= */}
       {/* 02. HERO (Split Composition: Left: Typographic Statement | Right: UI)     */}

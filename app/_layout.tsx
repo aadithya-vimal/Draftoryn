@@ -53,10 +53,11 @@ export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={getTokenCache()}>
       <Head>
-        <title>Draftoryn — Professional Technical & Security Document Studio</title>
+        <title>Draftoryn</title>
         <meta name="description" content="Professional document studio for software requirements, architecture specifications, and security assessment scopes." />
-        <link rel="icon" type="image/png" href="/assets/favicon.png" />
-        <link rel="apple-touch-icon" href="/assets/icon.png" />
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+        <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icon.png" />
       </Head>
       <Stack screenOptions={{ headerShown: false, title: "Draftoryn" }}>
         <Stack.Screen name="(auth)" options={{ title: "Draftoryn" }} />
