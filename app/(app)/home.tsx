@@ -116,7 +116,7 @@ export default function Home() {
                 {mode === "dark" ? "LIGHT" : "DARK"}
               </Text>
             </TouchableOpacity>
-            <Text style={styles.persistenceTag}>NEON POSTGRESQL</Text>
+            <Text style={styles.persistenceTag}>PERSISTENT STORAGE</Text>
           </View>
         </View>
 

@@ -270,7 +270,7 @@ export default function Settings() {
         ) : saveStatus === "saved" ? (
           <View style={[styles.saveBadge, styles.saveBadgeSuccess]}>
             <Icon name="Check" size={14} color={theme.ok} />
-            <Text style={[styles.saveBadgeText, { color: theme.ok }]}>Saved to Neon DB</Text>
+            <Text style={[styles.saveBadgeText, { color: theme.ok }]}>Saved</Text>
           </View>
         ) : null}
       </View>
@@ -321,10 +321,10 @@ export default function Settings() {
                 <Icon name="Database" size={20} color={theme.accent} />
               </View>
               <View style={styles.workspaceMeta}>
-                <Text style={styles.workspaceName}>Neon PostgreSQL Multi-Tenant Storage</Text>
+                <Text style={styles.workspaceName}>Encrypted Relational Workspaces</Text>
                 <View style={styles.neonSyncRow}>
                   <View style={styles.neonDot} />
-                  <Text style={styles.neonSyncText}>Authoritative persistence · Isolated schemas</Text>
+                  <Text style={styles.neonSyncText}>Transactional persistence · Isolated schemas</Text>
                 </View>
               </View>
             </View>
@@ -759,12 +759,12 @@ export default function Settings() {
       <Dialog
         open={manageOpen}
         onClose={() => setManageOpen(false)}
-        title="Account managed by Clerk"
+        title="Account Management"
       >
         <Text style={styles.bodyText}>
-          Your Draftoryn account is handled securely by Clerk, including your
-          sign-in, email, and password. Account settings can be managed from
-          the Clerk account area.
+          Your Draftoryn account is handled securely, including your
+          sign-in, email, and password. Multi-factor authentication and credentials
+          are encrypted with enterprise security standards.
         </Text>
         <Button
           label="Close"

@@ -150,7 +150,7 @@ export default function CatalogPage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>NEON POSTGRESQL · CLERK AUTH</Text>
+          <Text style={styles.footerText}>ENTERPRISE DOCUMENTATION ENGINE</Text>
         </View>
       </View>
     </ScrollView>

@@ -219,13 +219,13 @@ export default function NewDocumentScreen() {
               <Icon name="Shield" size={24} color={theme.accent} />
             </View>
             <Text style={{ fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 1.5, color: theme.accent, textTransform: "uppercase", marginBottom: 8 }}>
-              AUTHENTICATION REQUIRED // NEON POSTGRESQL
+              AUTHENTICATION REQUIRED // SECURE STORAGE
             </Text>
             <Heading level={2} style={{ textAlign: "center", marginBottom: 12 }}>
               Sign In to Create Documents
             </Heading>
             <Text style={{ fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
-              Draftoryn is an enterprise security documentation platform. All documents and drafts are persisted and encrypted in your Neon PostgreSQL database. You must be authenticated to access or submit specification forms.
+              Draftoryn is an enterprise security documentation platform. All documents and drafts are persisted and encrypted in your database workspace. You must be authenticated to access or submit specification forms.
             </Text>
             <Button
               label="Sign In / Register"
@@ -326,7 +326,7 @@ export default function NewDocumentScreen() {
 
   const onGenerate = async (useAi = false) => {
     if (!user.isSignedIn || !user.userId) {
-      setError("Authentication required: you must be signed in to save documents to Neon database.");
+      setError("Authentication required: you must be signed in to create and save documents.");
       router.replace("/(auth)/login");
       return;
     }

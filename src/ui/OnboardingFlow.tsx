@@ -281,11 +281,11 @@ export function OnboardingFlow({
                 <View style={styles.specimenDivider} />
                 <View style={styles.specimenRow}>
                   <Text style={styles.specimenKey}>AUTHENTICATION</Text>
-                  <Text style={styles.specimenVal}>Clerk Secure Session ({user.email || user.userId})</Text>
+                  <Text style={styles.specimenVal}>Authenticated Session ({user.email || user.userId})</Text>
                 </View>
                 <View style={styles.specimenRow}>
                   <Text style={styles.specimenKey}>DATABASE</Text>
-                  <Text style={styles.specimenVal}>Neon PostgreSQL [Authoritative Source of Truth]</Text>
+                  <Text style={styles.specimenVal}>Primary Relational Store [Source of Truth]</Text>
                 </View>
                 <View style={styles.specimenRow}>
                   <Text style={styles.specimenKey}>CATALOG</Text>
@@ -442,7 +442,7 @@ export function OnboardingFlow({
                 Configure your workspace parameters.
               </Heading>
               <Text style={styles.supportingText}>
-                These settings persist directly into Neon PostgreSQL and establish your default document autofill profiles.
+                These settings persist directly into your workspace and establish your default document autofill profiles.
               </Text>
 
               <View style={styles.formPanel}>
@@ -455,7 +455,7 @@ export function OnboardingFlow({
                     placeholder="e.g. Primary Security Workspace"
                     placeholderTextColor="#727780"
                   />
-                  <Text style={styles.formHint}>Maps to your Neon PostgreSQL workspaces record.</Text>
+                  <Text style={styles.formHint}>Maps to your organization workspace record.</Text>
                 </View>
 
                 <View style={styles.formGroup}>
@@ -520,7 +520,7 @@ export function OnboardingFlow({
                 Your workspace is ready.
               </Heading>
               <Text style={styles.supportingText}>
-                Your configuration parameters are ready to be saved as the authoritative state in Neon PostgreSQL.
+                Your configuration parameters are ready to be saved as the authoritative state in your workspace.
               </Text>
 
               <View style={styles.summaryBox}>
@@ -547,7 +547,7 @@ export function OnboardingFlow({
 
               <View style={styles.completionActionBlock}>
                 <Button
-                  label={saving ? "Saving to Neon..." : "Create your first document →"}
+                  label={saving ? "Saving..." : "Create your first document →"}
                   disabled={saving}
                   onPress={() => handleFinish(true)}
                   style={styles.primaryBtn}

@@ -145,7 +145,7 @@ export function OnboardingModal({
                 <View style={styles.callout}>
                   <Icon name="ShieldCheck" size={18} color={theme.accent} />
                   <Text style={styles.calloutText}>
-                    Your workspace state and document history will persist securely to Neon PostgreSQL.
+                    Your workspace state and document history will persist securely in your database.
                   </Text>
                 </View>
               </View>
@@ -164,7 +164,7 @@ export function OnboardingModal({
               />
             ) : null}
             <Button
-              label={step === 1 ? "Continue" : saving ? "Saving to Neon…" : "Finish & Launch Workspace"}
+              label={step === 1 ? "Continue" : saving ? "Saving…" : "Finish & Launch Workspace"}
               onPress={handleNext}
               disabled={saving}
               style={{ flex: 1 }}

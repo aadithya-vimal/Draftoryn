@@ -28,7 +28,7 @@ function MissingKey() {
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.bg, padding: 32 }}>
       <Text style={{ fontFamily: theme.font.sansSemi, fontSize: 22, color: theme.text, marginBottom: 10 }}>Draftoryn</Text>
       <Text style={{ fontFamily: theme.font.sans, fontSize: 14, color: theme.muted, textAlign: "center" }}>
-        Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY (and CLERK_SECRET_KEY on the server) to enable authentication.
+        Authentication credentials not configured. Set environment variables to enable authentication.
       </Text>
     </View>
   );

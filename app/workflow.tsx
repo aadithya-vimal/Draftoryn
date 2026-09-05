@@ -118,14 +118,14 @@ export default function WorkflowPage() {
               </View>
               <Text style={styles.stageDescription}>
                 Deliverables compile natively to vector-bordered PDFs with technical line spacing, formatted Microsoft Word DOCX
-                documents, and clean Markdown for GitOps repositories. Every version is immutably archived in Neon PostgreSQL.
+                documents, and clean Markdown for GitOps repositories. Every version is immutably archived in transactional storage.
               </Text>
               <View style={styles.specimenBox}>
                 <Text style={styles.specimenLabel}>COMPILED OUTPUT TARGETS</Text>
                 <Text style={styles.specimenCode}>
                   OUTPUT: deliverable.pdf [Helvetica 595x842pt, 14pt breathing rules]{"\n"}
                   OUTPUT: deliverable.docx [OOXML Section Styles]{"\n"}
-                  SNAPSHOT: Neon DB (document_versions #1 verified)
+                  SNAPSHOT: Database Archive (document_versions #1 verified)
                 </Text>
               </View>
             </View>
@@ -160,7 +160,7 @@ export default function WorkflowPage() {
             </View>
             <View style={styles.compRow}>
               <Text style={[styles.compCell, { flex: 1.2, color: "#F5F3EE" }]}>Audit Persistence</Text>
-              <Text style={[styles.compCell, { flex: 1.5, color: "#31B77A" }]}>Neon PostgreSQL Relational</Text>
+              <Text style={[styles.compCell, { flex: 1.5, color: theme.ok }]}>Authoritative Relational Database</Text>
               <Text style={[styles.compCell, { flex: 1.5 }]}>Ephemeral chat history</Text>
               <Text style={[styles.compCell, { flex: 1.5 }]}>Scattered local files</Text>
             </View>
@@ -203,7 +203,7 @@ export default function WorkflowPage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>NEON POSTGRESQL · CLERK AUTH</Text>
+          <Text style={styles.footerText}>ENTERPRISE DOCUMENTATION ENGINE</Text>
         </View>
       </View>
     </ScrollView>

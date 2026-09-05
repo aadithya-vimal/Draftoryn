@@ -67,7 +67,7 @@ export default function LandingPage() {
                 <View style={styles.frameStatusDot} />
                 <Text style={styles.frameSpecId}>SPEC-SEC-AUTH-001 // EDITOR VIEW</Text>
                 <View style={{ flex: 1 }} />
-                <Text style={styles.frameMetaTag}>NEON PERSISTED</Text>
+                <Text style={styles.frameMetaTag}>PERSISTENT RECORD</Text>
               </View>
               
               <View style={styles.frameEditor}>
@@ -149,9 +149,9 @@ export default function LandingPage() {
             </View>
             <View style={[styles.compositionCard, isMobile ? { width: "100%" } : { flex: 1 }]}>
               <Text style={styles.compCardStep}>03 / PERSISTENCE</Text>
-              <Text style={styles.compCardTitle}>Neon PostgreSQL Relational Truth</Text>
+              <Text style={styles.compCardTitle}>Relational Persistence</Text>
               <Text style={styles.compCardBody}>
-                Document records, revision versions, deliverable exports, and client authorizations are permanently stored in Neon PostgreSQL.
+                Document records, revision versions, deliverable exports, and client authorizations are permanently stored in authoritative relational tables.
               </Text>
             </View>
           </View>
@@ -257,7 +257,7 @@ export default function LandingPage() {
               <Text style={styles.workflowStepNum}>PHASE 03</Text>
               <Text style={styles.workflowStepTitle}>Relational Export</Text>
               <Text style={styles.workflowStepBody}>
-                Export deliverable packages in PDF, Markdown, DOCX, or HTML with audit logging written directly to Neon.
+                Export deliverable packages in PDF, Markdown, DOCX, or HTML with complete transactional audit logging.
               </Text>
             </View>
           </View>
@@ -331,7 +331,7 @@ export default function LandingPage() {
             Ready to generate authoritative documentation?
           </Heading>
           <Text style={styles.finalLead}>
-            Provision your workspace in seconds with Clerk authentication and Neon PostgreSQL persistence.
+            Provision your workspace with enterprise authentication and structured database persistence.
           </Text>
           <Button
             label="Initialize Workspace Now →"
@@ -352,7 +352,7 @@ export default function LandingPage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>NEON POSTGRESQL · CLERK AUTH</Text>
+          <Text style={styles.footerText}>ENTERPRISE DOCUMENTATION ENGINE</Text>
         </View>
       </View>
     </ScrollView>
@@ -360,7 +360,7 @@ export default function LandingPage() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#090A0C" },
+  screen: { flex: 1, backgroundColor: theme.bg },
   body: { paddingBottom: 0 },
 
   maxContainer: {

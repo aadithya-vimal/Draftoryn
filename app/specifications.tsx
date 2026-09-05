@@ -38,7 +38,7 @@ export default function SpecificationsPage() {
             </View>
             <View style={styles.metaBadge}>
               <Text style={styles.metaBadgeKey}>DATA PERSISTENCE</Text>
-              <Text style={styles.metaBadgeVal}>NEON POSTGRESQL</Text>
+              <Text style={styles.metaBadgeVal}>RELATIONAL DATABASE</Text>
             </View>
           </View>
         </View>
@@ -174,7 +174,7 @@ export default function SpecificationsPage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>NEON POSTGRESQL · CLERK AUTH</Text>
+          <Text style={styles.footerText}>ENTERPRISE DOCUMENTATION ENGINE</Text>
         </View>
       </View>
     </ScrollView>

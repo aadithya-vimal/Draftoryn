@@ -268,7 +268,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       title="Security Workspaces"
     >
       <Text style={styles.wsModalHint}>
-        Workspaces isolate specifications, assessments, and client deliverables in Neon PostgreSQL.
+        Workspaces isolate specifications, assessments, and client deliverables with dedicated access boundaries.
       </Text>
 
       <View style={styles.wsList}>

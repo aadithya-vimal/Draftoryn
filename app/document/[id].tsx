@@ -830,13 +830,13 @@ export default function DocumentEditor() {
               <Icon name="Shield" size={24} color={theme.accent} />
             </View>
             <Text style={{ fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 1.5, color: theme.accent, textTransform: "uppercase", marginBottom: 8 }}>
-              AUTHENTICATION REQUIRED // NEON POSTGRESQL
+              AUTHENTICATION REQUIRED // SECURE STORAGE
             </Text>
             <Heading level={2} style={{ textAlign: "center", marginBottom: 12 }}>
               Sign In to View Document
             </Heading>
             <Text style={{ fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
-              All Draftoryn documents are securely persisted and encrypted within your Neon PostgreSQL workspace. You must be signed in to view or edit this document.
+              All Draftoryn documents are securely persisted and encrypted within your database workspace. You must be signed in to view or edit this document.
             </Text>
             <Button
               label="Sign In / Register"

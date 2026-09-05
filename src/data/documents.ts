@@ -35,11 +35,11 @@ export async function getDocument(user: AppUser, id: string): Promise<DocumentRe
 
 export async function createDocumentRecord(user: AppUser, record: DocumentRecord): Promise<DocumentRecord> {
   if (!user.isSignedIn || !user.userId) {
-    throw new Error("Authentication required: you must be signed in to save documents to Neon database.");
+    throw new Error("Authentication required: you must be signed in to save documents.");
   }
   const ownerId = user.userId;
   const doc = { ...record, ownerId };
-  // Authoritative write directly to Neon database
+  // Authoritative write directly to database
   const saved = await clientHttp<DocumentRecord>("/api/documents", { method: "POST", body: JSON.stringify(doc) }, user);
   await localRepo.put(saved);
   return saved;
@@ -47,11 +47,11 @@ export async function createDocumentRecord(user: AppUser, record: DocumentRecord
 
 export async function saveDocumentRecord(user: AppUser, record: DocumentRecord): Promise<DocumentRecord> {
   if (!user.isSignedIn || !user.userId) {
-    throw new Error("Authentication required: you must be signed in to save documents to Neon database.");
+    throw new Error("Authentication required: you must be signed in to save documents.");
   }
   const ownerId = user.userId;
   const doc = { ...record, ownerId };
-  // Authoritative write directly to Neon database
+  // Authoritative write directly to database
   const saved = await clientHttp<DocumentRecord>(`/api/documents/${record.id}`, { method: "PUT", body: JSON.stringify(doc) }, user);
   await localRepo.put(saved);
   return saved;

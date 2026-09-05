@@ -28,11 +28,11 @@ export default function ArchitecturePage() {
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Text style={styles.metaKey}>PRIMARY DATABASE</Text>
-              <Text style={styles.metaVal}>NEON POSTGRESQL</Text>
+              <Text style={styles.metaVal}>RELATIONAL DATABASE</Text>
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaKey}>IDENTITY</Text>
-              <Text style={styles.metaVal}>CLERK MULTI-TENANT</Text>
+              <Text style={styles.metaVal}>ENTERPRISE MULTI-TENANT</Text>
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaKey}>EXPORT ENGINE</Text>
@@ -59,30 +59,30 @@ export default function ArchitecturePage() {
               <View style={styles.layerContent}>
                 <Heading level={3} style={styles.layerTitle}>Identity & Tenant Isolation</Heading>
                 <Text style={styles.layerDesc}>
-                  Authentication is managed via Clerk session tokens. Every user is mapped to a dedicated
+                  Authentication is managed via verified cryptographic session tokens. Every user is mapped to a dedicated
                   tenant workspace ID. Cross-tenant access is strictly denied at both API and database layers.
                 </Text>
                 <View style={styles.techPills}>
-                  <Text style={styles.techPill}>Clerk JWT</Text>
+                  <Text style={styles.techPill}>Cryptographic JWT</Text>
                   <Text style={styles.techPill}>Multi-Tenant Isolation</Text>
                   <Text style={styles.techPill}>RBAC Validation</Text>
                 </View>
               </View>
             </View>
 
-            {/* Layer 02: Neon PostgreSQL */}
+            {/* Layer 02: Relational Database */}
             <View style={styles.layerCard}>
               <View style={styles.layerBadge}>
                 <Text style={styles.layerNum}>LAYER 02</Text>
               </View>
               <View style={styles.layerContent}>
-                <Heading level={3} style={styles.layerTitle}>Authoritative Neon PostgreSQL Database</Heading>
+                <Heading level={3} style={styles.layerTitle}>Authoritative Relational Database</Heading>
                 <Text style={styles.layerDesc}>
-                  Draftoryn treats Neon PostgreSQL as the single source of truth. All user-generated content,
+                  Draftoryn treats the relational database as the single source of truth. All user-generated content,
                   workspace preferences, document trees, version histories, and export logs persist in normalized relational tables.
                 </Text>
                 <View style={styles.specimenBox}>
-                  <Text style={styles.specimenLabel}>CANONICAL NEON TABLES</Text>
+                  <Text style={styles.specimenLabel}>CANONICAL DATABASE TABLES</Text>
                   <Text style={styles.specimenCode}>
                     users · workspaces · user_settings · documents · document_versions · document_exports
                   </Text>
@@ -180,7 +180,7 @@ export default function ArchitecturePage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>NEON POSTGRESQL · CLERK AUTH</Text>
+          <Text style={styles.footerText}>ENTERPRISE DOCUMENTATION ENGINE</Text>
         </View>
       </View>
     </ScrollView>
