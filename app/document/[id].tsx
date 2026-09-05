@@ -38,7 +38,7 @@ import type {
   SectionStatus,
   SemanticModel,
 } from "../../src/engine/types";
-import { getDocument, saveDocumentRecord } from "../../src/data/documents";
+import { getDocument, saveDocumentRecord, logDocumentExport } from "../../src/data/documents";
 import { generateDocumentClient } from "../../src/data/generate";
 import { exportAndSave } from "../../src/lib/download";
 import type { DocumentRecord } from "../../src/repository/types";
@@ -395,6 +395,9 @@ export default function DocumentEditor() {
       setExportErr("");
       try {
         await exportAndSave(gen, format);
+        if (recordRef.current?.id) {
+          logDocumentExport(user, recordRef.current.id, format).catch(() => {});
+        }
         setExportOpen(false);
       } catch (e) {
         setExportErr(e instanceof Error ? e.message : "Export failed.");

@@ -27,6 +27,7 @@ import {
   type UserExportFormat,
   type UserSettings,
 } from "../../src/lib/userSettings";
+import { fetchUserMe } from "../../src/data/onboarding";
 import {
   validateEmail,
   validatePhone,
@@ -35,11 +36,13 @@ import {
 type ExportOption = "pdf" | "docx" | "markdown" | "html" | "json";
 
 export default function Settings() {
-  const { name, email, isLoaded, isSignedIn, signOut } = useAppUser();
+  const user = useAppUser();
+  const { name, email, isLoaded, isSignedIn, signOut } = user;
 
   const [loading, setLoading] = useState<boolean>(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [manageOpen, setManageOpen] = useState<boolean>(false);
+  const [workspace, setWorkspace] = useState<{ id: string; name: string } | null>(null);
 
   const [exportFormat, setExportFormat] = useState<ExportOption>("pdf");
   const [compactLists, setCompactLists] = useState<boolean>(false);
@@ -61,10 +64,10 @@ export default function Settings() {
     authorizedBy: "",
   });
 
-  // Load persisted settings
+  // Load persisted settings from Neon (with local fallback)
   useEffect(() => {
     let mounted = true;
-    getUserSettings().then((s) => {
+    getUserSettings(user).then((s) => {
       if (!mounted) return;
       setExportFormat((s.defaultExportFormat as ExportOption) || "pdf");
       setCompactLists(Boolean(s.compactLists));
@@ -72,21 +75,29 @@ export default function Settings() {
       setClientProfile(s.clientProfile);
       setLoading(false);
     });
+
+    if (user.isSignedIn) {
+      fetchUserMe(user).then((data) => {
+        if (!mounted || !data) return;
+        setWorkspace({ id: data.workspace.id, name: data.workspace.name });
+      });
+    }
+
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user.userId, user.isSignedIn, user.isLoaded]);
 
   const handleExportFormatChange = async (format: ExportOption) => {
     setExportFormat(format);
-    await saveUserSettings({ defaultExportFormat: format as UserExportFormat });
+    await saveUserSettings({ defaultExportFormat: format as UserExportFormat }, user);
     showSavedFeedback();
   };
 
   const handleCompactToggle = async () => {
     const next = !compactLists;
     setCompactLists(next);
-    await saveUserSettings({ compactLists: next });
+    await saveUserSettings({ compactLists: next }, user);
     showSavedFeedback();
   };
 
@@ -97,7 +108,7 @@ export default function Settings() {
       compactLists,
       testerProfile,
       clientProfile,
-    });
+    }, user);
     setSaveStatus("saved");
     setTimeout(() => setSaveStatus("idle"), 2500);
   };
@@ -170,6 +181,23 @@ export default function Settings() {
               onPress={() => setManageOpen(true)}
               style={styles.actionButton}
             />
+          </Card>
+
+          {/* Active Workspace */}
+          <SectionLabel>Active Workspace</SectionLabel>
+          <Card>
+            <View style={styles.workspaceRow}>
+              <View style={styles.workspaceIconWrap}>
+                <Icon name="Database" size={20} color={theme.accent} />
+              </View>
+              <View style={styles.workspaceMeta}>
+                <Text style={styles.workspaceName}>{workspace?.name ?? "Primary Security Workspace"}</Text>
+                <View style={styles.neonSyncRow}>
+                  <View style={styles.neonDot} />
+                  <Text style={styles.neonSyncText}>Neon PostgreSQL · Source of Truth</Text>
+                </View>
+              </View>
+            </View>
           </Card>
 
           {/* Export & Document Preferences */}
@@ -555,6 +583,46 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.mono,
     color: theme.muted,
     fontSize: 13,
+  },
+  workspaceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  workspaceIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  workspaceMeta: {
+    flex: 1,
+  },
+  workspaceName: {
+    fontFamily: theme.font.serifSemi,
+    fontSize: 17,
+    color: theme.text,
+    marginBottom: 4,
+  },
+  neonSyncRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  neonDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: theme.ok,
+  },
+  neonSyncText: {
+    fontFamily: theme.font.mono,
+    fontSize: 11,
+    color: theme.muted,
   },
   actionButton: {
     marginTop: 16,

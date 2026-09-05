@@ -2,6 +2,57 @@ import { neon } from "@neondatabase/serverless";
 import type { DocumentRecord, DocumentSummary } from "../src/repository/types";
 import { getDefinition } from "../src/engine/definitions/catalog";
 
+export interface DbUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  role: string;
+  onboardingCompleted: boolean;
+  onboardingStep: number;
+  onboardingData: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DbWorkspace {
+  id: string;
+  ownerId: string;
+  name: string;
+  slug: string;
+  isDefault: boolean;
+  settings: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DbUserSettings {
+  userId: string;
+  defaultExportFormat: string;
+  compactLists: boolean;
+  testerProfile: Record<string, unknown>;
+  clientProfile: Record<string, unknown>;
+  updatedAt: string;
+}
+
+export interface DbDocumentVersion {
+  id: string;
+  documentId: string;
+  ownerId: string;
+  versionNumber: number;
+  title: string;
+  data: unknown;
+  createdAt: string;
+}
+
+export interface DbDocumentExport {
+  id: string;
+  documentId: string;
+  ownerId: string;
+  format: string;
+  createdAt: string;
+}
+
 let _sql: ((query: string, params?: unknown[]) => Promise<unknown[]>) | null = null;
 
 function client(): (query: string, params?: unknown[]) => Promise<unknown[]> {
@@ -18,7 +69,8 @@ function toSummary(rec: DocumentRecord): DocumentSummary {
   return {
     id: rec.id,
     definitionId: rec.definitionId,
-    category: def?.category ?? "security_assessment",
+    category: def?.category ?? "offensive_security",
+    workspaceId: rec.workspaceId,
     title: rec.title,
     status: rec.status,
     createdAt: rec.createdAt,
@@ -26,59 +78,552 @@ function toSummary(rec: DocumentRecord): DocumentSummary {
   };
 }
 
-/**
- * Executes a query with app.user_id RLS session variable established.
- */
 async function withRls<T>(ownerId: string, fn: (sql: (query: string, params?: unknown[]) => Promise<unknown[]>) => Promise<T>): Promise<T> {
   const sql = client();
-  // Set session configuration for PostgreSQL Row Level Security (RLS)
   await sql("SELECT set_config('app.user_id', $1, true)", [ownerId]);
   return fn(sql);
 }
 
-export async function listDocuments(ownerId: string): Promise<DocumentSummary[]> {
-  return withRls(ownerId, async (sql) => {
+// ---------------------------------------------------------------------------
+// 1. User Provisioning & Onboarding Management
+// ---------------------------------------------------------------------------
+
+export async function getOrCreateUser(
+  userId: string,
+  profile?: { email?: string; name?: string; avatarUrl?: string },
+): Promise<{ user: DbUser; workspace: DbWorkspace; settings: DbUserSettings }> {
+  return withRls(userId, async (sql) => {
+    // 1. Check or insert user
+    const userRows = (await sql(
+      `SELECT id, email, name, avatar_url, role, onboarding_completed, onboarding_step, onboarding_data, created_at, updated_at
+       FROM users WHERE id = $1`,
+      [userId],
+    )) as Array<{
+      id: string;
+      email: string | null;
+      name: string | null;
+      avatar_url: string | null;
+      role: string;
+      onboarding_completed: boolean;
+      onboarding_step: number;
+      onboarding_data: Record<string, unknown>;
+      created_at: string;
+      updated_at: string;
+    }>;
+
+    let user: DbUser;
+    if (userRows.length > 0 && userRows[0]) {
+      const u = userRows[0];
+      // Update email/name if changed in Clerk
+      if (profile && (profile.email !== u.email || profile.name !== u.name)) {
+        await sql(
+          `UPDATE users SET email = COALESCE($2, email), name = COALESCE($3, name), avatar_url = COALESCE($4, avatar_url), updated_at = now()
+           WHERE id = $1`,
+          [userId, profile.email ?? null, profile.name ?? null, profile.avatarUrl ?? null],
+        );
+      }
+      user = {
+        id: u.id,
+        email: profile?.email ?? u.email,
+        name: profile?.name ?? u.name,
+        avatarUrl: profile?.avatarUrl ?? u.avatar_url,
+        role: u.role,
+        onboardingCompleted: Boolean(u.onboarding_completed),
+        onboardingStep: Number(u.onboarding_step ?? 1),
+        onboardingData: (u.onboarding_data as Record<string, unknown>) ?? {},
+        createdAt: u.created_at,
+        updatedAt: u.updated_at,
+      };
+    } else {
+      // Create new user in Neon
+      const email = profile?.email ?? null;
+      const name = profile?.name ?? (email ? email.split("@")[0] : "Security Professional");
+      const avatarUrl = profile?.avatarUrl ?? null;
+
+      await sql(
+        `INSERT INTO users (id, email, name, avatar_url, role, onboarding_completed, onboarding_step, onboarding_data, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'security_professional', false, 1, '{}'::jsonb, now(), now())
+         ON CONFLICT (id) DO NOTHING`,
+        [userId, email, name, avatarUrl],
+      );
+
+      user = {
+        id: userId,
+        email: email ?? null,
+        name: name ?? null,
+        avatarUrl: avatarUrl ?? null,
+        role: "security_professional",
+        onboardingCompleted: false,
+        onboardingStep: 1,
+        onboardingData: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    // 2. Ensure default workspace exists
+    const wsRows = (await sql(
+      `SELECT id, owner_id, name, slug, is_default, settings, created_at, updated_at
+       FROM workspaces WHERE owner_id = $1 ORDER BY is_default DESC, created_at ASC`,
+      [userId],
+    )) as Array<{
+      id: string;
+      owner_id: string;
+      name: string;
+      slug: string;
+      is_default: boolean;
+      settings: Record<string, unknown>;
+      created_at: string;
+      updated_at: string;
+    }>;
+
+    let workspace: DbWorkspace;
+    if (wsRows.length > 0 && wsRows[0]) {
+      const w = wsRows[0];
+      workspace = {
+        id: w.id,
+        ownerId: w.owner_id,
+        name: w.name,
+        slug: w.slug,
+        isDefault: Boolean(w.is_default),
+        settings: w.settings ?? {},
+        createdAt: w.created_at,
+        updatedAt: w.updated_at,
+      };
+    } else {
+      const wsId = "ws_" + Math.random().toString(36).slice(2, 10);
+      const wsName = (user.name ? user.name + "'s Workspace" : "Primary Security Workspace");
+      const wsSlug = "default";
+      await sql(
+        `INSERT INTO workspaces (id, owner_id, name, slug, is_default, settings, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, true, '{}'::jsonb, now(), now())
+         ON CONFLICT (owner_id, slug) DO NOTHING`,
+        [wsId, userId, wsName, wsSlug],
+      );
+      workspace = {
+        id: wsId,
+        ownerId: userId,
+        name: wsName,
+        slug: wsSlug,
+        isDefault: true,
+        settings: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    // 3. Ensure user settings exist
+    const settingsRows = (await sql(
+      `SELECT user_id, default_export_format, compact_lists, tester_profile, client_profile, updated_at
+       FROM user_settings WHERE user_id = $1`,
+      [userId],
+    )) as Array<{
+      user_id: string;
+      default_export_format: string;
+      compact_lists: boolean;
+      tester_profile: Record<string, unknown>;
+      client_profile: Record<string, unknown>;
+      updated_at: string;
+    }>;
+
+    let settings: DbUserSettings;
+    if (settingsRows.length > 0 && settingsRows[0]) {
+      const s = settingsRows[0];
+      settings = {
+        userId: s.user_id,
+        defaultExportFormat: s.default_export_format ?? "pdf",
+        compactLists: Boolean(s.compact_lists),
+        testerProfile: s.tester_profile ?? {},
+        clientProfile: s.client_profile ?? {},
+        updatedAt: s.updated_at,
+      };
+    } else {
+      await sql(
+        `INSERT INTO user_settings (user_id, default_export_format, compact_lists, tester_profile, client_profile, updated_at)
+         VALUES ($1, 'pdf', false, '{}'::jsonb, '{}'::jsonb, now())
+         ON CONFLICT (user_id) DO NOTHING`,
+        [userId],
+      );
+      settings = {
+        userId,
+        defaultExportFormat: "pdf",
+        compactLists: false,
+        testerProfile: {},
+        clientProfile: {},
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    return { user, workspace, settings };
+  });
+}
+
+export async function getUser(userId: string): Promise<DbUser | null> {
+  return withRls(userId, async (sql) => {
     const rows = (await sql(
-      "SELECT data FROM documents WHERE owner_id = $1 ORDER BY updated_at DESC",
-      [ownerId],
-    )) as Array<{ data: DocumentRecord }>;
-    return rows.map((r) => toSummary(r.data));
+      `SELECT id, email, name, avatar_url, role, onboarding_completed, onboarding_step, onboarding_data, created_at, updated_at
+       FROM users WHERE id = $1`,
+      [userId],
+    )) as Array<{
+      id: string;
+      email: string | null;
+      name: string | null;
+      avatar_url: string | null;
+      role: string;
+      onboarding_completed: boolean;
+      onboarding_step: number;
+      onboarding_data: Record<string, unknown>;
+      created_at: string;
+      updated_at: string;
+    }>;
+    if (rows.length === 0 || !rows[0]) return null;
+    const u = rows[0];
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      avatarUrl: u.avatar_url,
+      role: u.role,
+      onboardingCompleted: Boolean(u.onboarding_completed),
+      onboardingStep: Number(u.onboarding_step ?? 1),
+      onboardingData: u.onboarding_data ?? {},
+      createdAt: u.created_at,
+      updatedAt: u.updated_at,
+    };
+  });
+}
+
+export async function updateUserOnboarding(
+  userId: string,
+  updates: {
+    completed?: boolean;
+    step?: number;
+    onboardingData?: Record<string, unknown>;
+    role?: string;
+  },
+): Promise<DbUser> {
+  return withRls(userId, async (sql) => {
+    // Ensure user exists first
+    await getOrCreateUser(userId);
+
+    const sets: string[] = ["updated_at = now()"];
+    const vals: unknown[] = [userId];
+    let idx = 2;
+
+    if (updates.completed !== undefined) {
+      sets.push(`onboarding_completed = $${idx++}`);
+      vals.push(Boolean(updates.completed));
+    }
+    if (updates.step !== undefined) {
+      sets.push(`onboarding_step = $${idx++}`);
+      vals.push(Number(updates.step));
+    }
+    if (updates.onboardingData !== undefined) {
+      sets.push(`onboarding_data = $${idx++}::jsonb`);
+      vals.push(JSON.stringify(updates.onboardingData));
+    }
+    if (updates.role !== undefined) {
+      sets.push(`role = $${idx++}`);
+      vals.push(updates.role);
+    }
+
+    const query = `UPDATE users SET ${sets.join(", ")} WHERE id = $1 RETURNING id, email, name, avatar_url, role, onboarding_completed, onboarding_step, onboarding_data, created_at, updated_at`;
+    const rows = (await sql(query, vals)) as Array<{
+      id: string;
+      email: string | null;
+      name: string | null;
+      avatar_url: string | null;
+      role: string;
+      onboarding_completed: boolean;
+      onboarding_step: number;
+      onboarding_data: Record<string, unknown>;
+      created_at: string;
+      updated_at: string;
+    }>;
+
+    const u = rows[0]!;
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      avatarUrl: u.avatar_url,
+      role: u.role,
+      onboardingCompleted: Boolean(u.onboarding_completed),
+      onboardingStep: Number(u.onboarding_step ?? 1),
+      onboardingData: u.onboarding_data ?? {},
+      createdAt: u.created_at,
+      updatedAt: u.updated_at,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 2. User Settings Persistence
+// ---------------------------------------------------------------------------
+
+export async function getUserSettings(userId: string): Promise<DbUserSettings> {
+  return withRls(userId, async (sql) => {
+    const rows = (await sql(
+      `SELECT user_id, default_export_format, compact_lists, tester_profile, client_profile, updated_at
+       FROM user_settings WHERE user_id = $1`,
+      [userId],
+    )) as Array<{
+      user_id: string;
+      default_export_format: string;
+      compact_lists: boolean;
+      tester_profile: Record<string, unknown>;
+      client_profile: Record<string, unknown>;
+      updated_at: string;
+    }>;
+
+    if (rows.length > 0 && rows[0]) {
+      const s = rows[0];
+      return {
+        userId: s.user_id,
+        defaultExportFormat: s.default_export_format ?? "pdf",
+        compactLists: Boolean(s.compact_lists),
+        testerProfile: s.tester_profile ?? {},
+        clientProfile: s.client_profile ?? {},
+        updatedAt: s.updated_at,
+      };
+    }
+
+    // Provision default row if missing
+    await getOrCreateUser(userId);
+    return {
+      userId,
+      defaultExportFormat: "pdf",
+      compactLists: false,
+      testerProfile: {},
+      clientProfile: {},
+      updatedAt: new Date().toISOString(),
+    };
+  });
+}
+
+export async function putUserSettings(
+  userId: string,
+  settings: {
+    defaultExportFormat?: string;
+    compactLists?: boolean;
+    testerProfile?: Record<string, unknown>;
+    clientProfile?: Record<string, unknown>;
+  },
+): Promise<DbUserSettings> {
+  return withRls(userId, async (sql) => {
+    // Ensure user row exists
+    await getOrCreateUser(userId);
+
+    const existing = await getUserSettings(userId);
+    const updated = {
+      defaultExportFormat: settings.defaultExportFormat ?? existing.defaultExportFormat,
+      compactLists: settings.compactLists !== undefined ? settings.compactLists : existing.compactLists,
+      testerProfile: settings.testerProfile ? { ...existing.testerProfile, ...settings.testerProfile } : existing.testerProfile,
+      clientProfile: settings.clientProfile ? { ...existing.clientProfile, ...settings.clientProfile } : existing.clientProfile,
+    };
+
+    await sql(
+      `INSERT INTO user_settings (user_id, default_export_format, compact_lists, tester_profile, client_profile, updated_at)
+       VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, now())
+       ON CONFLICT (user_id) DO UPDATE SET
+         default_export_format = EXCLUDED.default_export_format,
+         compact_lists = EXCLUDED.compact_lists,
+         tester_profile = EXCLUDED.tester_profile,
+         client_profile = EXCLUDED.client_profile,
+         updated_at = now()`,
+      [
+        userId,
+        updated.defaultExportFormat,
+        updated.compactLists,
+        JSON.stringify(updated.testerProfile),
+        JSON.stringify(updated.clientProfile),
+      ],
+    );
+
+    return {
+      userId,
+      defaultExportFormat: updated.defaultExportFormat,
+      compactLists: updated.compactLists,
+      testerProfile: updated.testerProfile,
+      clientProfile: updated.clientProfile,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 3. Workspaces Management
+// ---------------------------------------------------------------------------
+
+export async function getWorkspaces(userId: string): Promise<DbWorkspace[]> {
+  return withRls(userId, async (sql) => {
+    await getOrCreateUser(userId);
+    const rows = (await sql(
+      `SELECT id, owner_id, name, slug, is_default, settings, created_at, updated_at
+       FROM workspaces WHERE owner_id = $1 ORDER BY is_default DESC, created_at ASC`,
+      [userId],
+    )) as Array<{
+      id: string;
+      owner_id: string;
+      name: string;
+      slug: string;
+      is_default: boolean;
+      settings: Record<string, unknown>;
+      created_at: string;
+      updated_at: string;
+    }>;
+
+    return rows.map((w) => ({
+      id: w.id,
+      ownerId: w.owner_id,
+      name: w.name,
+      slug: w.slug,
+      isDefault: Boolean(w.is_default),
+      settings: w.settings ?? {},
+      createdAt: w.created_at,
+      updatedAt: w.updated_at,
+    }));
+  });
+}
+
+export async function createWorkspace(
+  userId: string,
+  name: string,
+  slug?: string,
+  settings?: Record<string, unknown>,
+): Promise<DbWorkspace> {
+  return withRls(userId, async (sql) => {
+    await getOrCreateUser(userId);
+    const id = "ws_" + Math.random().toString(36).slice(2, 10);
+    const generatedSlug = (slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-")).replace(/^-|-$/g, "") || "ws";
+    
+    await sql(
+      `INSERT INTO workspaces (id, owner_id, name, slug, is_default, settings, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, false, $5::jsonb, now(), now())`,
+      [id, userId, name, generatedSlug, JSON.stringify(settings || {})],
+    );
+
+    return {
+      id,
+      ownerId: userId,
+      name,
+      slug: generatedSlug,
+      isDefault: false,
+      settings: settings || {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 4. Documents CRUD & Scoping
+// ---------------------------------------------------------------------------
+
+export async function listDocuments(ownerId: string, workspaceId?: string): Promise<DocumentSummary[]> {
+  return withRls(ownerId, async (sql) => {
+    await getOrCreateUser(ownerId);
+    let query = "SELECT data, workspace_id, category FROM documents WHERE owner_id = $1";
+    const params: unknown[] = [ownerId];
+
+    if (workspaceId) {
+      query += " AND workspace_id = $2";
+      params.push(workspaceId);
+    }
+    query += " ORDER BY updated_at DESC";
+
+    const rows = (await sql(query, params)) as Array<{
+      data: DocumentRecord;
+      workspace_id: string | null;
+      category: string | null;
+    }>;
+
+    return rows.map((r) => {
+      const s = toSummary(r.data);
+      if (r.workspace_id) s.workspaceId = r.workspace_id;
+      if (r.category) s.category = r.category;
+      return s;
+    });
   });
 }
 
 export async function getDocument(ownerId: string, id: string): Promise<DocumentRecord | null> {
   return withRls(ownerId, async (sql) => {
     const rows = (await sql(
-      "SELECT data FROM documents WHERE owner_id = $1 AND id = $2",
+      "SELECT data, workspace_id FROM documents WHERE owner_id = $1 AND id = $2",
       [ownerId, id],
-    )) as Array<{ data: DocumentRecord }>;
-    return rows[0]?.data ?? null;
+    )) as Array<{ data: DocumentRecord; workspace_id: string | null }>;
+    if (!rows[0]) return null;
+    const doc = rows[0].data;
+    if (rows[0].workspace_id) doc.workspaceId = rows[0].workspace_id;
+    return doc;
   });
 }
 
-export async function putDocument(ownerId: string, record: DocumentRecord): Promise<void> {
+export async function putDocument(ownerId: string, record: DocumentRecord, workspaceId?: string): Promise<void> {
   return withRls(ownerId, async (sql) => {
+    const { user, workspace } = await getOrCreateUser(ownerId);
+    const targetWorkspaceId = workspaceId || record.workspaceId || workspace.id;
+    const def = getDefinition(record.definitionId);
+    const category = def?.category ?? "offensive_security";
+
+    const docToSave = {
+      ...record,
+      ownerId,
+      workspaceId: targetWorkspaceId,
+    };
+
+    // 1. Upsert document in documents table
     await sql(
-      `INSERT INTO documents (id, owner_id, definition_id, title, status, data, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)
+      `INSERT INTO documents (id, workspace_id, owner_id, definition_id, category, title, status, source_data, data, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11)
        ON CONFLICT (id) DO UPDATE SET
+         workspace_id = EXCLUDED.workspace_id,
          owner_id = EXCLUDED.owner_id,
          definition_id = EXCLUDED.definition_id,
+         category = EXCLUDED.category,
          title = EXCLUDED.title,
          status = EXCLUDED.status,
+         source_data = EXCLUDED.source_data,
          data = EXCLUDED.data,
          updated_at = EXCLUDED.updated_at`,
       [
         record.id,
+        targetWorkspaceId,
         ownerId,
         record.definitionId,
+        category,
         record.title,
         record.status,
-        record,
+        JSON.stringify(record.source || {}),
+        JSON.stringify(docToSave),
         record.createdAt,
         record.updatedAt,
       ],
     );
+
+    // 2. Persist version snapshot in document_versions table
+    if (record.versions && record.versions.length > 0) {
+      for (const v of record.versions) {
+        const vId = "ver_" + record.id + "_" + v.versionNumber;
+        await sql(
+          `INSERT INTO document_versions (id, document_id, owner_id, version_number, title, data, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+           ON CONFLICT (document_id, version_number) DO UPDATE SET
+             title = EXCLUDED.title,
+             data = EXCLUDED.data`,
+          [
+            vId,
+            record.id,
+            ownerId,
+            v.versionNumber,
+            v.title || record.title,
+            JSON.stringify(v),
+            v.createdAt,
+          ],
+        );
+      }
+    }
   });
 }
 
@@ -88,3 +633,81 @@ export async function deleteDocument(ownerId: string, id: string): Promise<void>
   });
 }
 
+// ---------------------------------------------------------------------------
+// 5. Version History & Deliverable Exports
+// ---------------------------------------------------------------------------
+
+export async function listDocumentVersions(ownerId: string, documentId: string): Promise<DbDocumentVersion[]> {
+  return withRls(ownerId, async (sql) => {
+    const rows = (await sql(
+      `SELECT id, document_id, owner_id, version_number, title, data, created_at
+       FROM document_versions
+       WHERE document_id = $1 AND owner_id = $2
+       ORDER BY version_number DESC`,
+      [documentId, ownerId],
+    )) as Array<{
+      id: string;
+      document_id: string;
+      owner_id: string;
+      version_number: number;
+      title: string;
+      data: unknown;
+      created_at: string;
+    }>;
+
+    return rows.map((r) => ({
+      id: r.id,
+      documentId: r.document_id,
+      ownerId: r.owner_id,
+      versionNumber: Number(r.version_number),
+      title: r.title,
+      data: r.data,
+      createdAt: r.created_at,
+    }));
+  });
+}
+
+export async function logDocumentExport(ownerId: string, documentId: string, format: string): Promise<DbDocumentExport> {
+  return withRls(ownerId, async (sql) => {
+    const exportId = "exp_" + Math.random().toString(36).slice(2, 11);
+    await sql(
+      `INSERT INTO document_exports (id, document_id, owner_id, format, created_at)
+       VALUES ($1, $2, $3, $4, now())`,
+      [exportId, documentId, ownerId, format],
+    );
+
+    return {
+      id: exportId,
+      documentId,
+      ownerId,
+      format,
+      createdAt: new Date().toISOString(),
+    };
+  });
+}
+
+export async function listDocumentExports(ownerId: string, documentId: string): Promise<DbDocumentExport[]> {
+  return withRls(ownerId, async (sql) => {
+    const rows = (await sql(
+      `SELECT id, document_id, owner_id, format, created_at
+       FROM document_exports
+       WHERE document_id = $1 AND owner_id = $2
+       ORDER BY created_at DESC`,
+      [documentId, ownerId],
+    )) as Array<{
+      id: string;
+      document_id: string;
+      owner_id: string;
+      format: string;
+      created_at: string;
+    }>;
+
+    return rows.map((r) => ({
+      id: r.id,
+      documentId: r.document_id,
+      ownerId: r.owner_id,
+      format: r.format,
+      createdAt: r.created_at,
+    }));
+  });
+}

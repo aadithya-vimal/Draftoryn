@@ -17,6 +17,8 @@ import {
   PageIllustration,
 } from "../../src/ui/components";
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
+import { OnboardingModal } from "../../src/ui/OnboardingModal";
+import { fetchUserMe, type OnboardingData } from "../../src/data/onboarding";
 
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime();
@@ -47,6 +49,8 @@ export default function Home() {
   const isMobile = width < 768;
   const [docs, setDocs] = useState<DocumentSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [onboardingData, setOnboardingData] = useState<OnboardingData | undefined>(undefined);
 
   useEffect(() => {
     if (!user.isLoaded || !user.isSignedIn || !user.userId) {
@@ -65,6 +69,15 @@ export default function Home() {
       .finally(() => {
         if (active) setLoading(false);
       });
+
+    fetchUserMe(user).then((res) => {
+      if (!active || !res) return;
+      if (!res.user.onboardingCompleted) {
+        setOnboardingData(res.user.onboardingData);
+        setOnboardingOpen(true);
+      }
+    });
+
     return () => {
       active = false;
     };
@@ -191,6 +204,14 @@ export default function Home() {
           </View>
         )}
       </View>
+      {onboardingOpen && (
+        <OnboardingModal
+          open={onboardingOpen}
+          user={user}
+          initialData={onboardingData}
+          onComplete={() => setOnboardingOpen(false)}
+        />
+      )}
     </ScrollView>
   );
 }

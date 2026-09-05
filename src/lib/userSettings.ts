@@ -1,4 +1,5 @@
 import { getPlatformStorage } from "./storage";
+import { clientHttp, type AuthLike } from "../data/client";
 
 export type UserExportFormat = "pdf" | "docx" | "markdown" | "html" | "json" | "xml" | "yaml";
 
@@ -48,9 +49,42 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 
 const STORAGE_KEY = "draftoryn_user_settings_v1";
 
-export async function getUserSettings(): Promise<UserSettings> {
+export async function getUserSettings(user?: AuthLike | null): Promise<UserSettings> {
+  const storage = getPlatformStorage();
+
+  // 1. Authoritative fetch from Neon if user is authenticated
+  if (user && user.userId) {
+    try {
+      const remote = await clientHttp<{
+        defaultExportFormat?: string;
+        compactLists?: boolean;
+        testerProfile?: Record<string, unknown>;
+        clientProfile?: Record<string, unknown>;
+      }>("/api/settings", { method: "GET" }, user);
+
+      if (remote) {
+        const merged: UserSettings = {
+          defaultExportFormat: (remote.defaultExportFormat as UserExportFormat) || DEFAULT_USER_SETTINGS.defaultExportFormat,
+          compactLists: Boolean(remote.compactLists),
+          testerProfile: {
+            ...DEFAULT_USER_SETTINGS.testerProfile,
+            ...((remote.testerProfile as Partial<TesterProfile>) || {}),
+          },
+          clientProfile: {
+            ...DEFAULT_USER_SETTINGS.clientProfile,
+            ...((remote.clientProfile as Partial<ClientProfile>) || {}),
+          },
+        };
+        await storage.set(STORAGE_KEY, JSON.stringify(merged));
+        return merged;
+      }
+    } catch {
+      // Fall back to storage cache if offline
+    }
+  }
+
+  // 2. Local storage fallback
   try {
-    const storage = getPlatformStorage();
     const raw = await storage.get(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_USER_SETTINGS };
     const parsed = JSON.parse(raw);
@@ -73,28 +107,52 @@ export async function getUserSettings(): Promise<UserSettings> {
 
 export async function saveUserSettings(
   settings: Partial<UserSettings>,
+  user?: AuthLike | null,
 ): Promise<UserSettings> {
+  const storage = getPlatformStorage();
+  const current = await getUserSettings(user);
+  const updated: UserSettings = {
+    defaultExportFormat: settings.defaultExportFormat ?? current.defaultExportFormat,
+    compactLists: settings.compactLists !== undefined ? settings.compactLists : current.compactLists,
+    testerProfile: {
+      ...current.testerProfile,
+      ...(settings.testerProfile || {}),
+    },
+    clientProfile: {
+      ...current.clientProfile,
+      ...(settings.clientProfile || {}),
+    },
+  };
+
+  // Cache locally for instant UI responsiveness
   try {
-    const current = await getUserSettings();
-    const updated: UserSettings = {
-      defaultExportFormat: settings.defaultExportFormat ?? current.defaultExportFormat,
-      compactLists: settings.compactLists !== undefined ? settings.compactLists : current.compactLists,
-      testerProfile: {
-        ...current.testerProfile,
-        ...(settings.testerProfile || {}),
-      },
-      clientProfile: {
-        ...current.clientProfile,
-        ...(settings.clientProfile || {}),
-      },
-    };
-    const storage = getPlatformStorage();
     await storage.set(STORAGE_KEY, JSON.stringify(updated));
-    return updated;
-  } catch (err) {
-    console.error("Failed to save user settings:", err);
-    return { ...DEFAULT_USER_SETTINGS, ...settings } as UserSettings;
+  } catch {
+    // Local storage warning ignored
   }
+
+  // Persist authoritatively to Neon
+  if (user && user.userId) {
+    try {
+      await clientHttp(
+        "/api/settings",
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            defaultExportFormat: updated.defaultExportFormat,
+            compactLists: updated.compactLists,
+            testerProfile: updated.testerProfile,
+            clientProfile: updated.clientProfile,
+          }),
+        },
+        user,
+      );
+    } catch (err) {
+      console.error("[userSettings] Failed to persist to Neon:", err);
+    }
+  }
+
+  return updated;
 }
 
 export function autofillFromProfiles(

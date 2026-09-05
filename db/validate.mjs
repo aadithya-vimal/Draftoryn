@@ -48,15 +48,18 @@ async function main() {
     console.log(`[db:validate] applied ${f} (${stmts.length} statements)`);
   }
 
+  const expected = ["_migrations", "users", "workspaces", "user_settings", "documents", "document_versions", "document_exports"];
   const tables = (await sql`
     SELECT table_name FROM information_schema.tables
-    WHERE table_schema = 'public' AND table_name = 'documents'
+    WHERE table_schema = 'public'
   `);
   const names = tables.map((t) => t.table_name);
-  if (!names.includes("documents")) {
-    throw new Error(`Expected table documents in Neon database`);
+  for (const exp of expected) {
+    if (!names.includes(exp)) {
+      throw new Error(`Expected table '\${exp}' in Neon database`);
+    }
   }
-  console.log(`[db:validate] Connected to Neon. Verified table: ${names.join(", ")}`);
+  console.log(`[db:validate] Connected to Neon. Verified all tables: ${expected.join(", ")}`);
   console.log("[db:validate] OK");
 }
 

@@ -5,6 +5,7 @@ export interface DocumentRecord {
   id: string;
   definitionId: string;
   ownerId: string;
+  workspaceId?: string;
   title: string;
   status: DocumentStatus;
   createdAt: string;
@@ -18,6 +19,7 @@ export interface DocumentSummary {
   id: string;
   definitionId: string;
   category: string;
+  workspaceId?: string;
   title: string;
   status: DocumentStatus;
   createdAt: string;
