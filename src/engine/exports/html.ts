@@ -36,26 +36,26 @@ function sectionToHtml(s: Section): string {
 }
 
 const CSS = `
-:root { --ink:#1A1A1A; --muted:#6B6B6B; --line:#E8E4DF; --accent:#B8860B; --surface:#FAFAF8; }
-body { font-family: Georgia, 'Times New Roman', serif; color: var(--ink); max-width: 840px; margin: 48px auto; padding: 0 28px 80px; line-height: 1.65; }
-h1 { font-size: 28px; font-family: Georgia, serif; border-bottom: 2.5px solid var(--accent); padding-bottom: 12px; margin-bottom: 16px; }
-h2 { font-size: 20px; margin-top: 36px; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid var(--line); color: var(--ink); font-family: Georgia, serif; }
+:root { --ink:#090A0C; --text:#101216; --muted:#555A64; --line:#E2E4E8; --accent:#2F6BFF; --surface:#F5F3EE; --mono:'IBM Plex Mono', Menlo, Consolas, monospace; }
+body { font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--text); max-width: 860px; margin: 48px auto; padding: 0 32px 80px; line-height: 1.6; background: #FFFFFF; }
+h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 16px; color: var(--ink); }
+h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-top: 36px; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 1px solid var(--line); color: var(--ink); }
 table { border-collapse: collapse; width: 100%; margin: 16px 0 20px; }
-th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; font-size: 13.5px; }
-th { background: #F5F3F0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
-p { font-size: 14.5px; margin: 8px 0 12px; }
+th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; font-size: 13px; }
+th { background: #F8F9FA; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+p { font-size: 14px; margin: 8px 0 12px; color: #22252A; }
 ul { margin: 8px 0 16px 24px; padding: 0; }
-li { margin-bottom: 6px; font-size: 14.5px; }
+li { margin-bottom: 6px; font-size: 14px; color: #22252A; }
 hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
-.callout { border-left: 4px solid var(--accent); background: #FBF7EE; padding: 12px 16px; margin: 16px 0; border-radius: 6px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 13.5px; line-height: 1.5; }
-.callout-missing { border-color: #9B2C2C; background: #FBF1F1; }
-.callout-warning { border-color: #A9791B; background: #FBF6EC; }
-.callout-assumption { border-color: #7c3aed; background: #F5F3FF; }
+.callout { border-left: 3px solid var(--accent); background: #F4F7FF; padding: 12px 16px; margin: 16px 0; border-radius: 4px; font-size: 13px; line-height: 1.5; }
+.callout-missing { border-color: #D94A4A; background: #FFF5F5; }
+.callout-warning { border-color: #D99A24; background: #FFFBF0; }
+.callout-assumption { border-color: #2F6BFF; background: #F4F7FF; }
 .callout-info { border-color: var(--accent); }
-.doc-section { margin-bottom: 24px; }
-.meta { color: var(--muted); font-size: 13px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin-bottom: 20px; }
-.watermark { position: fixed; right: 16px; bottom: 12px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--accent); opacity: 0.5; text-transform: uppercase; }
-.draftoryn-footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+.doc-section { margin-bottom: 28px; }
+.meta { color: var(--muted); font-size: 12px; font-family: var(--mono); margin-bottom: 24px; letter-spacing: 0.02em; }
+.watermark { position: fixed; right: 20px; bottom: 16px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--muted); opacity: 0.6; text-transform: uppercase; }
+.draftoryn-footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; font-family: var(--mono); }
 `;
 
 export function toHtml(doc: GeneratedDocument): string {

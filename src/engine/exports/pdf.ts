@@ -1,26 +1,27 @@
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { ContentBlock, GeneratedDocument, Section } from "../types";
 
-const INK = rgb(0.102, 0.102, 0.102);
-const MUTED = rgb(0.42, 0.42, 0.42);
-const LINE = rgb(0.91, 0.894, 0.874);
-const ACCENT = rgb(0.722, 0.525, 0.043);
-const MISSING = rgb(0.61, 0.17, 0.17);
-const WARN = rgb(0.66, 0.47, 0.1);
-const ASSUMPTION = rgb(0.49, 0.23, 0.92);
-const CALLOUT_BG = rgb(0.984, 0.969, 0.933);
-const HEADER_BG = rgb(0.961, 0.953, 0.941);
-const WATERMARK = rgb(0.722, 0.525, 0.043);
+const INK = rgb(0.06, 0.07, 0.08);
+const MUTED = rgb(0.45, 0.47, 0.50);
+const LINE = rgb(0.88, 0.89, 0.91);
+const ACCENT = rgb(0.184, 0.420, 1.0); // #2F6BFF Draftoryn Technical Blue
+const MISSING = rgb(0.85, 0.29, 0.29); // #D94A4A Danger
+const WARN = rgb(0.85, 0.60, 0.14); // #D99A24 Warning
+const ASSUMPTION = rgb(0.184, 0.420, 1.0); // Technical note
+const CALLOUT_BG = rgb(0.97, 0.98, 1.0);
+const HEADER_BG = rgb(0.95, 0.96, 0.97);
+const WATERMARK = rgb(0.184, 0.420, 1.0);
 
 const PAGE = { w: 595.28, h: 841.89 };
 const MARGIN = 56;
 
 export async function toPdf(doc: GeneratedDocument): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.TimesRoman);
-  const bold = await pdf.embedFont(StandardFonts.TimesRomanBold);
-  const sansFont = await pdf.embedFont(StandardFonts.Helvetica);
-  const sansBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const sansFont = font;
+  const sansBold = bold;
+  const monoFont = await pdf.embedFont(StandardFonts.Courier);
 
   let page: PDFPage = pdf.addPage([PAGE.w, PAGE.h]);
   let y = PAGE.h - MARGIN;
@@ -75,7 +76,7 @@ export async function toPdf(doc: GeneratedDocument): Promise<Uint8Array> {
   if (meta) text(meta, { size: 8.5, font: sansFont, color: MUTED, gap: 8 });
 
   // Header separator line
-  y -= 2;
+  y -= 6;
   page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE.w - MARGIN, y }, thickness: 1.5, color: ACCENT });
   y -= 16;
 
@@ -152,9 +153,9 @@ export async function toPdf(doc: GeneratedDocument): Promise<Uint8Array> {
     ensure(40);
     y -= 12;
     text(s.title, { size: 13.5, font: bold, gap: 4 });
-    y -= 2;
+    y -= 8;
     page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE.w - MARGIN, y }, thickness: 0.75, color: LINE });
-    y -= 12;
+    y -= 14;
     for (const b of s.blocks) drawBlock(b);
     y -= 10;
   };

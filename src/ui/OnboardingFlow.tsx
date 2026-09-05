@@ -15,140 +15,135 @@ import { saveOnboardingProgress, type OnboardingData } from "../data/onboarding"
 import type { AppUser } from "../auth/clerk";
 import { useRouter } from "expo-router";
 
-export type PersonaId = "cybersecurity_professional" | "client" | "technical_professional";
+export type PersonaId = "client" | "cybersecurity_professional" | "technical_professional";
 
-interface DisciplineOption {
+interface SupportedDoc {
   id: string;
-  label: string;
+  name: string;
   desc: string;
-  starterDoc: string;
-  starterLabel: string;
+  category: string;
+  previewSnippet: string;
 }
 
 const PERSONAS: Array<{
   id: PersonaId;
   label: string;
   roleTitle: string;
-  eyebrow: string;
   description: string;
-  badge: string;
-  disciplines: DisciplineOption[];
 }> = [
   {
-    id: "cybersecurity_professional",
-    label: "I'm a Cybersecurity Professional",
-    roleTitle: "Cybersecurity Lead / Tester",
-    eyebrow: "PENTESTERS // DFIR // GRC // ARCHITECTS",
-    description: "Conducting offensive engagements, incident response, threat actor tracking, system architectures, and enterprise cyber risk assessments.",
-    badge: "6 DISCIPLINES // 30 SPECIFICATIONS",
-    disciplines: [
-      {
-        id: "offensive_security",
-        label: "Offensive Security & Pentesting",
-        desc: "Rules of Engagement, Penetration Testing Agreements, Test Plans, and Red Team Assessment Reports.",
-        starterDoc: "pentest_agreement",
-        starterLabel: "Penetration Testing Agreement / Authorization",
-      },
-      {
-        id: "incident_response_dfir",
-        label: "Incident Response & DFIR",
-        desc: "Incident Response Plans, containment playbooks, forensic investigations, and malware analysis.",
-        starterDoc: "incident_plan",
-        starterLabel: "Incident Response Plan",
-      },
-      {
-        id: "threat_intelligence",
-        label: "Threat Intelligence & Hunting",
-        desc: "Threat Actor Profiles, tactical campaign briefs, threat assessment reports, and IOC dossiers.",
-        starterDoc: "threat_intel_report",
-        starterLabel: "Threat Intelligence Report",
-      },
-      {
-        id: "security_architecture_engineering",
-        label: "Security Architecture & Engineering",
-        desc: "Threat modeling (STRIDE), security architecture blueprints, cloud, and application security assessments.",
-        starterDoc: "threat_model",
-        starterLabel: "Threat Model",
-      },
-      {
-        id: "risk_governance",
-        label: "Risk, Governance & Compliance",
-        desc: "Cybersecurity risk assessments, enterprise risk registers, vendor reviews, and risk acceptance waivers.",
-        starterDoc: "risk_assessment",
-        starterLabel: "Cybersecurity Risk Assessment",
-      },
-      {
-        id: "resilience",
-        label: "Resilience & Business Continuity",
-        desc: "Business Impact Analyses (BIA), disaster recovery plans, and cyber incident recovery playbooks.",
-        starterDoc: "bia",
-        starterLabel: "Business Impact Analysis (BIA)",
-      },
-    ],
+    id: "client",
+    label: "I'M A CLIENT",
+    roleTitle: "Commissioning Client",
+    description: "Commissioning independent assessments, defining rules of engagement, and reviewing professional security deliverables.",
   },
   {
-    id: "client",
-    label: "I'm a Client / Commissioning Organization",
-    roleTitle: "Security Buyer / Client Representative",
-    eyebrow: "ORGANIZATIONS // ASSESSMENTS // GOVERNANCE",
-    description: "Commissioning independent security assessments, defining scope & authorization, reviewing deliverable reports, and managing compliance.",
-    badge: "AUTHORIZATIONS // DELIVERABLES // AUDITS",
-    disciplines: [
-      {
-        id: "client_authorizations",
-        label: "Commissioning & Authorizations",
-        desc: "Legally binding Penetration Testing Agreements and Rules of Engagement to authorize security assessments.",
-        starterDoc: "pentest_agreement",
-        starterLabel: "Penetration Testing Agreement / Authorization",
-      },
-      {
-        id: "client_deliverables",
-        label: "Reviewing Assessment Deliverables",
-        desc: "Standardized structure for reviewing Red Team, Penetration Test, and Vulnerability Assessment deliverables.",
-        starterDoc: "pentest_report",
-        starterLabel: "Penetration Testing Report",
-      },
-      {
-        id: "client_governance",
-        label: "Governance & Third-Party Oversight",
-        desc: "Third-party vendor risk assessments, compliance verification, and enterprise risk acceptance tracking.",
-        starterDoc: "third_party_assessment",
-        starterLabel: "Third-Party Security Assessment",
-      },
-    ],
+    id: "cybersecurity_professional",
+    label: "I'M A CYBERSECURITY PROFESSIONAL",
+    roleTitle: "Cybersecurity Lead / Assessor",
+    description: "Conducting offensive penetration tests, incident response, threat intelligence briefs, and compliance audits.",
   },
   {
     id: "technical_professional",
-    label: "I'm an Engineer / Technical Architect",
-    roleTitle: "Systems / Security Engineer",
-    eyebrow: "SYSTEM DESIGN // SPECIFICATIONS // CLOUD",
-    description: "Designing resilient systems, conducting threat modeling, defining cloud security controls, and preparing technical specifications.",
-    badge: "SPECIFICATIONS // ARCHITECTURE // THREAT MODELS",
-    disciplines: [
-      {
-        id: "eng_threat_modeling",
-        label: "Threat Modeling & STRIDE Analysis",
-        desc: "System decomposition, threat enumeration, attack surface analysis, and countermeasure specifications.",
-        starterDoc: "threat_model",
-        starterLabel: "Threat Model",
-      },
-      {
-        id: "eng_architecture",
-        label: "Security Architecture Blueprint",
-        desc: "End-to-end security architecture specifications, network boundary definitions, and IAM models.",
-        starterDoc: "security_architecture",
-        starterLabel: "Security Architecture Document",
-      },
-      {
-        id: "eng_cloud",
-        label: "Cloud & Application Security",
-        desc: "Cloud workload posture specifications and application security review documentation.",
-        starterDoc: "cloud_assessment",
-        starterLabel: "Cloud Security Assessment",
-      },
-    ],
+    label: "I'M A TECHNICAL PROFESSIONAL",
+    roleTitle: "Security / Systems Architect",
+    description: "Engineering secure architectures, authoring system threat models, cloud specifications, and design reviews.",
   },
 ];
+
+const CATEGORIES_LIST = [
+  { id: "offensive_security", label: "OFFENSIVE SECURITY", desc: "Rules of Engagement, Penetration Testing Agreements, Test Plans, and Assessment Reports." },
+  { id: "incident_response_dfir", label: "INCIDENT RESPONSE / DFIR", desc: "Incident Response Plans, containment playbooks, forensic evidence tracking, and malware analyses." },
+  { id: "threat_intelligence", label: "THREAT INTELLIGENCE", desc: "Threat Actor Profiles, threat assessments, campaign tracking dossiers, and tactical intelligence." },
+  { id: "security_architecture_engineering", label: "SECURITY ARCHITECTURE / ENGINEERING", desc: "System threat models, architecture blueprints, cloud security specifications, and design reviews." },
+  { id: "risk_governance", label: "RISK / GOVERNANCE", desc: "Cybersecurity risk assessments, enterprise risk registers, vendor security evaluations, and risk waivers." },
+  { id: "resilience", label: "RESILIENCE", desc: "Business impact analyses, disaster recovery plans, and cyber operational recovery playbooks." },
+];
+
+const STARTER_DOCS: Record<string, SupportedDoc[]> = {
+  offensive_security: [
+    {
+      id: "pentest_agreement",
+      name: "Penetration Testing Agreement / Authorization",
+      category: "Offensive Security",
+      desc: "Legally binding testing authorization granting Safe Harbor permissions, target CIDR scopes, and boundary rules.",
+      previewSnippet: "1.0 Formal Authorization under CFAA • 2.0 Permitted Target Scope • 3.0 Safe Harbor",
+    },
+    {
+      id: "roe",
+      name: "Rules of Engagement (RoE)",
+      category: "Offensive Security",
+      desc: "Operational guidelines specifying test windows, communication protocols, emergency escalation, and red-lines.",
+      previewSnippet: "1.0 Logistics & Schedule • 2.0 Escalation Contacts • 3.0 Sensitive Asset Handling",
+    },
+    {
+      id: "pentest_report",
+      name: "Penetration Testing Report",
+      category: "Offensive Security",
+      desc: "Publication-grade technical assessment report with executive summary, CVSS vulnerability findings, and remediation steps.",
+      previewSnippet: "1.0 Executive Summary • 2.0 Assessment Methodology • 3.0 Vulnerability Findings",
+    },
+  ],
+  incident_response_dfir: [
+    {
+      id: "incident_plan",
+      name: "Incident Response Plan",
+      category: "Incident Response / DFIR",
+      desc: "Enterprise incident management framework with severity classifications, team rosters, and containment procedures.",
+      previewSnippet: "1.0 Classification Matrix • 2.0 Triage Protocols • 3.0 Containment & Sign-Off",
+    },
+    {
+      id: "incident_playbook",
+      name: "Incident Response Playbook",
+      category: "Incident Response / DFIR",
+      desc: "Step-by-step procedural runbook for isolating compromised endpoints, preserving memory, and eradicating threats.",
+      previewSnippet: "1.0 Initial Trigger • 2.0 Technical Runbook • 3.0 Evidence Preservation",
+    },
+  ],
+  threat_intelligence: [
+    {
+      id: "threat_intel_report",
+      name: "Threat Intelligence Report",
+      category: "Threat Intelligence",
+      desc: "Tactical intelligence brief detailing adversary TTPs, MITRE ATT&CK mappings, IOC indicators, and risk implications.",
+      previewSnippet: "1.0 Threat Summary • 2.0 MITRE ATT&CK Matrix • 3.0 Indicators of Compromise",
+    },
+  ],
+  security_architecture_engineering: [
+    {
+      id: "threat_model",
+      name: "Threat Model",
+      category: "Security Architecture",
+      desc: "STRIDE-based system decomposition identifying trust boundaries, attack vectors, data flows, and countermeasures.",
+      previewSnippet: "1.0 Architecture Breakdown • 2.0 STRIDE Matrix • 3.0 Mitigation Specifications",
+    },
+    {
+      id: "security_architecture",
+      name: "Security Architecture Document",
+      category: "Security Architecture",
+      desc: "Comprehensive engineering blueprint specifying network enclaves, cryptographic controls, IAM models, and boundaries.",
+      previewSnippet: "1.0 Boundary Definitions • 2.0 Cryptographic Specs • 3.0 Access Control Model",
+    },
+  ],
+  risk_governance: [
+    {
+      id: "risk_assessment",
+      name: "Cybersecurity Risk Assessment",
+      category: "Risk / Governance",
+      desc: "Quantitative risk evaluation analyzing threat likelihood, business impact scores, and treatment recommendations.",
+      previewSnippet: "1.0 Scope & Assets • 2.0 Threat Likelihood Scoring • 3.0 Treatment Plan",
+    },
+  ],
+  resilience: [
+    {
+      id: "bia",
+      name: "Business Impact Analysis (BIA)",
+      category: "Resilience",
+      desc: "Mission-critical system evaluation defining RTO and RPO metrics, financial downtime impacts, and operational dependencies.",
+      previewSnippet: "1.0 Critical Systems • 2.0 RTO/RPO Metrics • 3.0 Outage Impact Analysis",
+    },
+  ],
+};
 
 export function OnboardingFlow({
   open,
@@ -165,64 +160,54 @@ export function OnboardingFlow({
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
-  // Step state (1 to 5)
-  const [step, setStep] = useState(1);
-  const [personaId, setPersonaId] = useState<PersonaId>(
+  // 6-step exact sequence:
+  // 1: WELCOME / 01
+  // 2: IDENTITY / PERSONA
+  // 3: DISCIPLINE / WHAT DO YOU WORK WITH
+  // 4: FIRST DOCUMENT SELECTION
+  // 5: WORKSPACE SETUP
+  // 6: WORKSPACE READY
+  const [step, setStep] = useState<number>(1);
+  const [selectedPersona, setSelectedPersona] = useState<PersonaId>(
     (initialData?.persona as PersonaId) || "cybersecurity_professional"
   );
-  const [selectedDisciplineId, setSelectedDisciplineId] = useState<string>("offensive_security");
-  const [selectedStarterDoc, setSelectedStarterDoc] = useState<string>("pentest_agreement");
-  const [workspaceName, setWorkspaceName] = useState(
+  const [selectedCategory, setSelectedCategory] = useState<string>("offensive_security");
+  const [selectedDocId, setSelectedDocId] = useState<string>("pentest_agreement");
+  const [workspaceName, setWorkspaceName] = useState<string>(
     initialData?.workspaceName || (user.name ? `${user.name.split(" ")[0]}'s Workspace` : "Primary Security Workspace")
   );
-  const [organizationName, setOrganizationName] = useState(
+  const [organizationName, setOrganizationName] = useState<string>(
     initialData?.organizationName || ""
   );
-  const [operatorName, setOperatorName] = useState(
-    initialData?.representativeName || user.name || ""
+  const [professionalRole, setProfessionalRole] = useState<string>(
+    initialData?.role || "Cybersecurity Lead"
   );
   const [defaultExportFormat, setDefaultExportFormat] = useState<string>("pdf");
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<boolean>(false);
 
-  const currentPersona = PERSONAS.find((p) => p.id === personaId) || PERSONAS[0]!;
-  const currentDiscipline =
-    currentPersona.disciplines.find((d) => d.id === selectedDisciplineId) || currentPersona.disciplines[0]!;
-
-  const handlePersonaSelect = (id: PersonaId) => {
-    setPersonaId(id);
-    const p = PERSONAS.find((item) => item.id === id) || PERSONAS[0]!;
-    if (p.disciplines[0]) {
-      setSelectedDisciplineId(p.disciplines[0].id);
-      setSelectedStarterDoc(p.disciplines[0].starterDoc);
-    }
-  };
-
-  const handleDisciplineSelect = (disc: DisciplineOption) => {
-    setSelectedDisciplineId(disc.id);
-    setSelectedStarterDoc(disc.starterDoc);
-  };
+  const availableDocs = STARTER_DOCS[selectedCategory] || STARTER_DOCS["offensive_security"]!;
+  const currentDoc = availableDocs.find((d) => d.id === selectedDocId) || availableDocs[0]!;
 
   const handleFinish = async (navigateToDoc: boolean = false) => {
     setSaving(true);
     const finalData: OnboardingData = {
-      persona: personaId,
-      role: currentPersona.roleTitle,
-      focusAreas: [selectedDisciplineId],
-      firstDocumentDef: selectedStarterDoc,
+      persona: selectedPersona,
+      role: professionalRole,
+      documentFocus: selectedCategory,
+      focusAreas: [selectedCategory],
+      firstDocumentDef: selectedDocId,
       organizationName,
-      representativeName: operatorName,
       workspaceName,
       defaultExportFormat,
     };
 
     await saveOnboardingProgress(user, {
       completed: true,
-      step: 5,
-      role: currentPersona.roleTitle,
-      persona: personaId,
+      step: 6,
+      role: professionalRole,
+      persona: selectedPersona,
       workspaceName,
       organizationName,
-      representativeName: operatorName,
       defaultExportFormat,
       onboardingData: finalData,
     });
@@ -230,8 +215,10 @@ export function OnboardingFlow({
     setSaving(false);
     onComplete();
 
-    if (navigateToDoc && selectedStarterDoc) {
-      router.push(`/document/new?def=${selectedStarterDoc}`);
+    if (navigateToDoc && selectedDocId) {
+      router.push(`/document/new?def=${selectedDocId}`);
+    } else {
+      router.push("/(app)/home");
     }
   };
 
@@ -240,113 +227,96 @@ export function OnboardingFlow({
   return (
     <Modal visible={open} animationType="fade" transparent={false}>
       <View style={styles.screen}>
+        
         {/* Top Header Bar */}
         <View style={styles.topBar}>
           <View style={styles.topBarLeft}>
-            <View style={styles.statusIndicator} />
-            <Text style={styles.systemTag}>SYSTEM // WORKSPACE INITIALIZATION</Text>
+            <Text style={styles.topWordmark}>Draftoryn</Text>
+            <View style={styles.topDot} />
+            <Text style={styles.topSystemTag}>WORKSPACE INITIALIZATION</Text>
           </View>
-          <View style={styles.topBarRight}>
-            <Text style={styles.stepCounter}>STEP {String(step).padStart(2, "0")} / 05</Text>
-          </View>
+          <Text style={styles.stepProgress}>STEP {String(step).padStart(2, "0")} / 06</Text>
         </View>
 
-        {/* Step Progress Hairline */}
+        {/* Hairline Progress Indicator */}
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${(step / 5) * 100}%` }]} />
+          <View style={[styles.progressFill, { width: `${(step / 6) * 100}%` }]} />
         </View>
 
-        {/* Main Content Area */}
+        {/* Content Body */}
         <ScrollView
           style={styles.scrollArea}
-          contentContainerStyle={[styles.scrollContent, isMobile ? styles.scrollContentMobile : styles.scrollContentDesktop]}
+          contentContainerStyle={[styles.scrollContent, isMobile ? styles.scrollMobile : styles.scrollDesktop]}
         >
           {/* ========================================================================= */}
-          {/* STEP 1: WELCOME & SYSTEM SPECIFICATION                                   */}
+          {/* STEP 01: WELCOME / 01                                                     */}
           {/* ========================================================================= */}
           {step === 1 && (
-            <View style={styles.stepContainer}>
-              <Text style={styles.eyebrow}>CONFIGURATION // INITIALIZATION</Text>
-              <Heading level={1} style={styles.heroHeadline}>
-                Initialize your professional document studio.
+            <View style={styles.stepBlock}>
+              <Text style={styles.eyebrow}>WELCOME / 01</Text>
+              <Heading level={1} style={styles.stepHeadline}>
+                Let's set up your workspace.
               </Heading>
-              <Text style={styles.leadParagraph}>
-                Draftoryn generates structured, authoritative technical and security specifications
-                with typographic discipline, verified schemas, and zero placeholder fluff.
+              <Text style={styles.supportingText}>
+                Draftoryn is professional documentation software for technical teams. Configure your
+                operational parameters, persistent workspace, and initial document definitions.
               </Text>
 
-              {/* Specimen Terminal Card */}
-              <View style={styles.terminalCard}>
-                <View style={styles.terminalHeader}>
-                  <View style={styles.terminalDot} />
-                  <Text style={styles.terminalTitle}>NEON RELATIONAL BACKEND // ACTIVE</Text>
+              <View style={styles.welcomeSpecimen}>
+                <View style={styles.specimenHeader}>
+                  <Text style={styles.specimenTitle}>VERIFIED ENVIRONMENT</Text>
+                  <Text style={styles.specimenStatus}>ONLINE</Text>
                 </View>
-                <View style={styles.terminalBody}>
-                  <View style={styles.specimenRow}>
-                    <Text style={styles.specimenKey}>AUTHENTICATION</Text>
-                    <Text style={styles.specimenVal}>Clerk Verified ({user.email || user.userId})</Text>
-                  </View>
-                  <View style={styles.specimenRow}>
-                    <Text style={styles.specimenKey}>PERSISTENCE</Text>
-                    <Text style={styles.specimenVal}>Neon PostgreSQL [Source of Truth]</Text>
-                  </View>
-                  <View style={styles.specimenRow}>
-                    <Text style={styles.specimenKey}>DOCUMENT CATALOG</Text>
-                    <Text style={styles.specimenVal}>30 Real Technical & Security Specifications</Text>
-                  </View>
-                  <View style={styles.specimenRow}>
-                    <Text style={styles.specimenKey}>DESIGN DISCIPLINE</Text>
-                    <Text style={styles.specimenVal}>Technical Editorial • Hairline Grids • Non-AI</Text>
-                  </View>
+                <View style={styles.specimenDivider} />
+                <View style={styles.specimenRow}>
+                  <Text style={styles.specimenKey}>AUTHENTICATION</Text>
+                  <Text style={styles.specimenVal}>Clerk Secure Session ({user.email || user.userId})</Text>
+                </View>
+                <View style={styles.specimenRow}>
+                  <Text style={styles.specimenKey}>DATABASE</Text>
+                  <Text style={styles.specimenVal}>Neon PostgreSQL [Authoritative Source of Truth]</Text>
+                </View>
+                <View style={styles.specimenRow}>
+                  <Text style={styles.specimenKey}>CATALOG</Text>
+                  <Text style={styles.specimenVal}>30 Canonical Technical Specifications</Text>
                 </View>
               </View>
 
               <View style={styles.actionRow}>
-                <Button
-                  label="Begin Workspace Setup →"
-                  onPress={() => setStep(2)}
-                  style={styles.primaryActionBtn}
-                />
+                <Button label="Continue →" onPress={() => setStep(2)} style={styles.primaryBtn} />
               </View>
             </View>
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 2: PERSONA / INTENT IDENTIFICATION                                   */}
+          {/* STEP 02: IDENTITY / INTENT (HOW WILL YOU USE DRAFTORYN?)                  */}
           {/* ========================================================================= */}
           {step === 2 && (
-            <View style={styles.stepContainer}>
-              <Text style={styles.eyebrow}>IDENTITY // OPERATIONAL CONTEXT</Text>
+            <View style={styles.stepBlock}>
+              <Text style={styles.eyebrow}>IDENTITY / 02</Text>
               <Heading level={1} style={styles.stepHeadline}>
                 How will you use Draftoryn?
               </Heading>
-              <Text style={styles.stepSubtitle}>
-                Select your primary role. This configures your document prioritization, header autofill
-                dictionaries, and default technical scopes.
+              <Text style={styles.supportingText}>
+                Select your primary operational context. This personalizes your catalog priority, document defaults, and profile schemas.
               </Text>
 
-              <View style={styles.cardGrid}>
+              <View style={styles.selectionGrid}>
                 {PERSONAS.map((p) => {
-                  const active = p.id === personaId;
+                  const active = p.id === selectedPersona;
                   return (
                     <Pressable
                       key={p.id}
-                      style={[styles.personaCard, active && styles.personaCardActive]}
-                      onPress={() => handlePersonaSelect(p.id)}
+                      style={[styles.selectionCard, active && styles.selectionCardActive]}
+                      onPress={() => setSelectedPersona(p.id)}
                     >
-                      <View style={styles.personaTopRow}>
-                        <Text style={[styles.personaEyebrow, active && styles.personaEyebrowActive]}>
-                          {p.eyebrow}
-                        </Text>
-                        <View style={[styles.radioCircle, active && styles.radioCircleActive]}>
-                          {active && <View style={styles.radioInner} />}
+                      <View style={styles.selectionCardTop}>
+                        <Text style={[styles.selectionCardTitle, active && { color: "#2F6BFF" }]}>{p.label}</Text>
+                        <View style={[styles.selectionRadio, active && styles.selectionRadioActive]}>
+                          {active && <View style={styles.selectionRadioInner} />}
                         </View>
                       </View>
-                      <Text style={styles.personaTitle}>{p.label}</Text>
-                      <Text style={styles.personaDesc}>{p.description}</Text>
-                      <View style={styles.personaBadge}>
-                        <Text style={styles.personaBadgeText}>{p.badge}</Text>
-                      </View>
+                      <Text style={styles.selectionCardDesc}>{p.description}</Text>
                     </Pressable>
                   );
                 })}
@@ -354,50 +324,46 @@ export function OnboardingFlow({
 
               <View style={styles.navRow}>
                 <Button label="← Back" variant="secondary" onPress={() => setStep(1)} />
-                <Button
-                  label="Continue to Discipline Selection →"
-                  onPress={() => setStep(3)}
-                  style={styles.primaryActionBtn}
-                />
+                <Button label="Continue →" onPress={() => setStep(3)} style={styles.primaryBtn} />
               </View>
             </View>
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 3: DISCIPLINE / PRIMARY FOCUS                                        */}
+          {/* STEP 03: DISCIPLINE (WHAT DO YOU WORK WITH?)                              */}
           {/* ========================================================================= */}
           {step === 3 && (
-            <View style={styles.stepContainer}>
-              <Text style={styles.eyebrow}>DISCIPLINE // FOCUS AREA</Text>
+            <View style={styles.stepBlock}>
+              <Text style={styles.eyebrow}>DISCIPLINE / 03</Text>
               <Heading level={1} style={styles.stepHeadline}>
-                What best describes your primary work?
+                What do you work with?
               </Heading>
-              <Text style={styles.stepSubtitle}>
-                Choose your primary focus area within {currentPersona.label.toLowerCase()}.
+              <Text style={styles.supportingText}>
+                Select your primary discipline area from our canonical Draftoryn categories.
               </Text>
 
-              <View style={styles.cardGrid}>
-                {currentPersona.disciplines.map((d) => {
-                  const active = d.id === selectedDisciplineId;
+              <View style={styles.selectionGrid}>
+                {CATEGORIES_LIST.map((cat) => {
+                  const active = cat.id === selectedCategory;
                   return (
                     <Pressable
-                      key={d.id}
-                      style={[styles.disciplineCard, active && styles.disciplineCardActive]}
-                      onPress={() => handleDisciplineSelect(d)}
+                      key={cat.id}
+                      style={[styles.selectionCard, active && styles.selectionCardActive]}
+                      onPress={() => {
+                        setSelectedCategory(cat.id);
+                        const docs = STARTER_DOCS[cat.id];
+                        if (docs && docs[0]) {
+                          setSelectedDocId(docs[0].id);
+                        }
+                      }}
                     >
-                      <View style={styles.disciplineTop}>
-                        <Text style={[styles.disciplineTitle, active && styles.disciplineTitleActive]}>
-                          {d.label}
-                        </Text>
-                        <View style={[styles.radioCircle, active && styles.radioCircleActive]}>
-                          {active && <View style={styles.radioInner} />}
+                      <View style={styles.selectionCardTop}>
+                        <Text style={[styles.selectionCardTitle, active && { color: "#2F6BFF" }]}>{cat.label}</Text>
+                        <View style={[styles.selectionRadio, active && styles.selectionRadioActive]}>
+                          {active && <View style={styles.selectionRadioInner} />}
                         </View>
                       </View>
-                      <Text style={styles.disciplineDesc}>{d.desc}</Text>
-                      <View style={styles.starterPreviewTag}>
-                        <Text style={styles.starterPreviewLabel}>DEFAULT SPEC:</Text>
-                        <Text style={styles.starterPreviewValue} numberOfLines={1}>{d.starterLabel}</Text>
-                      </View>
+                      <Text style={styles.selectionCardDesc}>{cat.desc}</Text>
                     </Pressable>
                   );
                 })}
@@ -405,27 +371,67 @@ export function OnboardingFlow({
 
               <View style={styles.navRow}>
                 <Button label="← Back" variant="secondary" onPress={() => setStep(2)} />
-                <Button
-                  label="Configure Workspace Details →"
-                  onPress={() => setStep(4)}
-                  style={styles.primaryActionBtn}
-                />
+                <Button label="Continue →" onPress={() => setStep(4)} style={styles.primaryBtn} />
               </View>
             </View>
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 4: WORKSPACE & PROFILE CONFIGURATION                                */}
+          {/* STEP 04: FIRST DOCUMENT SELECTION                                         */}
           {/* ========================================================================= */}
           {step === 4 && (
-            <View style={styles.stepContainer}>
-              <Text style={styles.eyebrow}>SYSTEM CONFIGURATION // DEFAULTS</Text>
+            <View style={styles.stepBlock}>
+              <Text style={styles.eyebrow}>STARTER DOCUMENT / 04</Text>
               <Heading level={1} style={styles.stepHeadline}>
-                Set up your workspace and profile defaults.
+                What do you want to create first?
               </Heading>
-              <Text style={styles.stepSubtitle}>
-                These settings persist to Neon PostgreSQL and automatically populate your document
-                header blocks and metadata sections.
+              <Text style={styles.supportingText}>
+                Choose an initial supported document definition to instantiate in your workspace.
+              </Text>
+
+              <View style={styles.selectionGrid}>
+                {availableDocs.map((doc) => {
+                  const active = doc.id === selectedDocId;
+                  return (
+                    <Pressable
+                      key={doc.id}
+                      style={[styles.selectionCard, active && styles.selectionCardActive]}
+                      onPress={() => setSelectedDocId(doc.id)}
+                    >
+                      <View style={styles.selectionCardTop}>
+                        <Text style={[styles.selectionCardTitle, active && { color: "#2F6BFF" }]}>{doc.name}</Text>
+                        <View style={[styles.selectionRadio, active && styles.selectionRadioActive]}>
+                          {active && <View style={styles.selectionRadioInner} />}
+                        </View>
+                      </View>
+                      <Text style={styles.selectionCardDesc}>{doc.desc}</Text>
+                      <View style={styles.docPreviewBar}>
+                        <Text style={styles.docPreviewKey}>OUTLINE PREVIEW:</Text>
+                        <Text style={styles.docPreviewVal}>{doc.previewSnippet}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={styles.navRow}>
+                <Button label="← Back" variant="secondary" onPress={() => setStep(3)} />
+                <Button label="Continue to Setup →" onPress={() => setStep(5)} style={styles.primaryBtn} />
+              </View>
+            </View>
+          )}
+
+          {/* ========================================================================= */}
+          {/* STEP 05: WORKSPACE SETUP                                                  */}
+          {/* ========================================================================= */}
+          {step === 5 && (
+            <View style={styles.stepBlock}>
+              <Text style={styles.eyebrow}>WORKSPACE SETUP / 05</Text>
+              <Heading level={1} style={styles.stepHeadline}>
+                Configure your workspace parameters.
+              </Heading>
+              <Text style={styles.supportingText}>
+                These settings persist directly into Neon PostgreSQL and establish your default document autofill profiles.
               </Text>
 
               <View style={styles.formPanel}>
@@ -435,38 +441,33 @@ export function OnboardingFlow({
                     style={styles.formInput}
                     value={workspaceName}
                     onChangeText={setWorkspaceName}
-                    placeholder="e.g. Primary Security Operations"
-                    placeholderTextColor={theme.muted}
+                    placeholder="e.g. Primary Security Workspace"
+                    placeholderTextColor="#727780"
                   />
-                  <Text style={styles.formHint}>Maps directly to your Neon default workspace record.</Text>
+                  <Text style={styles.formHint}>Maps to your Neon PostgreSQL workspaces record.</Text>
                 </View>
 
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>
-                    {personaId === "client" ? "ORGANIZATION / COMPANY NAME" : "TESTING FIRM / PRACTICE NAME"}
+                    {selectedPersona === "client" ? "ORGANIZATION / COMPANY NAME" : "TESTING FIRM / PRACTICE NAME"}
                   </Text>
                   <TextInput
                     style={styles.formInput}
                     value={organizationName}
                     onChangeText={setOrganizationName}
-                    placeholder={personaId === "client" ? "e.g. Acme Corporation" : "e.g. Apex Cyber Labs LLC"}
-                    placeholderTextColor={theme.muted}
+                    placeholder={selectedPersona === "client" ? "e.g. Acme Corporation" : "e.g. Apex Cyber Labs LLC"}
+                    placeholderTextColor="#727780"
                   />
-                  <Text style={styles.formHint}>
-                    Autofills {personaId === "client" ? "client organization" : "testing organization"} across all 30 document definitions.
-                  </Text>
                 </View>
 
                 <View style={styles.formGroup}>
-                  <Text style={styles.formLabel}>
-                    {personaId === "client" ? "CLIENT REPRESENTATIVE NAME" : "LEAD OPERATOR / TESTER NAME"}
-                  </Text>
+                  <Text style={styles.formLabel}>PROFESSIONAL ROLE TITLE</Text>
                   <TextInput
                     style={styles.formInput}
-                    value={operatorName}
-                    onChangeText={setOperatorName}
-                    placeholder="e.g. Jane Doe, CISSP"
-                    placeholderTextColor={theme.muted}
+                    value={professionalRole}
+                    onChangeText={setProfessionalRole}
+                    placeholder="e.g. Senior Penetration Tester"
+                    placeholderTextColor="#727780"
                   />
                 </View>
 
@@ -492,66 +493,56 @@ export function OnboardingFlow({
               </View>
 
               <View style={styles.navRow}>
-                <Button label="← Back" variant="secondary" onPress={() => setStep(3)} />
-                <Button
-                  label="Review & Initialize Workspace →"
-                  onPress={() => setStep(5)}
-                  style={styles.primaryActionBtn}
-                />
+                <Button label="← Back" variant="secondary" onPress={() => setStep(4)} />
+                <Button label="Complete Setup →" onPress={() => setStep(6)} style={styles.primaryBtn} />
               </View>
             </View>
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 5: PROVISIONING CONFIRMATION & LAUNCH                                */}
+          {/* STEP 06: WORKSPACE READY                                                  */}
           {/* ========================================================================= */}
-          {step === 5 && (
-            <View style={styles.stepContainer}>
-              <Text style={styles.eyebrow}>READY // INITIALIZATION COMPLETE</Text>
+          {step === 6 && (
+            <View style={styles.stepBlock}>
+              <Text style={styles.eyebrow}>COMPLETION / 06</Text>
               <Heading level={1} style={styles.stepHeadline}>
-                Your workspace is configured.
+                Your workspace is ready.
               </Heading>
-              <Text style={styles.stepSubtitle}>
-                Your persona, default workspace, and autofill profiles are ready to be written to Neon PostgreSQL.
+              <Text style={styles.supportingText}>
+                Your configuration parameters are ready to be saved as the authoritative state in Neon PostgreSQL.
               </Text>
 
-              {/* Summary Specimen */}
-              <View style={styles.summaryPanel}>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>WORKSPACE</Text>
-                  <Text style={styles.summaryValue}>{workspaceName || "Primary Workspace"}</Text>
+              <View style={styles.summaryBox}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryKey}>WORKSPACE</Text>
+                  <Text style={styles.summaryVal}>{workspaceName || "Primary Workspace"}</Text>
                 </View>
                 <View style={styles.summaryDivider} />
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>OPERATIONAL PERSONA</Text>
-                  <Text style={styles.summaryValue}>{currentPersona.label}</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryKey}>OPERATIONAL PERSONA</Text>
+                  <Text style={styles.summaryVal}>{selectedPersona.toUpperCase()}</Text>
                 </View>
                 <View style={styles.summaryDivider} />
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>PRIMARY DISCIPLINE</Text>
-                  <Text style={styles.summaryValue}>{currentDiscipline.label}</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryKey}>DOCUMENT FOCUS</Text>
+                  <Text style={styles.summaryVal}>{selectedCategory.toUpperCase()}</Text>
                 </View>
                 <View style={styles.summaryDivider} />
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>ORGANIZATION</Text>
-                  <Text style={styles.summaryValue}>{organizationName || "Independent Practitioner"}</Text>
-                </View>
-                <View style={styles.summaryDivider} />
-                <View style={styles.summaryItem}>
-                  <Text style={styles.summaryLabel}>RECOMMENDED STARTER SPEC</Text>
-                  <Text style={styles.summaryValueHighlight}>{currentDiscipline.starterLabel}</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryKey}>STARTER SPECIFICATION</Text>
+                  <Text style={[styles.summaryVal, { color: "#2F6BFF" }]}>{currentDoc.name}</Text>
                 </View>
               </View>
 
-              <View style={styles.completionActionRow}>
+              <View style={styles.completionActionBlock}>
                 <Button
-                  label={saving ? "Provisioning..." : "Create First Document →"}
+                  label={saving ? "Saving to Neon..." : "Create your first document →"}
                   disabled={saving}
                   onPress={() => handleFinish(true)}
-                  style={styles.primaryActionBtn}
+                  style={styles.primaryBtn}
                 />
                 <Button
-                  label="Go to Workspace Dashboard"
+                  label="Explore the catalog"
                   variant="secondary"
                   disabled={saving}
                   onPress={() => handleFinish(false)}
@@ -568,134 +559,126 @@ export function OnboardingFlow({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.bg,
+    backgroundColor: "#090A0C",
   },
   topBar: {
-    height: 52,
+    height: 54,
+    backgroundColor: "#101216",
     borderBottomWidth: 1,
-    borderColor: theme.border,
+    borderColor: "#272B32",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    backgroundColor: theme.surface,
+    paddingHorizontal: 32,
   },
   topBarLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  statusIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.ok,
+  topWordmark: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 16,
+    letterSpacing: -0.4,
+    color: "#F5F3EE",
   },
-  systemTag: {
+  topDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#2F6BFF",
+  },
+  topSystemTag: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    letterSpacing: 1.5,
-    color: theme.muted,
+    letterSpacing: 1.54,
+    color: "#727780",
   },
-  topBarRight: {},
-  stepCounter: {
+  stepProgress: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    letterSpacing: 1.5,
-    color: theme.accent,
+    letterSpacing: 1.54,
+    color: "#2F6BFF",
   },
   progressTrack: {
     height: 2,
-    backgroundColor: theme.surface2,
+    backgroundColor: "#15181D",
     width: "100%",
   },
   progressFill: {
     height: 2,
-    backgroundColor: theme.accent,
+    backgroundColor: "#2F6BFF",
   },
+
   scrollArea: {
     flex: 1,
   },
   scrollContent: {
-    paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingVertical: 56,
+    paddingHorizontal: 24,
     alignSelf: "center",
     width: "100%",
   },
-  scrollContentMobile: {
+  scrollMobile: {
     maxWidth: "100%",
   },
-  scrollContentDesktop: {
+  scrollDesktop: {
     maxWidth: 780,
   },
-  stepContainer: {
+
+  stepBlock: {
     gap: 16,
   },
   eyebrow: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    letterSpacing: 2.2,
-    color: theme.accent,
+    letterSpacing: 1.54,
     textTransform: "uppercase",
-  },
-  heroHeadline: {
-    fontSize: 38,
-    lineHeight: 44,
-    letterSpacing: -1,
-    color: theme.text,
+    color: "#2F6BFF",
   },
   stepHeadline: {
-    fontSize: 32,
+    fontFamily: theme.font.sansBold,
+    fontSize: 34,
     lineHeight: 38,
-    letterSpacing: -0.8,
-    color: theme.text,
+    letterSpacing: -1,
+    color: "#F5F3EE",
   },
-  leadParagraph: {
+  supportingText: {
     fontFamily: theme.font.sans,
     fontSize: 16,
-    lineHeight: 24,
-    color: theme.mutedLight,
-  },
-  stepSubtitle: {
-    fontFamily: theme.font.sans,
-    fontSize: 15,
-    lineHeight: 22,
-    color: theme.muted,
+    lineHeight: 24.8,
+    color: "#A1A5AD",
     marginBottom: 8,
   },
-  terminalCard: {
-    backgroundColor: theme.surface,
+
+  welcomeSpecimen: {
+    backgroundColor: "#101216",
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radius,
-    overflow: "hidden",
-    marginVertical: 14,
-  },
-  terminalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: theme.surface2,
-    borderBottomWidth: 1,
-    borderColor: theme.border,
-  },
-  terminalDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: theme.accent,
-  },
-  terminalTitle: {
-    fontFamily: theme.font.monoMedium,
-    fontSize: 10.5,
-    letterSpacing: 1.5,
-    color: theme.mutedLight,
-  },
-  terminalBody: {
-    padding: 18,
+    borderColor: "#272B32",
+    borderRadius: 8,
+    padding: 20,
     gap: 12,
+    marginVertical: 16,
+  },
+  specimenHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  specimenTitle: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1.54,
+    color: "#727780",
+  },
+  specimenStatus: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    color: "#31B77A",
+  },
+  specimenDivider: {
+    height: 1,
+    backgroundColor: "#272B32",
   },
   specimenRow: {
     flexDirection: "row",
@@ -705,234 +688,177 @@ const styles = StyleSheet.create({
   specimenKey: {
     fontFamily: theme.font.mono,
     fontSize: 11,
-    letterSpacing: 1.2,
-    color: theme.muted,
+    color: "#727780",
   },
   specimenVal: {
     fontFamily: theme.font.monoMedium,
-    fontSize: 12,
-    color: theme.text,
+    fontSize: 11.5,
+    color: "#F5F3EE",
   },
-  cardGrid: {
+
+  selectionGrid: {
     gap: 12,
-    marginVertical: 12,
+    marginVertical: 14,
   },
-  personaCard: {
-    backgroundColor: theme.surface,
+  selectionCard: {
+    backgroundColor: "#101216",
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radius,
+    borderColor: "#272B32",
+    borderRadius: 8,
     padding: 20,
     gap: 8,
   },
-  personaCardActive: {
-    borderColor: theme.accent,
-    backgroundColor: theme.surface2,
+  selectionCardActive: {
+    borderColor: "#2F6BFF",
+    backgroundColor: "#15181D",
   },
-  personaTopRow: {
+  selectionCardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  personaEyebrow: {
-    fontFamily: theme.font.mono,
-    fontSize: 9.5,
-    letterSpacing: 1.5,
-    color: theme.muted,
+  selectionCardTitle: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 16,
+    letterSpacing: 0.5,
+    color: "#F5F3EE",
   },
-  personaEyebrowActive: {
-    color: theme.accent,
-  },
-  radioCircle: {
+  selectionRadio: {
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 1.5,
-    borderColor: theme.borderLight,
+    borderColor: "#343941",
     alignItems: "center",
     justifyContent: "center",
   },
-  radioCircleActive: {
-    borderColor: theme.accent,
+  selectionRadioActive: {
+    borderColor: "#2F6BFF",
   },
-  radioInner: {
+  selectionRadioInner: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.accent,
+    backgroundColor: "#2F6BFF",
   },
-  personaTitle: {
-    fontFamily: theme.font.sansBold,
-    fontSize: 18,
-    color: theme.text,
-  },
-  personaDesc: {
+  selectionCardDesc: {
     fontFamily: theme.font.sans,
-    fontSize: 13.5,
-    lineHeight: 19,
-    color: theme.mutedLight,
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#A1A5AD",
   },
-  personaBadge: {
-    alignSelf: "flex-start",
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    backgroundColor: theme.surface2,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 3,
-    marginTop: 4,
+  docPreviewBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderColor: "#272B32",
   },
-  personaBadgeText: {
+  docPreviewKey: {
     fontFamily: theme.font.mono,
     fontSize: 9.5,
     letterSpacing: 1,
-    color: theme.muted,
+    color: "#727780",
   },
-  disciplineCard: {
-    backgroundColor: theme.surface,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radius,
-    padding: 16,
-    gap: 6,
-  },
-  disciplineCardActive: {
-    borderColor: theme.accent,
-    backgroundColor: theme.surface2,
-  },
-  disciplineTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  disciplineTitle: {
-    fontFamily: theme.font.sansBold,
-    fontSize: 16,
-    color: theme.text,
-  },
-  disciplineTitleActive: {
-    color: theme.text,
-  },
-  disciplineDesc: {
-    fontFamily: theme.font.sans,
-    fontSize: 13,
-    lineHeight: 18,
-    color: theme.muted,
-  },
-  starterPreviewTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderColor: theme.border,
-  },
-  starterPreviewLabel: {
+  docPreviewVal: {
     fontFamily: theme.font.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: theme.muted,
-  },
-  starterPreviewValue: {
-    fontFamily: theme.font.monoMedium,
-    fontSize: 11,
-    color: theme.accent,
+    fontSize: 10.5,
+    color: "#2F6BFF",
     flex: 1,
   },
+
   formPanel: {
-    backgroundColor: theme.surface,
+    backgroundColor: "#101216",
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radius,
+    borderColor: "#272B32",
+    borderRadius: 8,
     padding: 24,
     gap: 18,
-    marginVertical: 12,
+    marginVertical: 14,
   },
   formGroup: {
     gap: 6,
   },
   formLabel: {
     fontFamily: theme.font.monoMedium,
-    fontSize: 10.5,
-    letterSpacing: 1.5,
-    color: theme.mutedLight,
+    fontSize: 11,
+    letterSpacing: 1.54,
+    color: "#A1A5AD",
   },
   formInput: {
-    backgroundColor: theme.surface2,
+    backgroundColor: "#15181D",
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radiusSm,
+    borderColor: "#272B32",
+    borderRadius: 6,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: theme.text,
+    paddingVertical: 11,
+    fontSize: 15,
+    color: "#F5F3EE",
     fontFamily: theme.font.sans,
   },
   formHint: {
     fontFamily: theme.font.sans,
-    fontSize: 11.5,
-    color: theme.muted,
+    fontSize: 12,
+    color: "#727780",
   },
   formatRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
   },
   formatBtn: {
     flex: 1,
-    paddingVertical: 10,
+    height: 40,
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radiusSm,
-    backgroundColor: theme.surface2,
+    borderColor: "#272B32",
+    borderRadius: 6,
+    backgroundColor: "#15181D",
     alignItems: "center",
     justifyContent: "center",
   },
   formatBtnActive: {
-    borderColor: theme.accent,
-    backgroundColor: theme.accentSubtle,
+    borderColor: "#2F6BFF",
+    backgroundColor: "rgba(47, 107, 255, 0.12)",
   },
   formatBtnText: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
     letterSpacing: 1,
-    color: theme.muted,
+    color: "#727780",
   },
   formatBtnTextActive: {
-    color: theme.accent,
+    color: "#2F6BFF",
   },
-  summaryPanel: {
-    backgroundColor: theme.surface,
+
+  summaryBox: {
+    backgroundColor: "#101216",
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radius,
-    padding: 20,
+    borderColor: "#272B32",
+    borderRadius: 8,
+    padding: 22,
     gap: 12,
-    marginVertical: 16,
+    marginVertical: 18,
   },
-  summaryItem: {
+  summaryRow: {
     gap: 4,
   },
-  summaryLabel: {
+  summaryKey: {
     fontFamily: theme.font.mono,
     fontSize: 10,
     letterSpacing: 1.5,
-    color: theme.muted,
+    color: "#727780",
   },
-  summaryValue: {
-    fontFamily: theme.font.sansMedium,
-    fontSize: 14,
-    color: theme.text,
-  },
-  summaryValueHighlight: {
-    fontFamily: theme.font.sansBold,
+  summaryVal: {
+    fontFamily: theme.font.sansSemi,
     fontSize: 15,
-    color: theme.accent,
+    color: "#F5F3EE",
   },
   summaryDivider: {
     height: 1,
-    backgroundColor: theme.border,
+    backgroundColor: "#272B32",
   },
+
   actionRow: {
     marginTop: 20,
   },
@@ -943,11 +869,13 @@ const styles = StyleSheet.create({
     marginTop: 24,
     gap: 12,
   },
-  completionActionRow: {
+  completionActionBlock: {
     gap: 12,
-    marginTop: 24,
+    marginTop: 20,
   },
-  primaryActionBtn: {
-    flex: 1,
+  primaryBtn: {
+    height: 44,
+    borderRadius: 6,
+    backgroundColor: "#2F6BFF",
   },
 });

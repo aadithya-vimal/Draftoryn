@@ -12,105 +12,40 @@ export default function LandingPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isMobile = width < 840;
+  const isTablet = width >= 840 && width < 1100;
 
-  const [activeSpecIndex, setActiveSpecIndex] = useState(0);
+  const [activeCatalogCat, setActiveCatalogCat] = useState(CATEGORIES[0]!);
 
   if (isLoaded && isSignedIn) {
     return <Redirect href="/(app)/home" />;
   }
 
-  const specimens = [
-    {
-      id: "SPEC-AUTH-01",
-      title: "Penetration Testing Agreement & Authorization",
-      category: "Offensive Security",
-      badgeTone: "#2563EB",
-      sections: [
-        { num: "01", name: "Authorization & Explicit Safe Harbor", detail: "Formal delegation under CFAA & international mandates." },
-        { num: "02", name: "Permitted Target CIDRs & Subdomains", detail: "CIDR /24 blocks, domain roots, excluded endpoints." },
-        { num: "03", name: "Testing Windows & Rate Limits", detail: "UTC schedules, allowed burst rates, non-destructive flags." },
-        { num: "04", name: "Emergency Containment Protocol", detail: "Immediate escalation contacts with encrypted PGP channels." },
-      ],
-      sampleOutput: `## 1.0 AUTHORIZATION & SAFE HARBOR
-Client hereby grants explicit legal authority to Assessor to perform active penetration testing against authorized systems identified in Schedule A. All activities conducted strictly within stated parameters shall be deemed authorized access under 18 U.S.C. § 1030 (CFAA).
-
-## 2.0 TARGET SCOPE SPECIFICATION
-- 198.51.100.0/24 (Production API Gateway) [IN SCOPE]
-- *.internal.acmecorp.com (Staging Enclave) [IN SCOPE]
-- 203.0.113.50 (Corporate Payment Gateway) [STRICTLY OUT OF SCOPE]`,
-    },
-    {
-      id: "SPEC-DFIR-02",
-      title: "Incident Response Playbook: Ransomware Containment",
-      category: "Incident Response / DFIR",
-      badgeTone: "#EF4444",
-      sections: [
-        { num: "01", name: "Severity Triage & Initial Assessment", detail: "Host isolation triggers, encrypted file discovery thresholds." },
-        { num: "02", name: "Network Segmentation & Killswitch", detail: "VLAN quarantine, Active Directory token invalidation." },
-        { num: "03", name: "Forensic Chain of Custody", detail: "Volatile memory preservation, disk snapshot hashes." },
-        { num: "04", name: "Executive & Regulatory Disclosure", detail: "72-hour notification timeline, law enforcement coordination." },
-      ],
-      sampleOutput: `## 1.0 INCIDENT SEVERITY CRITERIA: LEVEL 4 (CRITICAL)
-Trigger: Active ransomware encryption identified on ≥2 domain-joined endpoints.
-Immediate Mandate: Execute Stage 1 host isolation within 15 minutes of triage.
-
-## 2.0 FORENSIC CHAIN OF CUSTODY LOG
-- Memory Dump Hash: SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-- Custodian: Forensic Lead J. Smith (CISSP #491202)`,
-    },
-    {
-      id: "SPEC-ARCH-03",
-      title: "System Threat Model & Trust Boundaries",
-      category: "Security Architecture",
-      badgeTone: "#0D9488",
-      sections: [
-        { num: "01", name: "System Boundary Decomposition", detail: "External ingress, DMZ, application tier, data store boundaries." },
-        { num: "02", name: "STRIDE Threat Identification", detail: "Spoofing, Tampering, Repudiation, Information Disclosure analysis." },
-        { num: "03", name: "Cryptographic Controls & Key Management", detail: "mTLS requirements, envelope encryption, KMS rotation." },
-        { num: "04", name: "Mitigation Tracking & Verification", detail: "Zero-trust residual risk evaluation." },
-      ],
-      sampleOutput: `## 1.0 TRUST BOUNDARY DEFINITIONS
-- TB-01 [External → DMZ]: Ingress TLS 1.3 termination via Envoy Reverse Proxy.
-- TB-02 [DMZ → Core Microservices]: Mutual TLS (mTLS) with SPIFFE/SPIRE x509 SVID validation.
-- TB-03 [Core → Database Enclave]: Encrypted wire, IAM database auth, no direct internet egress.`,
-    },
-    {
-      id: "SPEC-BIA-04",
-      title: "Business Impact Analysis & Recovery Objectives",
-      category: "Resilience",
-      badgeTone: "#10B981",
-      sections: [
-        { num: "01", name: "Critical System Identification", detail: "Tier 1 revenue systems, customer facing APIs, authentication." },
-        { num: "02", name: "RTO & RPO Metrics", detail: "Recovery Time Objective (≤1hr) and Recovery Point Objective (≤5min)." },
-        { num: "03", name: "Financial & Operational Loss Matrix", detail: "Per-hour downtime costs, SLA penalty thresholds." },
-        { num: "04", name: "Failover Sequence & Validation", detail: "Multi-region DNS reroute and state reconciliation." },
-      ],
-      sampleOutput: `## 1.0 SYSTEM RECOVERY OBJECTIVES
-- System: Primary Transaction Pipeline (Tier 1)
-- RTO (Recovery Time Objective): 45 minutes
-- RPO (Recovery Point Objective): 0 minutes (Synchronous Raft replication)
-- Maximum Tolerable Downtime (MTD): 2 hours`,
-    },
-  ];
-
-  const currentSpec = specimens[activeSpecIndex] ?? specimens[0]!;
-
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
-      {/* 1. Technical Editorial Top Bar */}
-      <View style={styles.navWrapper}>
-        <View style={styles.navContainer}>
-          <View style={styles.brand}>
-            <View style={styles.brandMark}>
-              <Icon name="Shield" size={16} color={theme.accentForeground} strokeWidth={2.2} />
-            </View>
-            <View>
-              <Text style={styles.brandTitle}>DRAFTORYN</Text>
-              <Text style={styles.brandSub}>DOC STUDIO // V1.0</Text>
-            </View>
+      
+      {/* ========================================================================= */}
+      {/* 01. HEADER (Height: 72px, #101216, 1px solid #272B32)                    */}
+      {/* ========================================================================= */}
+      <View style={styles.header}>
+        <View style={styles.headerInner}>
+          {/* Left: Simple wordmark with blue brand dot */}
+          <View style={styles.headerLeft}>
+            <Text style={styles.wordmark}>Draftoryn</Text>
+            <View style={styles.wordmarkDot} />
           </View>
 
-          <View style={styles.navActions}>
+          {/* Center: Navigation */}
+          {!isMobile && (
+            <View style={styles.headerNav}>
+              <Text style={styles.headerNavLink}>SPECIFICATIONS</Text>
+              <Text style={styles.headerNavLink}>CATALOG</Text>
+              <Text style={styles.headerNavLink}>WORKFLOW</Text>
+              <Text style={styles.headerNavLink}>ARCHITECTURE</Text>
+            </View>
+          )}
+
+          {/* Right: Sign in & Primary CTA */}
+          <View style={styles.headerRight}>
             <Button
               label="Sign In"
               variant="ghost"
@@ -118,7 +53,7 @@ Immediate Mandate: Execute Stage 1 host isolation within 15 minutes of triage.
               style={{ paddingHorizontal: isMobile ? 8 : 16 }}
             />
             <Button
-              label="Initialize Studio →"
+              label="Get Started"
               onPress={() => router.push("/(auth)/signup")}
               style={{ paddingHorizontal: isMobile ? 12 : 20 }}
             />
@@ -126,208 +61,307 @@ Immediate Mandate: Execute Stage 1 host isolation within 15 minutes of triage.
         </View>
       </View>
 
-      {/* 2. SECTION: BIG STATEMENT */}
+      {/* ========================================================================= */}
+      {/* 02. HERO (Split Composition: Left: Typographic Statement | Right: UI)     */}
+      {/* ========================================================================= */}
       <View style={styles.heroSection}>
-        <View style={styles.heroContainer}>
-          <View style={styles.techTag}>
-            <View style={styles.techTagDot} />
-            <Text style={styles.techTagText}>TECHNICAL EDITORIAL // PRECISION SPECIFICATIONS</Text>
-          </View>
+        <View style={[styles.heroContainer, isMobile && { flexDirection: "column" }]}>
+          
+          {/* Left Column */}
+          <View style={[styles.heroTextCol, isMobile ? { width: "100%" } : { width: "52%", paddingRight: 48 }]}>
+            <Text style={styles.heroEyebrow}>DOCUMENTATION SYSTEM / 01</Text>
+            
+            <Text style={[styles.heroHeadline, isMobile ? styles.heroHeadlineMobile : isTablet ? styles.heroHeadlineTablet : styles.heroHeadlineDesktop]}>
+              Technical specifications and security agreements.
+            </Text>
 
-          <Heading level={1} style={isMobile ? styles.heroTitleMobile : styles.heroTitle}>
-            Professional software for technical specifications, authorized agreements, and security evaluations.
-          </Heading>
+            <Text style={styles.heroBody}>
+              Draftoryn is professional documentation software designed for technical precision.
+              Construct verified penetration testing agreements, incident playbooks, threat models,
+              and compliance architectures with mathematical schema discipline.
+            </Text>
 
-          <Text style={styles.heroLead}>
-            Engineered for offensive security practitioners, forensics investigators, system architects, and
-            commissioning organizations. Replacing ad-hoc docs and hallucinated formatting with 30 mathematically
-            verifiable schemas and authoritative database persistence.
-          </Text>
-
-          <View style={[styles.heroCtaRow, isMobile && { flexDirection: "column", width: "100%", gap: 10 }]}>
-            <Button
-              label="Initialize Your Workspace →"
-              onPress={() => router.push("/(auth)/signup")}
-              style={isMobile ? { width: "100%" } : styles.ctaPrimary}
-            />
-            <Button
-              label="Browse 30 Specifications"
-              variant="secondary"
-              onPress={() => router.push("/(auth)/login")}
-              style={isMobile ? { width: "100%" } : undefined}
-            />
-          </View>
-
-          {/* Metric Hairline Row */}
-          <View style={styles.metricRow}>
-            <View style={styles.metricCol}>
-              <Text style={styles.metricVal}>30</Text>
-              <Text style={styles.metricLab}>CANONICAL SPECIFICATIONS</Text>
-            </View>
-            <View style={styles.metricDivider} />
-            <View style={styles.metricCol}>
-              <Text style={styles.metricVal}>06</Text>
-              <Text style={styles.metricLab}>TECHNICAL DISCIPLINES</Text>
-            </View>
-            <View style={styles.metricDivider} />
-            <View style={styles.metricCol}>
-              <Text style={styles.metricVal}>100%</Text>
-              <Text style={styles.metricLab}>NEON RELATIONAL PERSISTENCE</Text>
-            </View>
-            <View style={styles.metricDivider} />
-            <View style={styles.metricCol}>
-              <Text style={styles.metricVal}>05</Text>
-              <Text style={styles.metricLab}>STANDARDIZED EXPORTS</Text>
+            <View style={[styles.heroActionRow, isMobile && { flexDirection: "column", width: "100%", gap: 10 }]}>
+              <Button
+                label="Initialize Workspace →"
+                onPress={() => router.push("/(auth)/signup")}
+                style={isMobile ? { width: "100%" } : styles.ctaPrimary}
+              />
+              <Button
+                label="Browse Specifications"
+                variant="secondary"
+                onPress={() => router.push("/(auth)/login")}
+                style={isMobile ? { width: "100%" } : undefined}
+              />
             </View>
           </View>
-        </View>
-      </View>
 
-      {/* 3. SECTION: REAL PRODUCT SPECIMEN (Split Layout) */}
-      <View style={styles.specimenSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionEyebrow}>INTERACTIVE SPECIMEN PREVIEW</Text>
-          <Heading level={2} style={styles.sectionTitle}>
-            The document is the visual object.
-          </Heading>
-          <Text style={styles.sectionLead}>
-            Draftoryn documents are not free-form text dumps. Each specification follows a strict relational
-            schema with mandatory parameters, validation gates, and version-controlled snapshots.
-          </Text>
-        </View>
-
-        {/* Specimen Selector Tabs */}
-        <View style={[styles.specimenTabs, isMobile && { flexDirection: "column" }]}>
-          {specimens.map((s, idx) => {
-            const active = idx === activeSpecIndex;
-            return (
-              <Pressable
-                key={s.id}
-                style={[styles.specimenTabBtn, active && styles.specimenTabBtnActive]}
-                onPress={() => setActiveSpecIndex(idx)}
-              >
-                <Text style={[styles.specimenTabId, active && { color: theme.accent }]}>{s.id}</Text>
-                <Text style={[styles.specimenTabTitle, active && { color: theme.text }]}>{s.title}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Specimen Display Box */}
-        <View style={[styles.specimenDisplay, isMobile && { flexDirection: "column" }]}>
-          {/* Left: Outline & Structure */}
-          <View style={[styles.specimenOutlineCol, isMobile ? { width: "100%" } : { width: "40%" }]}>
-            <View style={styles.outlineHeader}>
-              <Text style={styles.outlineHeaderTitle}>STRUCTURAL SCHEMA</Text>
-              <View style={[styles.outlineBadge, { borderColor: currentSpec.badgeTone }]}>
-                <Text style={[styles.outlineBadgeText, { color: currentSpec.badgeTone }]}>{currentSpec.category.toUpperCase()}</Text>
+          {/* Right Column: Real Draftoryn Product UI Framed Artifact */}
+          <View style={[styles.heroUiCol, isMobile ? { width: "100%", marginTop: 32 } : { width: "48%" }]}>
+            <View style={styles.productFrame}>
+              <View style={styles.frameTitlebar}>
+                <View style={styles.frameStatusDot} />
+                <Text style={styles.frameSpecId}>SPEC-SEC-AUTH-001 // EDITOR VIEW</Text>
+                <View style={{ flex: 1 }} />
+                <Text style={styles.frameMetaTag}>NEON PERSISTED</Text>
               </View>
-            </View>
-            <View style={styles.sectionList}>
-              {currentSpec.sections.map((sec) => (
-                <View key={sec.num} style={styles.sectionListItem}>
-                  <Text style={styles.sectionListNum}>{sec.num}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.sectionListName}>{sec.name}</Text>
-                    <Text style={styles.sectionListDetail}>{sec.detail}</Text>
+              
+              <View style={styles.frameEditor}>
+                <View style={styles.frameDocHeader}>
+                  <Text style={styles.frameDocKicker}>LEGAL & OPERATIONAL FRAMEWORK</Text>
+                  <Text style={styles.frameDocTitle}>Penetration Testing Authorization</Text>
+                </View>
+
+                {/* Real Parameter Ingestion Block */}
+                <View style={styles.frameParamBlock}>
+                  <View style={styles.frameParamRow}>
+                    <Text style={styles.frameParamKey}>TARGET CIDR</Text>
+                    <Text style={styles.frameParamVal}>198.51.100.0/24 (Production API Enclave)</Text>
+                  </View>
+                  <View style={styles.frameParamDivider} />
+                  <View style={styles.frameParamRow}>
+                    <Text style={styles.frameParamKey}>SAFE HARBOR</Text>
+                    <Text style={styles.frameParamVal}>18 U.S.C. § 1030 Explicit Authorization Active</Text>
+                  </View>
+                  <View style={styles.frameParamDivider} />
+                  <View style={styles.frameParamRow}>
+                    <Text style={styles.frameParamKey}>TEST WINDOW</Text>
+                    <Text style={styles.frameParamVal}>02:00–06:00 UTC (Off-peak Production)</Text>
                   </View>
                 </View>
-              ))}
-            </View>
-          </View>
 
-          {/* Right: Rendered Document Specimen */}
-          <View style={[styles.specimenRenderCol, isMobile ? { width: "100%" } : { width: "60%" }]}>
-            <View style={styles.renderHeader}>
-              <View style={styles.renderDot} />
-              <Text style={styles.renderTitle}>{currentSpec.id} // RENDERED CANONICAL OUTPUT</Text>
-            </View>
-            <View style={styles.renderBody}>
-              <Text style={styles.renderDocTitle}>{currentSpec.title}</Text>
-              <View style={styles.renderMetaGrid}>
-                <View style={styles.renderMetaItem}>
-                  <Text style={styles.renderMetaKey}>AUTHORITY</Text>
-                  <Text style={styles.renderMetaVal}>Lead Practitioner</Text>
-                </View>
-                <View style={styles.renderMetaItem}>
-                  <Text style={styles.renderMetaKey}>PERSISTENCE</Text>
-                  <Text style={styles.renderMetaVal}>Neon PostgreSQL</Text>
-                </View>
-                <View style={styles.renderMetaItem}>
-                  <Text style={styles.renderMetaKey}>COMPLIANCE</Text>
-                  <Text style={styles.renderMetaVal}>Strict Schema V1</Text>
+                {/* Section Outline Specimen */}
+                <View style={styles.frameSectionOutline}>
+                  <Text style={styles.frameOutlineHeading}>COMPILED SECTIONS</Text>
+                  <View style={styles.frameSectionItem}>
+                    <Text style={styles.frameSectionNum}>01</Text>
+                    <Text style={styles.frameSectionName}>Delegation of Authority & Safe Harbor</Text>
+                  </View>
+                  <View style={styles.frameSectionItem}>
+                    <Text style={styles.frameSectionNum}>02</Text>
+                    <Text style={styles.frameSectionName}>Scope Boundaries & Out-of-Scope Production Exclusions</Text>
+                  </View>
+                  <View style={styles.frameSectionItem}>
+                    <Text style={styles.frameSectionNum}>03</Text>
+                    <Text style={styles.frameSectionName}>Emergency Escalation Protocol & PGP Keys</Text>
+                  </View>
                 </View>
               </View>
-              <View style={styles.renderDivider} />
-              <Text style={styles.renderContent}>{currentSpec.sampleOutput}</Text>
             </View>
           </View>
         </View>
       </View>
 
-      {/* 4. SECTION: LARGE TYPOGRAPHIC MANIFESTO */}
-      <View style={styles.manifestoSection}>
-        <View style={styles.manifestoContainer}>
-          <Text style={styles.manifestoEyebrow}>CORE SYSTEM DOCTRINE</Text>
-          <Text style={styles.manifestoLead}>
-            PRECISION OVER HALLUCINATION.
+      {/* ========================================================================= */}
+      {/* 03. LARGE PRODUCT COMPOSITION (Architectural Product Surface)             */}
+      {/* ========================================================================= */}
+      <View style={styles.compositionSection}>
+        <View style={styles.maxContainer}>
+          <View style={styles.compositionHeader}>
+            <Text style={styles.sectionEyebrow}>SYSTEM ARCHITECTURE</Text>
+            <Heading level={2} style={styles.sectionHeading}>
+              Structured data model. Not unstructured conversational output.
+            </Heading>
+            <Text style={styles.sectionLead}>
+              Every Draftoryn document compiles from typed parameters into verified relational schemas.
+              Each section is discrete, editable, and traceable.
+            </Text>
+          </View>
+
+          <View style={[styles.compositionGrid, isMobile && { flexDirection: "column" }]}>
+            <View style={[styles.compositionCard, isMobile ? { width: "100%" } : { flex: 1 }]}>
+              <Text style={styles.compCardStep}>01 / MODEL</Text>
+              <Text style={styles.compCardTitle}>Typed Parameter Definitions</Text>
+              <Text style={styles.compCardBody}>
+                Assessors, targets, exclusions, schedules, and communication channels are captured as discrete typed variables.
+              </Text>
+            </View>
+            <View style={[styles.compositionCard, isMobile ? { width: "100%" } : { flex: 1 }]}>
+              <Text style={styles.compCardStep}>02 / ENGINE</Text>
+              <Text style={styles.compCardTitle}>Deterministic Assembly</Text>
+              <Text style={styles.compCardBody}>
+                Document sections assemble deterministically according to standardized technical specifications and compliance rules.
+              </Text>
+            </View>
+            <View style={[styles.compositionCard, isMobile ? { width: "100%" } : { flex: 1 }]}>
+              <Text style={styles.compCardStep}>03 / PERSISTENCE</Text>
+              <Text style={styles.compCardTitle}>Neon PostgreSQL Relational Truth</Text>
+              <Text style={styles.compCardBody}>
+                Document records, revision versions, deliverable exports, and client authorizations are permanently stored in Neon PostgreSQL.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ========================================================================= */}
+      {/* 04. DOCUMENT STORY (Editorial Typographic Breakout)                      */}
+      {/* ========================================================================= */}
+      <View style={styles.storySection}>
+        <View style={styles.maxContainer}>
+          <Text style={styles.storyEyebrow}>CORE EDITORIAL PHILOSOPHY</Text>
+          <Text style={styles.storyQuote}>
+            "A technical document is not an essay. It is an operational contract."
           </Text>
-          <Text style={styles.manifestoLead}>
-            STRUCTURE OVER AMBIGUITY.
-          </Text>
-          <Text style={[styles.manifestoLead, { color: theme.accent }]}>
-            AUTHORITATIVE DELIVERABLES OVER GENERIC TEXT.
-          </Text>
-          <Text style={styles.manifestoSub}>
-            Every agreement, playbook, model, and report generated in Draftoryn is backed by a verified relational
-            schema in Neon PostgreSQL. No fabricated demo states. No purple glowing blobs.
+          <Text style={styles.storyBody}>
+            When an unauthorized asset is compromised or an incident response playbook fails under pressure,
+            vague conversational AI output is a liability. Draftoryn guarantees unambiguous boundary definitions,
+            legally vetted Safe Harbor language, and standardized technical findings.
           </Text>
         </View>
       </View>
 
-      {/* 5. SECTION: COMPLETE 30-SPECIFICATION CATALOG TABLE */}
+      {/* ========================================================================= */}
+      {/* 05. DOCUMENT CATALOG (Numbered Publication Index)                        */}
+      {/* ========================================================================= */}
       <View style={styles.catalogSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionEyebrow}>CURATED SPECIFICATION REPOSITORY</Text>
-          <Heading level={2} style={styles.sectionTitle}>
-            30 Authoritative Documents. Nothing more, nothing less.
-          </Heading>
-          <Text style={styles.sectionLead}>
-            Standardized definitions covering all core domains of offensive security, incident response,
-            threat intelligence, security architecture, cyber risk governance, and enterprise resilience.
-          </Text>
-        </View>
+        <View style={styles.maxContainer}>
+          <View style={styles.catalogSectionHeader}>
+            <Text style={styles.sectionEyebrow}>PUBLICATION INDEX</Text>
+            <Heading level={2} style={styles.sectionHeading}>
+              30 Canonical Specifications Across 6 Disciplines
+            </Heading>
+          </View>
 
-        <View style={styles.catalogGrid}>
-          {CATEGORIES.map((cat) => {
-            const visual = CATEGORY_VISUALS[cat];
-            const defs = definitionsByCategory(cat);
-            return (
-              <View key={cat} style={styles.disciplineBlock}>
-                <View style={styles.disciplineHeader}>
-                  <View style={[styles.disciplineIcon, { backgroundColor: `${visual.accent}14` }]}>
-                    <Icon name={visual.icon} size={16} color={visual.accent} />
+          {/* Numbered Category Rows */}
+          <View style={styles.catalogRows}>
+            {CATEGORIES.map((cat, idx) => {
+              const numStr = String(idx + 1).padStart(2, "0");
+              const visual = CATEGORY_VISUALS[cat];
+              const defs = definitionsByCategory(cat);
+              const isSelected = cat === activeCatalogCat;
+
+              return (
+                <Pressable
+                  key={cat}
+                  style={[styles.catalogRow, isSelected && styles.catalogRowActive]}
+                  onPress={() => setActiveCatalogCat(cat)}
+                >
+                  <View style={styles.catalogRowTop}>
+                    <Text style={[styles.catalogRowNum, isSelected && { color: theme.accent }]}>{numStr}</Text>
+                    <Text style={styles.catalogRowTitle}>{visual.label.toUpperCase()}</Text>
+                    <View style={{ flex: 1 }} />
+                    <Text style={styles.catalogRowCount}>{defs.length} SPECIFICATIONS</Text>
                   </View>
-                  <Text style={styles.disciplineName}>{visual.label.toUpperCase()}</Text>
-                  <Text style={styles.disciplineCount}>{defs.length} SPECS</Text>
-                </View>
-                <View style={styles.specList}>
-                  {defs.map((d) => (
-                    <View key={d.id} style={styles.specRow}>
-                      <Text style={styles.specTitle}>{d.name}</Text>
-                      <Text style={styles.specSectionsCount}>{d.sections.length} sections</Text>
+                  <Text style={styles.catalogRowBlurb}>{visual.blurb}</Text>
+
+                  {/* If active, show the actual document list */}
+                  {isSelected && (
+                    <View style={styles.catalogDocList}>
+                      {defs.map((d) => (
+                        <View key={d.id} style={styles.catalogDocItem}>
+                          <Text style={styles.catalogDocName}>{d.name}</Text>
+                          <Text style={styles.catalogDocSections}>{d.sections.length} sections • {d.fields.length} parameters</Text>
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
-              </View>
-            );
-          })}
+                  )}
+                  <View style={styles.catalogRowDivider} />
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       </View>
 
-      {/* 6. SECTION: FINAL CTA */}
-      <View style={styles.finalSection}>
-        <View style={styles.finalContainer}>
+      {/* ========================================================================= */}
+      {/* 06. WORKFLOW (Precision 3-Stage Pipeline)                                 */}
+      {/* ========================================================================= */}
+      <View style={styles.workflowSection}>
+        <View style={styles.maxContainer}>
+          <Text style={styles.sectionEyebrow}>OPERATIONAL WORKFLOW</Text>
+          <Heading level={2} style={styles.sectionHeading}>
+            From parameter specification to publication-grade deliverable.
+          </Heading>
+
+          <View style={[styles.workflowGrid, isMobile && { flexDirection: "column" }]}>
+            <View style={[styles.workflowStep, isMobile ? { width: "100%" } : { flex: 1 }]}>
+              <Text style={styles.workflowStepNum}>PHASE 01</Text>
+              <Text style={styles.workflowStepTitle}>Scope Ingestion</Text>
+              <Text style={styles.workflowStepBody}>
+                Input testing targets, client identity, authorized assessors, and operational constraints through structured fields.
+              </Text>
+            </View>
+            <View style={[styles.workflowStep, isMobile ? { width: "100%" } : { flex: 1 }]}>
+              <Text style={styles.workflowStepNum}>PHASE 02</Text>
+              <Text style={styles.workflowStepTitle}>Section Compilation</Text>
+              <Text style={styles.workflowStepBody}>
+                Draftoryn compiles technical clauses, containment matrices, and trust boundaries into an authoritative document snapshot.
+              </Text>
+            </View>
+            <View style={[styles.workflowStep, isMobile ? { width: "100%" } : { flex: 1 }]}>
+              <Text style={styles.workflowStepNum}>PHASE 03</Text>
+              <Text style={styles.workflowStepTitle}>Relational Export</Text>
+              <Text style={styles.workflowStepBody}>
+                Export deliverable packages in PDF, Markdown, DOCX, or HTML with audit logging written directly to Neon.
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ========================================================================= */}
+      {/* 07. PROFESSIONAL OUTPUT (Warm White Document Artifact Preview)            */}
+      {/* ========================================================================= */}
+      <View style={styles.outputSection}>
+        <View style={styles.maxContainer}>
+          <Text style={styles.sectionEyebrow}>PHYSICAL DELIVERABLE AESTHETIC</Text>
+          <Heading level={2} style={styles.sectionHeading}>
+            High-contrast, professional technical artifacts.
+          </Heading>
+          <Text style={styles.sectionLead}>
+            Deliverables follow international technical publishing standards. Warm off-white surfaces,
+            dense technical typography, and clear section hierarchies.
+          </Text>
+
+          {/* The Physical Document Artifact */}
+          <View style={styles.paperSheet}>
+            <View style={styles.paperHeader}>
+              <View>
+                <Text style={styles.paperOrg}>APEX CYBER LABS // DEFENSE OPERATIONS</Text>
+                <Text style={styles.paperDocId}>DELIVERABLE SPEC-ROE-2026-V1</Text>
+              </View>
+              <Text style={styles.paperClassification}>CONFIDENTIAL // AUTHORIZED ACCESS ONLY</Text>
+            </View>
+            <View style={styles.paperRule} />
+            
+            <Text style={styles.paperTitle}>Rules of Engagement Specification</Text>
+            <Text style={styles.paperMeta}>Effective Date: September 2026 • Framework: PTES / NIST SP 800-115</Text>
+            
+            <Text style={styles.paperSectionHead}>1.0 EXECUTIVE AUTHORIZATION & SAFE HARBOR</Text>
+            <Text style={styles.paperParagraph}>
+              Testing personnel operating under this engagement are formally authorized by the target organization
+              to conduct active penetration testing within the verified parameters defined in Schedule A. All actions
+              performed in adherence to this agreement are certified as non-malicious and authorized.
+            </Text>
+
+            <Text style={styles.paperSectionHead}>2.0 AUTHORIZED ASSETS & CIDR RESTRICTIONS</Text>
+            <Text style={styles.paperParagraph}>
+              Primary API Endpoint: 198.51.100.10/32 [IN SCOPE] • Production Database: 198.51.100.50/32 [STRICTLY EXCLUDED].
+              Zero automated brute-forcing or denial-of-service testing is permitted against production billing gateways.
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* ========================================================================= */}
+      {/* 08. BROADER PRODUCT VISION                                                */}
+      {/* ========================================================================= */}
+      <View style={styles.visionSection}>
+        <View style={styles.maxContainer}>
+          <Text style={styles.visionEyebrow}>THE STANDARD FOR TECHNICAL SPECIFICATIONS</Text>
+          <Text style={styles.visionText}>
+            Draftoryn is not another AI text generator wrapped in SaaS decoration. It is an editorial
+            engineering workstation designed to produce authoritative, durable technical agreements.
+          </Text>
+        </View>
+      </View>
+
+      {/* ========================================================================= */}
+      {/* 09. FINAL CTA                                                             */}
+      {/* ========================================================================= */}
+      <View style={styles.finalCtaSection}>
+        <View style={styles.finalCtaContainer}>
           <Text style={styles.finalEyebrow}>START DRAFTING TODAY</Text>
           <Heading level={2} style={styles.finalTitle}>
             Ready to generate authoritative documentation?
@@ -335,21 +369,19 @@ Immediate Mandate: Execute Stage 1 host isolation within 15 minutes of triage.
           <Text style={styles.finalLead}>
             Provision your workspace in seconds with Clerk authentication and Neon PostgreSQL persistence.
           </Text>
-          <View style={styles.finalBtnRow}>
-            <Button
-              label="Initialize Workspace Now →"
-              onPress={() => router.push("/(auth)/signup")}
-              style={styles.ctaPrimary}
-            />
-          </View>
+          <Button
+            label="Initialize Workspace Now →"
+            onPress={() => router.push("/(auth)/signup")}
+            style={styles.ctaPrimary}
+          />
         </View>
       </View>
 
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.footerInner}>
-          <Text style={styles.footerText}>© 2026 Draftoryn. All rights reserved.</Text>
-          <Text style={styles.footerText}>Technical Editorial Document Design System</Text>
+          <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
+          <Text style={styles.footerText}>NEON POSTGRESQL · CLERK AUTH</Text>
         </View>
       </View>
     </ScrollView>
@@ -357,469 +389,568 @@ Immediate Mandate: Execute Stage 1 host isolation within 15 minutes of triage.
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg },
+  screen: { flex: 1, backgroundColor: "#090A0C" },
   body: { paddingBottom: 0 },
 
-  navWrapper: {
-    borderBottomWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.surface,
-  },
-  navContainer: {
-    maxWidth: 1140,
+  maxContainer: {
+    maxWidth: 1180,
     width: "100%",
     alignSelf: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+  },
+
+  // 01. Header
+  header: {
+    height: 72,
+    backgroundColor: "#101216",
+    borderBottomWidth: 1,
+    borderColor: "#272B32",
+    justifyContent: "center",
+  },
+  headerInner: {
+    maxWidth: 1180,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: 48,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  brand: {
+  headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 6,
   },
-  brandMark: {
-    width: 28,
-    height: 28,
-    borderRadius: theme.radiusSm,
-    backgroundColor: theme.accent,
-    alignItems: "center",
-    justifyContent: "center",
+  wordmark: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 18,
+    letterSpacing: -0.5,
+    color: "#F5F3EE",
   },
-  brandTitle: {
-    fontFamily: theme.font.sansBlack,
-    fontSize: 15,
-    letterSpacing: 1.2,
-    color: theme.text,
+  wordmarkDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#2F6BFF",
   },
-  brandSub: {
-    fontFamily: theme.font.mono,
-    fontSize: 8.5,
-    letterSpacing: 1.2,
-    color: theme.muted,
-  },
-  navActions: {
+  headerNav: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 28,
   },
-
-  heroSection: {
-    paddingVertical: 64,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.bg,
-  },
-  heroContainer: {
-    maxWidth: 1080,
-    width: "100%",
-    alignSelf: "center",
-  },
-  techTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 20,
-  },
-  techTagDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.accent,
-  },
-  techTagText: {
+  headerNavLink: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    letterSpacing: 2,
-    color: theme.accent,
+    letterSpacing: 1.54,
+    color: "#A1A5AD",
   },
-  heroTitle: {
-    fontSize: 48,
-    lineHeight: 54,
-    letterSpacing: -1.2,
-    color: theme.text,
-    marginBottom: 20,
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  heroTitleMobile: {
-    fontSize: 32,
-    lineHeight: 38,
-    letterSpacing: -0.6,
-    color: theme.text,
+
+  // 02. Hero
+  heroSection: {
+    paddingVertical: 72,
+    paddingHorizontal: 48,
+    borderBottomWidth: 1,
+    borderColor: "#272B32",
+    backgroundColor: "#090A0C",
+  },
+  heroContainer: {
+    maxWidth: 1180,
+    width: "100%",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  heroTextCol: {},
+  heroEyebrow: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1.54, // 0.14em
+    textTransform: "uppercase",
+    color: "#2F6BFF",
     marginBottom: 16,
   },
-  heroLead: {
-    fontFamily: theme.font.sans,
-    fontSize: 18,
-    lineHeight: 28,
-    color: theme.mutedLight,
-    maxWidth: 820,
-    marginBottom: 32,
+  heroHeadline: {
+    fontFamily: theme.font.sansBold,
+    color: "#F5F3EE",
+    marginBottom: 20,
   },
-  heroCtaRow: {
+  heroHeadlineDesktop: {
+    fontSize: 64,
+    lineHeight: 64,
+    letterSpacing: -2.88, // -0.045em
+  },
+  heroHeadlineTablet: {
+    fontSize: 52,
+    lineHeight: 52,
+    letterSpacing: -2.3,
+  },
+  heroHeadlineMobile: {
+    fontSize: 40,
+    lineHeight: 40,
+    letterSpacing: -1.8,
+  },
+  heroBody: {
+    fontFamily: theme.font.sans,
+    fontSize: 16,
+    lineHeight: 24.8, // 1.55
+    color: "#A1A5AD",
+    marginBottom: 32,
+    maxWidth: 520,
+  },
+  heroActionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    marginBottom: 48,
   },
   ctaPrimary: {
-    paddingHorizontal: 24,
+    backgroundColor: "#2F6BFF",
+    height: 44,
+    borderRadius: 6,
+    paddingHorizontal: 22,
   },
 
-  metricRow: {
+  heroUiCol: {},
+  productFrame: {
+    backgroundColor: "#101216",
+    borderWidth: 1,
+    borderColor: "#343941",
+    borderRadius: 10,
+    overflow: "hidden",
+    shadowColor: "#000000",
+    shadowOpacity: 0.20,
+    shadowRadius: 40,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 5,
+  },
+  frameTitlebar: {
+    height: 38,
+    backgroundColor: "#15181D",
+    borderBottomWidth: 1,
+    borderColor: "#272B32",
     flexDirection: "row",
-    flexWrap: "wrap",
-    borderTopWidth: 1,
-    borderColor: theme.border,
-    paddingTop: 32,
-    rowGap: 16,
+    alignItems: "center",
+    paddingHorizontal: 14,
+    gap: 8,
   },
-  metricCol: {
-    flex: 1,
-    minWidth: 140,
-    gap: 4,
+  frameStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#31B77A",
   },
-  metricVal: {
-    fontFamily: theme.font.sansBlack,
-    fontSize: 32,
-    color: theme.text,
-  },
-  metricLab: {
+  frameSpecId: {
     fontFamily: theme.font.mono,
     fontSize: 10,
-    letterSpacing: 1.5,
-    color: theme.muted,
+    letterSpacing: 1.2,
+    color: "#A1A5AD",
   },
-  metricDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: theme.border,
-    alignSelf: "center",
-    marginHorizontal: 16,
+  frameMetaTag: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 9.5,
+    letterSpacing: 1,
+    color: "#727780",
+  },
+  frameEditor: {
+    padding: 22,
+    gap: 16,
+  },
+  frameDocHeader: {
+    gap: 4,
+  },
+  frameDocKicker: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 9.5,
+    letterSpacing: 1.5,
+    color: "#2F6BFF",
+  },
+  frameDocTitle: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 18,
+    color: "#F5F3EE",
+  },
+  frameParamBlock: {
+    backgroundColor: "#15181D",
+    borderWidth: 1,
+    borderColor: "#272B32",
+    borderRadius: 6,
+    padding: 14,
+    gap: 8,
+  },
+  frameParamRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  frameParamKey: {
+    fontFamily: theme.font.mono,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: "#727780",
+  },
+  frameParamVal: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    color: "#F5F3EE",
+  },
+  frameParamDivider: {
+    height: 1,
+    backgroundColor: "#272B32",
+  },
+  frameSectionOutline: {
+    gap: 6,
+  },
+  frameOutlineHeading: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: "#727780",
+    marginBottom: 4,
+  },
+  frameSectionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  frameSectionNum: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    color: "#2F6BFF",
+  },
+  frameSectionName: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 13,
+    color: "#A1A5AD",
   },
 
-  specimenSection: {
-    paddingVertical: 64,
-    paddingHorizontal: 20,
+  // 03. Large Product Composition
+  compositionSection: {
+    paddingVertical: 72,
+    paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.bgAlt,
+    borderColor: "#272B32",
+    backgroundColor: "#101216",
   },
-  sectionHeader: {
-    maxWidth: 1080,
-    width: "100%",
-    alignSelf: "center",
-    marginBottom: 32,
+  compositionHeader: {
+    marginBottom: 36,
   },
   sectionEyebrow: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    letterSpacing: 2,
-    color: theme.accent,
+    letterSpacing: 1.54,
+    color: "#2F6BFF",
     marginBottom: 8,
   },
-  sectionTitle: {
+  sectionHeading: {
+    fontFamily: theme.font.sansBold,
     fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -0.8,
-    color: theme.text,
+    lineHeight: 38,
+    letterSpacing: -1.2,
+    color: "#F5F3EE",
     marginBottom: 12,
   },
   sectionLead: {
     fontFamily: theme.font.sans,
     fontSize: 16,
-    lineHeight: 24,
-    color: theme.mutedLight,
-    maxWidth: 780,
+    lineHeight: 24.8,
+    color: "#A1A5AD",
+    maxWidth: 720,
   },
-
-  specimenTabs: {
-    maxWidth: 1080,
-    width: "100%",
-    alignSelf: "center",
+  compositionGrid: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
+    gap: 20,
   },
-  specimenTabBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: theme.surface,
+  compositionCard: {
+    backgroundColor: "#15181D",
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radiusSm,
-    gap: 2,
-  },
-  specimenTabBtnActive: {
-    borderColor: theme.accent,
-    backgroundColor: theme.surface2,
-  },
-  specimenTabId: {
-    fontFamily: theme.font.mono,
-    fontSize: 9.5,
-    letterSpacing: 1.2,
-    color: theme.muted,
-  },
-  specimenTabTitle: {
-    fontFamily: theme.font.sansBold,
-    fontSize: 13,
-    color: theme.mutedLight,
-  },
-
-  specimenDisplay: {
-    maxWidth: 1080,
-    width: "100%",
-    alignSelf: "center",
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radius,
-    overflow: "hidden",
-    backgroundColor: theme.surface,
-  },
-  specimenOutlineCol: {
+    borderColor: "#272B32",
+    borderRadius: 8,
     padding: 24,
-    borderRightWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.surface,
+    gap: 8,
   },
-  outlineHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  outlineHeaderTitle: {
+  compCardStep: {
     fontFamily: theme.font.monoMedium,
     fontSize: 10.5,
     letterSpacing: 1.5,
-    color: theme.muted,
+    color: "#2F6BFF",
   },
-  outlineBadge: {
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderWidth: 1,
-    borderRadius: 2,
-  },
-  outlineBadgeText: {
-    fontFamily: theme.font.monoMedium,
-    fontSize: 9,
-    letterSpacing: 0.8,
-  },
-  sectionList: {
-    gap: 16,
-  },
-  sectionListItem: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "flex-start",
-  },
-  sectionListNum: {
-    fontFamily: theme.font.monoMedium,
-    fontSize: 12,
-    color: theme.accent,
-    marginTop: 1,
-  },
-  sectionListName: {
+  compCardTitle: {
     fontFamily: theme.font.sansBold,
-    fontSize: 13.5,
-    color: theme.text,
+    fontSize: 18,
+    color: "#F5F3EE",
   },
-  sectionListDetail: {
+  compCardBody: {
     fontFamily: theme.font.sans,
-    fontSize: 12,
-    lineHeight: 16,
-    color: theme.muted,
-    marginTop: 2,
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#A1A5AD",
   },
 
-  specimenRenderCol: {
-    backgroundColor: theme.surface2,
-  },
-  renderHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.surface,
-  },
-  renderDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.ok,
-  },
-  renderTitle: {
-    fontFamily: theme.font.mono,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: theme.muted,
-  },
-  renderBody: {
-    padding: 24,
-  },
-  renderDocTitle: {
-    fontFamily: theme.font.sansBlack,
-    fontSize: 20,
-    color: theme.text,
-    marginBottom: 16,
-  },
-  renderMetaGrid: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 16,
-  },
-  renderMetaItem: {
-    gap: 2,
-  },
-  renderMetaKey: {
-    fontFamily: theme.font.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: theme.muted,
-  },
-  renderMetaVal: {
-    fontFamily: theme.font.monoMedium,
-    fontSize: 11,
-    color: theme.text,
-  },
-  renderDivider: {
-    height: 1,
-    backgroundColor: theme.border,
-    marginBottom: 16,
-  },
-  renderContent: {
-    fontFamily: theme.font.mono,
-    fontSize: 11.5,
-    lineHeight: 20,
-    color: theme.mutedLight,
-  },
-
-  manifestoSection: {
+  // 04. Document Story
+  storySection: {
     paddingVertical: 80,
-    paddingHorizontal: 20,
+    paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.bg,
+    borderColor: "#272B32",
+    backgroundColor: "#090A0C",
   },
-  manifestoContainer: {
-    maxWidth: 960,
-    width: "100%",
-    alignSelf: "center",
-  },
-  manifestoEyebrow: {
+  storyEyebrow: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    letterSpacing: 2.5,
-    color: theme.muted,
-    marginBottom: 20,
+    letterSpacing: 1.54,
+    color: "#727780",
+    marginBottom: 18,
   },
-  manifestoLead: {
-    fontFamily: theme.font.sansBlack,
+  storyQuote: {
+    fontFamily: theme.font.sansBold,
     fontSize: 36,
-    lineHeight: 44,
-    letterSpacing: -0.8,
-    color: theme.text,
-    marginBottom: 4,
+    lineHeight: 42,
+    letterSpacing: -1.2,
+    color: "#F5F3EE",
+    marginBottom: 18,
+    maxWidth: 880,
   },
-  manifestoSub: {
+  storyBody: {
     fontFamily: theme.font.sans,
     fontSize: 16,
-    lineHeight: 25,
-    color: theme.muted,
-    marginTop: 24,
-    maxWidth: 720,
+    lineHeight: 24.8,
+    color: "#A1A5AD",
+    maxWidth: 760,
   },
 
+  // 05. Document Catalog
   catalogSection: {
-    paddingVertical: 64,
-    paddingHorizontal: 20,
+    paddingVertical: 72,
+    paddingHorizontal: 48,
     borderBottomWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: theme.bgAlt,
+    borderColor: "#272B32",
+    backgroundColor: "#101216",
   },
-  catalogGrid: {
-    maxWidth: 1080,
-    width: "100%",
-    alignSelf: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    rowGap: 24,
-    columnGap: 24,
+  catalogSectionHeader: {
+    marginBottom: 32,
   },
-  disciplineBlock: {
-    flex: 1,
-    minWidth: 300,
-    backgroundColor: theme.surface,
+  catalogRows: {
+    gap: 16,
+  },
+  catalogRow: {
+    backgroundColor: "#15181D",
     borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: theme.radius,
-    padding: 18,
+    borderColor: "#272B32",
+    borderRadius: 8,
+    padding: 20,
+    gap: 8,
   },
-  disciplineHeader: {
+  catalogRowActive: {
+    borderColor: "#343941",
+    backgroundColor: "#181B21",
+  },
+  catalogRowTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderColor: theme.border,
-    marginBottom: 12,
+    gap: 14,
   },
-  disciplineIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    alignItems: "center",
-    justifyContent: "center",
+  catalogRowNum: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 14,
+    color: "#727780",
   },
-  disciplineName: {
+  catalogRowTitle: {
     fontFamily: theme.font.sansBold,
-    fontSize: 13,
-    color: theme.text,
-    flex: 1,
+    fontSize: 17,
+    letterSpacing: 0.5,
+    color: "#F5F3EE",
   },
-  disciplineCount: {
+  catalogRowCount: {
     fontFamily: theme.font.mono,
-    fontSize: 9.5,
+    fontSize: 11,
     letterSpacing: 1,
-    color: theme.muted,
+    color: "#727780",
   },
-  specList: {
-    gap: 8,
+  catalogRowBlurb: {
+    fontFamily: theme.font.sans,
+    fontSize: 14,
+    color: "#A1A5AD",
+    lineHeight: 20,
+    paddingLeft: 30,
   },
-  specRow: {
+  catalogDocList: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderColor: "#272B32",
+    gap: 10,
+    paddingLeft: 30,
+  },
+  catalogDocItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 4,
   },
-  specTitle: {
-    fontFamily: theme.font.sans,
-    fontSize: 12.5,
-    color: theme.mutedLight,
-    flex: 1,
+  catalogDocName: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 14,
+    color: "#F5F3EE",
   },
-  specSectionsCount: {
+  catalogDocSections: {
     fontFamily: theme.font.mono,
-    fontSize: 10,
-    color: theme.muted,
-    marginLeft: 8,
+    fontSize: 11,
+    color: "#727780",
+  },
+  catalogRowDivider: {
+    height: 1,
+    backgroundColor: "#272B32",
+    marginTop: 8,
   },
 
-  finalSection: {
+  // 06. Workflow
+  workflowSection: {
     paddingVertical: 72,
-    paddingHorizontal: 20,
-    backgroundColor: theme.bg,
+    paddingHorizontal: 48,
+    borderBottomWidth: 1,
+    borderColor: "#272B32",
+    backgroundColor: "#090A0C",
+  },
+  workflowGrid: {
+    flexDirection: "row",
+    gap: 24,
+    marginTop: 32,
+  },
+  workflowStep: {
+    borderLeftWidth: 2,
+    borderLeftColor: "#2F6BFF",
+    paddingLeft: 18,
+    gap: 8,
+  },
+  workflowStepNum: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10.5,
+    letterSpacing: 1.5,
+    color: "#2F6BFF",
+  },
+  workflowStepTitle: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 18,
+    color: "#F5F3EE",
+  },
+  workflowStepBody: {
+    fontFamily: theme.font.sans,
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#A1A5AD",
+  },
+
+  // 07. Professional Output (Paper sheet aesthetic)
+  outputSection: {
+    paddingVertical: 72,
+    paddingHorizontal: 48,
+    borderBottomWidth: 1,
+    borderColor: "#272B32",
+    backgroundColor: "#101216",
+  },
+  paperSheet: {
+    backgroundColor: "#F5F3EE", // Warm White
+    borderRadius: 8,
+    padding: 36,
+    marginTop: 32,
+    maxWidth: 900,
+    alignSelf: "center",
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#D9D6CE",
+  },
+  paperHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  paperOrg: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: "#6D7178",
+  },
+  paperDocId: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    color: "#16181C",
+    marginTop: 2,
+  },
+  paperClassification: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 9.5,
+    letterSpacing: 1,
+    color: "#D94A4A",
+  },
+  paperRule: {
+    height: 1,
+    backgroundColor: "#272B32",
+    marginVertical: 18,
+    opacity: 0.2,
+  },
+  paperTitle: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 24,
+    color: "#16181C",
+    marginBottom: 4,
+  },
+  paperMeta: {
+    fontFamily: theme.font.mono,
+    fontSize: 11,
+    color: "#6D7178",
+    marginBottom: 20,
+  },
+  paperSectionHead: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    color: "#16181C",
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  paperParagraph: {
+    fontFamily: theme.font.sans,
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: "#2C3038",
+  },
+
+  // 08. Broader Vision
+  visionSection: {
+    paddingVertical: 72,
+    paddingHorizontal: 48,
+    borderBottomWidth: 1,
+    borderColor: "#272B32",
+    backgroundColor: "#090A0C",
+  },
+  visionEyebrow: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1.54,
+    color: "#727780",
+    marginBottom: 16,
+  },
+  visionText: {
+    fontFamily: theme.font.sansBold,
+    fontSize: 28,
+    lineHeight: 36,
+    letterSpacing: -0.8,
+    color: "#F5F3EE",
+    maxWidth: 920,
+  },
+
+  // 09. Final CTA
+  finalCtaSection: {
+    paddingVertical: 80,
+    paddingHorizontal: 48,
+    backgroundColor: "#101216",
     alignItems: "center",
   },
-  finalContainer: {
-    maxWidth: 720,
+  finalCtaContainer: {
+    maxWidth: 640,
     width: "100%",
     alignItems: "center",
     textAlign: "center",
@@ -827,47 +958,48 @@ const styles = StyleSheet.create({
   finalEyebrow: {
     fontFamily: theme.font.monoMedium,
     fontSize: 11,
-    letterSpacing: 2,
-    color: theme.accent,
+    letterSpacing: 1.54,
+    color: "#2F6BFF",
     marginBottom: 12,
   },
   finalTitle: {
+    fontFamily: theme.font.sansBold,
     fontSize: 34,
-    lineHeight: 40,
-    color: theme.text,
+    lineHeight: 38,
+    letterSpacing: -1,
+    color: "#F5F3EE",
     textAlign: "center",
     marginBottom: 14,
   },
   finalLead: {
     fontFamily: theme.font.sans,
     fontSize: 16,
-    color: theme.mutedLight,
+    color: "#A1A5AD",
     textAlign: "center",
     marginBottom: 28,
   },
-  finalBtnRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
 
+  // Footer
   footer: {
+    height: 60,
+    backgroundColor: "#090A0C",
     borderTopWidth: 1,
-    borderColor: theme.border,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    backgroundColor: theme.surface,
+    borderColor: "#272B32",
+    justifyContent: "center",
   },
   footerInner: {
-    maxWidth: 1080,
+    maxWidth: 1180,
     width: "100%",
     alignSelf: "center",
+    paddingHorizontal: 48,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   footerText: {
     fontFamily: theme.font.mono,
-    fontSize: 11,
-    color: theme.muted,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: "#727780",
   },
 });

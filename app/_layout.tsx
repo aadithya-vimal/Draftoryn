@@ -6,18 +6,13 @@ import { CLERK_PUBLISHABLE_KEY, getTokenCache } from "../src/auth/clerk";
 import { theme } from "../src/ui/primitives";
 import { Redirect } from "expo-router";
 import {
-  PlayfairDisplay_400Regular,
-  PlayfairDisplay_600SemiBold,
-  PlayfairDisplay_700Bold,
-  PlayfairDisplay_900Black,
-} from "@expo-google-fonts/playfair-display";
-import {
-  SourceSans3_400Regular,
-  SourceSans3_500Medium,
-  SourceSans3_600SemiBold,
-  SourceSans3_700Bold,
-  SourceSans3_900Black,
-} from "@expo-google-fonts/source-sans-3";
+  InterTight_400Regular,
+  InterTight_500Medium,
+  InterTight_600SemiBold,
+  InterTight_700Bold,
+  InterTight_800ExtraBold,
+  InterTight_900Black,
+} from "@expo-google-fonts/inter-tight";
 import { IBMPlexMono_400Regular, IBMPlexMono_500Medium } from "@expo-google-fonts/ibm-plex-mono";
 
 function FontSplash() {
@@ -31,7 +26,7 @@ function FontSplash() {
 function MissingKey() {
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.bg, padding: 32 }}>
-      <Text style={{ fontFamily: theme.font.serifSemi, fontSize: 22, color: theme.text, marginBottom: 10 }}>Draftoryn</Text>
+      <Text style={{ fontFamily: theme.font.sansSemi, fontSize: 22, color: theme.text, marginBottom: 10 }}>Draftoryn</Text>
       <Text style={{ fontFamily: theme.font.sans, fontSize: 14, color: theme.muted, textAlign: "center" }}>
         Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY (and CLERK_SECRET_KEY on the server) to enable authentication.
       </Text>
@@ -43,15 +38,12 @@ import Head from "expo-router/head";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_600SemiBold,
-    PlayfairDisplay_700Bold,
-    PlayfairDisplay_900Black,
-    SourceSans3_400Regular,
-    SourceSans3_500Medium,
-    SourceSans3_600SemiBold,
-    SourceSans3_700Bold,
-    SourceSans3_900Black,
+    InterTight_400Regular,
+    InterTight_500Medium,
+    InterTight_600SemiBold,
+    InterTight_700Bold,
+    InterTight_800ExtraBold,
+    InterTight_900Black,
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
   });
