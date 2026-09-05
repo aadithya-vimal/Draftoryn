@@ -597,6 +597,14 @@ export async function putUserSettings(
     await getOrCreateUser(userId);
 
     const existing = await getUserSettings(userId);
+    const rawAi = settings.aiSettings ? { ...(existing.aiSettings || {}), ...settings.aiSettings } : (existing.aiSettings || {});
+    // Strictly sanitize: NEVER store API keys in remote database; keys are stored exclusively in client-side localStorage
+    const sanitizedAi: Record<string, unknown> = { ...rawAi };
+    delete sanitizedAi.openaiApiKey;
+    delete sanitizedAi.anthropicApiKey;
+    delete sanitizedAi.groqApiKey;
+    delete sanitizedAi.geminiApiKey;
+
     const updated = {
       defaultExportFormat: settings.defaultExportFormat ?? existing.defaultExportFormat,
       compactLists: settings.compactLists !== undefined ? settings.compactLists : existing.compactLists,
@@ -604,7 +612,7 @@ export async function putUserSettings(
       sessionTimeoutMinutes: settings.sessionTimeoutMinutes ?? existing.sessionTimeoutMinutes,
       testerProfile: settings.testerProfile ? { ...existing.testerProfile, ...settings.testerProfile } : existing.testerProfile,
       clientProfile: settings.clientProfile ? { ...existing.clientProfile, ...settings.clientProfile } : existing.clientProfile,
-      aiSettings: settings.aiSettings ? { ...(existing.aiSettings || {}), ...settings.aiSettings } : (existing.aiSettings || {}),
+      aiSettings: sanitizedAi,
     };
 
     await sql(

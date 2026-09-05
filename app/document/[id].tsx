@@ -65,7 +65,7 @@ import {
 } from "../../src/ui/components";
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
 import { FieldRenderer } from "../../src/ui/FieldRenderer";
-import { SectionEditor } from "../../src/ui/SectionEditor";
+import { SectionEditorModal } from "../../src/ui/SectionEditor";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -196,8 +196,12 @@ export default function DocumentEditor() {
       getUserSettings(user).then(setUserSettings);
     }
   }, [user.isSignedIn, user.userId]);
-  const [busy, setBusy] = useState(false);
-  const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
+  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [editingSection, setEditingSection] = useState<Section | null>(null);
+  const isSavingRef = useRef(false);
+  const pendingSaveRef = useRef(false);
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
   const [showSource, setShowSource] = useState(false);
   const [exportErr, setExportErr] = useState("");
@@ -255,165 +259,112 @@ export default function DocumentEditor() {
     };
   }, [user.isLoaded, user.isSignedIn, user.userId, id]);
 
-  // ---- Autosave (debounced) ---------------------------------------------
-  const triggerAutosave = useCallback(() => {
+  // ---- Save and Autosave Management --------------------------------------
+  const executeSave = useCallback(async (): Promise<boolean> => {
+    const rec = recordRef.current;
+    if (!rec || !user.userId) return false;
+    if (isSavingRef.current) {
+      pendingSaveRef.current = true;
+      return false;
+    }
+    isSavingRef.current = true;
+    setSaveState("saving");
+
+    const updated: DocumentRecord = {
+      ...rec,
+      title: titleRef.current,
+      updatedAt: new Date().toISOString(),
+      source: sourceRef.current,
+      versions: rec.versions.map((v, i) =>
+        i === rec.versions.length - 1
+          ? {
+              ...v,
+              title: titleRef.current,
+              sections: sectionsRef.current,
+              model: modelRef.current ?? v.model,
+              source: sourceRef.current,
+            }
+          : v,
+      ),
+    };
+
+    try {
+      const saved = await saveDocumentRecord(user, updated);
+      recordRef.current = saved;
+      setRecord(saved);
+      setSaveState("saved");
+      setIsDirty(false);
+      return true;
+    } catch {
+      setSaveState("error");
+      return false;
+    } finally {
+      isSavingRef.current = false;
+      if (pendingSaveRef.current) {
+        pendingSaveRef.current = false;
+        setTimeout(() => {
+          void executeSave();
+        }, 150);
+      }
+    }
+  }, [user]);
+
+  const triggerSaveOrAutosave = useCallback(() => {
+    setIsDirty(true);
+    if (!autosaveEnabled) return;
     if (loadedDocIdRef.current !== id) return;
     if (timer.current) clearTimeout(timer.current);
     setSaveState("saving");
-    timer.current = setTimeout(async () => {
-      const rec = recordRef.current;
-      if (!rec || !user.userId) return;
-      const updated: DocumentRecord = {
-        ...rec,
-        title: titleRef.current,
-        updatedAt: new Date().toISOString(),
-        source: sourceRef.current,
-        versions: rec.versions.map((v, i) =>
-          i === rec.versions.length - 1
-            ? {
-                ...v,
-                title: titleRef.current,
-                sections: sectionsRef.current,
-                model: modelRef.current ?? v.model,
-                source: sourceRef.current,
-              }
-            : v,
-        ),
-      };
-      try {
-        const saved = await saveDocumentRecord(user, updated);
-        recordRef.current = saved;
-        setRecord(saved);
-        setSaveState("saved");
-      } catch {
-        setSaveState("error");
-      }
-    }, 600);
-  }, [user, id]);
+    timer.current = setTimeout(() => {
+      void executeSave();
+    }, 800);
+  }, [autosaveEnabled, id, executeSave]);
 
   const updateSections = useCallback((updater: (prev: Section[]) => Section[]) => {
     setSections((prev) => {
       const next = updater(prev);
       sectionsRef.current = next;
-      triggerAutosave();
+      triggerSaveOrAutosave();
       return next;
     });
-  }, [triggerAutosave]);
+  }, [triggerSaveOrAutosave]);
 
   const updateTitle = useCallback((newTitle: string) => {
     setTitle(newTitle);
     titleRef.current = newTitle;
-    triggerAutosave();
-  }, [triggerAutosave]);
+    triggerSaveOrAutosave();
+  }, [triggerSaveOrAutosave]);
 
   const updateSource = useCallback((fid: string, v: unknown) => {
     setSource((prev) => {
       const next = { ...prev, [fid]: v };
       sourceRef.current = next;
-      triggerAutosave();
+      triggerSaveOrAutosave();
       return next;
     });
-  }, [triggerAutosave]);
+  }, [triggerSaveOrAutosave]);
 
-  // ---- Generation --------------------------------------------------------
-  const regenerateSection = useCallback(
-    async (sid: string) => {
-      if (!def || !user.getToken) return;
-      setRegeneratingSectionId(sid);
-      try {
-        const activeProvider = userSettings.aiSettings?.defaultProvider || "openai";
-        const key =
-          activeProvider === "openai"
-            ? userSettings.aiSettings?.openaiApiKey
-            : activeProvider === "anthropic"
-            ? userSettings.aiSettings?.anthropicApiKey
-            : activeProvider === "groq"
-            ? userSettings.aiSettings?.groqApiKey
-            : userSettings.aiSettings?.geminiApiKey;
-        const model =
-          activeProvider === "openai"
-            ? userSettings.aiSettings?.openaiModel
-            : activeProvider === "anthropic"
-            ? userSettings.aiSettings?.anthropicModel
-            : activeProvider === "groq"
-            ? userSettings.aiSettings?.groqModel
-            : userSettings.aiSettings?.geminiModel;
-
-        const gen = await generateDocumentClient(def.id, sourceRef.current, {
-          sectionId: sid,
-          useAi: true,
-          provider: activeProvider,
-          model,
-          apiKey: key,
-          getToken: user.getToken,
-        });
-        const found = gen.sections.find((s) => s.id === sid);
-        if (found) {
-          updateSections((prev) =>
-            prev.map((s) =>
-              s.id === sid ? { ...found, hidden: s.hidden } : s,
-            ),
-          );
-        }
-        setModel(gen.model);
-        modelRef.current = gen.model;
-      } catch (e) {
-        setExportErr(e instanceof Error ? e.message : "Regeneration failed.");
-      } finally {
-        setRegeneratingSectionId(null);
+  // Warn on browser close or refresh when unsaved
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty || isSavingRef.current) {
+        e.preventDefault();
+        e.returnValue = "Progress will be lost. Are you sure you want to leave?";
+        return e.returnValue;
       }
-    },
-    [def, user, userSettings, updateSections],
-  );
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
 
-  const regenerateAll = useCallback(
-    async (src?: Record<string, unknown>) => {
-      if (!def || !user.getToken) return;
-      const useSrc = src ?? sourceRef.current;
-      setBusy(true);
-      try {
-        const activeProvider = userSettings.aiSettings?.defaultProvider || "openai";
-        const key =
-          activeProvider === "openai"
-            ? userSettings.aiSettings?.openaiApiKey
-            : activeProvider === "anthropic"
-            ? userSettings.aiSettings?.anthropicApiKey
-            : activeProvider === "groq"
-            ? userSettings.aiSettings?.groqApiKey
-            : userSettings.aiSettings?.geminiApiKey;
-        const model =
-          activeProvider === "openai"
-            ? userSettings.aiSettings?.openaiModel
-            : activeProvider === "anthropic"
-            ? userSettings.aiSettings?.anthropicModel
-            : activeProvider === "groq"
-            ? userSettings.aiSettings?.groqModel
-            : userSettings.aiSettings?.geminiModel;
-
-        const gen = await generateDocumentClient(def.id, useSrc, {
-          useAi: true,
-          provider: activeProvider,
-          model,
-          apiKey: key,
-          getToken: user.getToken,
-        });
-        updateSections(() =>
-          gen.sections.map((rs) => {
-            const ex = sectionsRef.current.find((s) => s.id === rs.id);
-            return ex && ex.hidden ? { ...rs, hidden: true } : rs;
-          }),
-        );
-        updateTitle(gen.title);
-        setModel(gen.model);
-        modelRef.current = gen.model;
-      } catch (e) {
-        setExportErr(e instanceof Error ? e.message : "Regeneration failed.");
-      } finally {
-        setBusy(false);
-      }
-    },
-    [def, user, updateSections, updateTitle],
-  );
+  const handleGoBack = useCallback(() => {
+    if (isDirty) {
+      setShowLeaveConfirm(true);
+    } else {
+      router.back();
+    }
+  }, [isDirty]);
 
   const saveVersion = useCallback(() => {
     if (!record || !model) return;
@@ -448,8 +399,8 @@ export default function DocumentEditor() {
     setSections(v.sections);
     sectionsRef.current = v.sections;
     setVersionsOpen(false);
-    triggerAutosave();
-  }, [triggerAutosave]);
+    triggerSaveOrAutosave();
+  }, [triggerSaveOrAutosave]);
 
   const doExport = useCallback(
     async (format: ExportFormat) => {
@@ -612,15 +563,10 @@ export default function DocumentEditor() {
 
   const renderSection = (s: Section) => {
     const isSelected = selected?.id === s.id;
-    const isRegeneratingThis = regeneratingSectionId === s.id;
 
     return (
-      <TouchableOpacity
+      <View
         key={s.id}
-        activeOpacity={0.92}
-        onPress={() => {
-          scrollToSection(s.id);
-        }}
         style={[styles.canvasSection, isSelected && styles.canvasSectionSelected]}
         onLayout={(event) => {
           const { y } = event.nativeEvent.layout;
@@ -628,40 +574,28 @@ export default function DocumentEditor() {
         }}
       >
         <View style={styles.canvasSectionHead}>
-          <Text style={[styles.canvasSectionTitle, isSelected && { color: theme.accent }]}>{s.title}</Text>
-          {isRegeneratingThis ? (
-            <View style={styles.regenInlineBadge}>
-              <ActivityIndicator size="small" color={theme.accent} />
-              <Text style={styles.regenInlineText}>Regenerating…</Text>
-            </View>
-          ) : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1, flexWrap: "wrap" }}>
+            <Text style={[styles.canvasSectionTitle, isSelected && { color: theme.accent }]}>{s.title}</Text>
             <SectionStatusBadge status={s.status} />
-          )}
+          </View>
+          <TouchableOpacity
+            style={styles.editSectionBtn}
+            onPress={() => setEditingSection(s)}
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${s.title}`}
+          >
+            <Icon name="Edit3" size={13} color={theme.accent} />
+            <Text style={styles.editSectionBtnText}>Edit Section</Text>
+          </TouchableOpacity>
         </View>
 
-        {isRegeneratingThis ? (
-          <View style={styles.sectionLoadingBox}>
-            <ActivityIndicator size="small" color={theme.accent} />
-            <Text style={styles.sectionLoadingText}>Synthesizing section content with AI…</Text>
-          </View>
-        ) : isSelected ? (
-          <SectionEditor
-            section={s}
-            onChange={(blocks) =>
-              updateSections((prev) =>
-                prev.map((p) =>
-                  p.id === s.id ? { ...p, blocks, status: "edited" } : p,
-                ),
-              )
-            }
-          />
-        ) : (
+        <TouchableOpacity activeOpacity={0.95} onPress={() => setEditingSection(s)}>
           <View>{s.blocks.map((b, i) => renderBlock(b, i, s.title))}</View>
-        )}
-        {s.blocks.length === 0 && !isSelected && !isRegeneratingThis ? (
-          <Text style={styles.muted}>No content yet. Click to edit.</Text>
-        ) : null}
-      </TouchableOpacity>
+          {s.blocks.length === 0 ? (
+            <Text style={styles.muted}>No content yet. Click to edit in modal dialog.</Text>
+          ) : null}
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -790,22 +724,6 @@ export default function DocumentEditor() {
         style={styles.ctxButton}
       />
 
-      <SectionLabel>AI tools</SectionLabel>
-      <Button
-        label="Regenerate section"
-        variant="secondary"
-        onPress={() => selected && regenerateSection(selected.id)}
-        disabled={busy || !selected || Boolean(regeneratingSectionId)}
-        style={styles.ctxButton}
-      />
-      <Button
-        label="Regenerate all"
-        variant="secondary"
-        onPress={() => regenerateAll()}
-        disabled={busy || Boolean(regeneratingSectionId)}
-        style={styles.ctxButton}
-      />
-
       <SectionLabel>Details</SectionLabel>
       <View style={styles.detailRow}>
         <Text style={styles.detailKey}>Category</Text>
@@ -839,7 +757,7 @@ export default function DocumentEditor() {
   // ---- Top bar -----------------------------------------------------------
   const renderTopBar = () => (
     <View style={styles.topbar}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+      <TouchableOpacity onPress={handleGoBack} style={styles.backBtn}>
         <Icon name="ChevronLeft" size={18} color={theme.muted} />
         <Text style={styles.backText}>Documents</Text>
       </TouchableOpacity>
@@ -852,31 +770,35 @@ export default function DocumentEditor() {
         />
       </View>
       {model ? <StatusBadge status="editing" /> : null}
-      <View style={styles.saveStatusContainer}>
-        {saveState === "saving" ? (
-          <View style={styles.saveProgressRow}>
-            <ActivityIndicator size="small" color={theme.accent} />
-            <Text style={styles.saveStatus}>Saving…</Text>
-          </View>
-        ) : (
-          <Text style={styles.saveStatus}>
-            {saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : ""}
-          </Text>
-        )}
-      </View>
+
       <View style={styles.topActions}>
+        {/* Autosave Switch Toggle */}
+        <TouchableOpacity
+          style={[styles.autosaveToggle, autosaveEnabled ? styles.autosaveToggleOn : styles.autosaveToggleOff]}
+          onPress={() => setAutosaveEnabled((v) => !v)}
+          accessibilityRole="button"
+          accessibilityLabel={`Autosave is ${autosaveEnabled ? "ON" : "OFF"}`}
+        >
+          <View style={[styles.autosaveDot, autosaveEnabled ? styles.autosaveDotOn : styles.autosaveDotOff]} />
+          <Text style={[styles.autosaveText, autosaveEnabled ? styles.autosaveTextOn : styles.autosaveTextOff]}>
+            {autosaveEnabled ? "Autosave ON" : "Autosave OFF"}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Save Document Button */}
         <Button
-          label="Regenerate section"
-          variant="secondary"
-          onPress={() => selected && regenerateSection(selected.id)}
-          disabled={busy || !selected || Boolean(regeneratingSectionId)}
+          label={
+            saveState === "saving"
+              ? "Saving…"
+              : isDirty
+              ? "Save"
+              : "✓ Saved"
+          }
+          variant={isDirty ? "primary" : "secondary"}
+          disabled={saveState === "saving"}
+          onPress={() => executeSave()}
         />
-        <Button
-          label="Regenerate all"
-          variant="secondary"
-          onPress={() => regenerateAll()}
-          disabled={busy || Boolean(regeneratingSectionId)}
-        />
+
         <Button label="Save version" variant="secondary" onPress={saveVersion} />
         <Button label="Export" onPress={() => setExportOpen(true)} />
         <TouchableOpacity
@@ -939,9 +861,6 @@ export default function DocumentEditor() {
             <Card style={styles.leftCard}>{renderNavigator()}</Card>
           </View>
           <View style={styles.centerCol}>
-            {busy && !regeneratingSectionId ? (
-              <LoadingOverlay message="Regenerating document…" subMessage="Synthesizing all sections with latest model parameters" />
-            ) : null}
             {renderCanvas()}
           </View>
           <View style={styles.rightCol}>
@@ -967,7 +886,7 @@ export default function DocumentEditor() {
                   const next = autofillFromProfiles(sourceRef.current, userSettings, "tester");
                   setSource(next);
                   sourceRef.current = next;
-                  triggerAutosave();
+                  triggerSaveOrAutosave();
                 }}
               >
                 <Text style={styles.sheetAutofillBtnText}>+ Tester</Text>
@@ -978,7 +897,7 @@ export default function DocumentEditor() {
                   const next = autofillFromProfiles(sourceRef.current, userSettings, "client");
                   setSource(next);
                   sourceRef.current = next;
-                  triggerAutosave();
+                  triggerSaveOrAutosave();
                 }}
               >
                 <Text style={styles.sheetAutofillBtnText}>+ Client</Text>
@@ -989,7 +908,7 @@ export default function DocumentEditor() {
                   const next = autofillFromProfiles(sourceRef.current, userSettings, "all");
                   setSource(next);
                   sourceRef.current = next;
-                  triggerAutosave();
+                  triggerSaveOrAutosave();
                 }}
               >
                 <Text style={styles.sheetAutofillBtnAccentText}>Autofill All</Text>
@@ -1005,10 +924,10 @@ export default function DocumentEditor() {
           </ScrollView>
           <View style={styles.sheetActions}>
             <Button
-              label="Apply & regenerate"
+              label="Apply Changes"
               onPress={() => {
                 setShowSource(false);
-                void regenerateAll(sourceRef.current);
+                void executeSave();
               }}
             />
             <Button label="Close" variant="ghost" onPress={() => setShowSource(false)} />
@@ -1172,17 +1091,20 @@ export default function DocumentEditor() {
         <Button label="Export" onPress={() => setExportOpen(true)} />
       </View>
 
-      {busy && !regeneratingSectionId ? (
-        <LoadingOverlay message="Regenerating document…" subMessage="Synthesizing all sections with latest model parameters" />
-      ) : null}
       {renderCanvas()}
 
       <View style={styles.mobileActions}>
         <Button
-          label="Regenerate"
-          variant="secondary"
-          onPress={() => (selected ? regenerateSection(selected.id) : regenerateAll())}
-          disabled={busy || Boolean(regeneratingSectionId)}
+          label={
+            saveState === "saving"
+              ? "Saving…"
+              : isDirty
+              ? "Save Document"
+              : "✓ Saved"
+          }
+          variant={isDirty ? "primary" : "secondary"}
+          disabled={saveState === "saving"}
+          onPress={() => executeSave()}
           style={styles.mobileAction}
         />
         <Button
@@ -1251,13 +1173,6 @@ export default function DocumentEditor() {
             style={styles.ctxButton}
           />
           <Button
-            label="Regenerate all"
-            variant="secondary"
-            onPress={() => regenerateAll()}
-            disabled={busy || Boolean(regeneratingSectionId)}
-            style={styles.ctxButton}
-          />
-          <Button
             label="Version history"
             variant="secondary"
             onPress={() => {
@@ -1269,6 +1184,84 @@ export default function DocumentEditor() {
         </View>
         <Button label="Close" variant="ghost" onPress={() => setDetailsOpen(false)} />
       </Sheet>
+
+      {/* Centered UI Modal for Section Editing */}
+      <SectionEditorModal
+        open={editingSection !== null}
+        section={editingSection}
+        onClose={() => setEditingSection(null)}
+        onSave={(newBlocks) => {
+          if (!editingSection) return;
+          updateSections((prev) =>
+            prev.map((p) =>
+              p.id === editingSection.id
+                ? { ...p, blocks: newBlocks, status: "edited" }
+                : p,
+            ),
+          );
+          setIsDirty(true);
+          setEditingSection(null);
+        }}
+      />
+
+      {/* Progress will be lost confirmation modal */}
+      <Dialog open={showLeaveConfirm} onClose={() => setShowLeaveConfirm(false)}>
+        <View style={{ alignItems: "center", paddingVertical: 12 }}>
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: "rgba(217, 154, 36, 0.15)",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 14,
+            }}
+          >
+            <Icon name="AlertTriangle" size={24} color={theme.warn} />
+          </View>
+          <Heading level={3} style={{ textAlign: "center", marginBottom: 8 }}>
+            Progress Will Be Lost
+          </Heading>
+          <Text
+            style={{
+              fontFamily: theme.font.sans,
+              fontSize: 13.5,
+              color: theme.muted,
+              textAlign: "center",
+              lineHeight: 20,
+              marginBottom: 20,
+            }}
+          >
+            You have unsaved changes in this document. If you leave now, your recent edits will not be saved.
+          </Text>
+          <View style={{ flexDirection: "column", gap: 10, width: "100%" }}>
+            <Button
+              label="Save & Leave"
+              variant="primary"
+              onPress={async () => {
+                await executeSave();
+                setShowLeaveConfirm(false);
+                router.back();
+              }}
+            />
+            <Button
+              label="Discard Changes & Leave"
+              variant="ghost"
+              onPress={() => {
+                setShowLeaveConfirm(false);
+                setIsDirty(false);
+                router.back();
+              }}
+            />
+            <Button
+              label="Keep Editing"
+              variant="secondary"
+              onPress={() => setShowLeaveConfirm(false)}
+            />
+          </View>
+        </View>
+      </Dialog>
     </View>
   );
 }
@@ -1474,6 +1467,62 @@ const styles = StyleSheet.create({
   navItemHidden: { color: theme.muted, textDecorationLine: "line-through" },
   navToggle: { paddingHorizontal: 10, justifyContent: "center", alignItems: "center", borderLeftWidth: 1, borderColor: theme.border },
   navAdd: { marginTop: 4 },
+
+  editSectionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  editSectionBtnText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12,
+    color: theme.accent,
+  },
+  autosaveToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: theme.radiusSm,
+    borderWidth: 1,
+  },
+  autosaveToggleOn: {
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    borderColor: theme.ok,
+  },
+  autosaveToggleOff: {
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
+  },
+  autosaveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  autosaveDotOn: {
+    backgroundColor: theme.ok,
+  },
+  autosaveDotOff: {
+    backgroundColor: theme.muted,
+  },
+  autosaveText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  autosaveTextOn: {
+    color: theme.ok,
+  },
+  autosaveTextOff: {
+    color: theme.muted,
+  },
 
   topActionBtn: {
     flexDirection: "row",

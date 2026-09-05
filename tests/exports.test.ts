@@ -61,4 +61,27 @@ describe("exports", () => {
     expect(r.filename).toBe("acme-corp-penetration-testing-report.json");
     expect(r.mimeType).toBe("application/json");
   });
+
+  it("pdf export preserves user edited callout text without dropping content", async () => {
+    const secExceptionDef = getDefinition("sec_exception_waiver")!;
+    const doc = generateDocument(secExceptionDef, {
+      clientName: "Something Inc",
+      policyWaived: "ISO 27001 Annex A.9 Access Control",
+    });
+    // Add custom edited callout block
+    doc.sections[1].blocks.push({
+      type: "callout",
+      tone: "missing",
+      text: "so ytea lol",
+    });
+
+    const pdfBuf = await toPdf(doc);
+    expect(pdfBuf).toBeInstanceOf(Uint8Array);
+    expect(pdfBuf.length).toBeGreaterThan(1000);
+    // Verify PDF header
+    expect(pdfBuf[0]).toBe(0x25); // %
+    expect(pdfBuf[1]).toBe(0x50); // P
+    expect(pdfBuf[2]).toBe(0x44); // D
+    expect(pdfBuf[3]).toBe(0x46); // F
+  });
 });

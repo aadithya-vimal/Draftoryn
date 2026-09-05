@@ -81,9 +81,38 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
 };
 
 const STORAGE_KEY = "draftoryn_user_settings_v1";
+const AI_KEYS_LOCAL_STORAGE_KEY = "draftoryn_ai_keys_secure_local_v1";
+
+interface SecureLocalAiKeys {
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
+  groqApiKey?: string;
+  geminiApiKey?: string;
+}
+
+async function getLocalAiKeys(): Promise<SecureLocalAiKeys> {
+  try {
+    const storage = getPlatformStorage();
+    const raw = await storage.get(AI_KEYS_LOCAL_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function saveLocalAiKeys(keys: SecureLocalAiKeys): Promise<void> {
+  try {
+    const storage = getPlatformStorage();
+    await storage.set(AI_KEYS_LOCAL_STORAGE_KEY, JSON.stringify(keys));
+  } catch {
+    // Local storage error ignored
+  }
+}
 
 export async function getUserSettings(user?: AuthLike | null): Promise<UserSettings> {
   const storage = getPlatformStorage();
+  const localKeys = await getLocalAiKeys();
 
   // 1. Authoritative fetch from Neon if user is authenticated
   if (user && user.userId) {
@@ -100,6 +129,7 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
 
       if (remote) {
         const remotePrefs = (remote.testerProfile as Record<string, unknown>) || {};
+        const remoteAi = (remote.aiSettings as Partial<AiSettings>) || {};
         const merged: UserSettings = {
           defaultExportFormat: (remote.defaultExportFormat as UserExportFormat) || DEFAULT_USER_SETTINGS.defaultExportFormat,
           compactLists: Boolean(remote.compactLists),
@@ -119,8 +149,16 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
             ...((remote.clientProfile as Partial<ClientProfile>) || {}),
           },
           aiSettings: {
-            ...DEFAULT_USER_SETTINGS.aiSettings,
-            ...((remote.aiSettings as Partial<AiSettings>) || {}),
+            defaultProvider: remoteAi.defaultProvider || DEFAULT_AI_SETTINGS.defaultProvider,
+            openaiModel: remoteAi.openaiModel || DEFAULT_AI_SETTINGS.openaiModel,
+            anthropicModel: remoteAi.anthropicModel || DEFAULT_AI_SETTINGS.anthropicModel,
+            groqModel: remoteAi.groqModel || DEFAULT_AI_SETTINGS.groqModel,
+            geminiModel: remoteAi.geminiModel || DEFAULT_AI_SETTINGS.geminiModel,
+            // API keys are strictly loaded from local storage only - NEVER from database
+            openaiApiKey: localKeys.openaiApiKey ?? "",
+            anthropicApiKey: localKeys.anthropicApiKey ?? "",
+            groqApiKey: localKeys.groqApiKey ?? "",
+            geminiApiKey: localKeys.geminiApiKey ?? "",
           },
         };
         await storage.set(STORAGE_KEY, JSON.stringify(merged));
@@ -134,8 +172,17 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
   // 2. Local storage fallback
   try {
     const raw = await storage.get(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_USER_SETTINGS };
+    if (!raw) {
+      return {
+        ...DEFAULT_USER_SETTINGS,
+        aiSettings: {
+          ...DEFAULT_AI_SETTINGS,
+          ...localKeys,
+        },
+      };
+    }
     const parsed = JSON.parse(raw);
+    const parsedAi = parsed.aiSettings || {};
     return {
       defaultExportFormat: parsed.defaultExportFormat || DEFAULT_USER_SETTINGS.defaultExportFormat,
       compactLists: Boolean(parsed.compactLists),
@@ -150,12 +197,25 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
         ...(parsed.clientProfile || {}),
       },
       aiSettings: {
-        ...DEFAULT_USER_SETTINGS.aiSettings,
-        ...(parsed.aiSettings || {}),
+        defaultProvider: parsedAi.defaultProvider || DEFAULT_AI_SETTINGS.defaultProvider,
+        openaiModel: parsedAi.openaiModel || DEFAULT_AI_SETTINGS.openaiModel,
+        anthropicModel: parsedAi.anthropicModel || DEFAULT_AI_SETTINGS.anthropicModel,
+        groqModel: parsedAi.groqModel || DEFAULT_AI_SETTINGS.groqModel,
+        geminiModel: parsedAi.geminiModel || DEFAULT_AI_SETTINGS.geminiModel,
+        openaiApiKey: localKeys.openaiApiKey ?? parsedAi.openaiApiKey ?? "",
+        anthropicApiKey: localKeys.anthropicApiKey ?? parsedAi.anthropicApiKey ?? "",
+        groqApiKey: localKeys.groqApiKey ?? parsedAi.groqApiKey ?? "",
+        geminiApiKey: localKeys.geminiApiKey ?? parsedAi.geminiApiKey ?? "",
       },
     };
   } catch {
-    return { ...DEFAULT_USER_SETTINGS };
+    return {
+      ...DEFAULT_USER_SETTINGS,
+      aiSettings: {
+        ...DEFAULT_AI_SETTINGS,
+        ...localKeys,
+      },
+    };
   }
 }
 
@@ -165,6 +225,20 @@ export async function saveUserSettings(
 ): Promise<UserSettings> {
   const storage = getPlatformStorage();
   const current = await getUserSettings(user);
+
+  const newAiSettings: AiSettings = {
+    ...current.aiSettings,
+    ...(settings.aiSettings || {}),
+  };
+
+  // 1. Securely save API keys ONLY in local storage
+  await saveLocalAiKeys({
+    openaiApiKey: newAiSettings.openaiApiKey ?? "",
+    anthropicApiKey: newAiSettings.anthropicApiKey ?? "",
+    groqApiKey: newAiSettings.groqApiKey ?? "",
+    geminiApiKey: newAiSettings.geminiApiKey ?? "",
+  });
+
   const updated: UserSettings = {
     defaultExportFormat: settings.defaultExportFormat ?? current.defaultExportFormat,
     compactLists: settings.compactLists !== undefined ? settings.compactLists : current.compactLists,
@@ -178,10 +252,7 @@ export async function saveUserSettings(
       ...current.clientProfile,
       ...(settings.clientProfile || {}),
     },
-    aiSettings: {
-      ...current.aiSettings,
-      ...(settings.aiSettings || {}),
-    },
+    aiSettings: newAiSettings,
   };
 
   // Cache locally for instant UI responsiveness
@@ -191,9 +262,17 @@ export async function saveUserSettings(
     // Local storage warning ignored
   }
 
-  // Persist authoritatively to Neon
+  // Persist authoritatively to Neon: strictly STRIP all API keys so they are never sent to or stored in DB
   if (user && user.userId) {
     try {
+      const sanitizedAiSettingsForDb = {
+        defaultProvider: updated.aiSettings.defaultProvider,
+        openaiModel: updated.aiSettings.openaiModel,
+        anthropicModel: updated.aiSettings.anthropicModel,
+        groqModel: updated.aiSettings.groqModel,
+        geminiModel: updated.aiSettings.geminiModel,
+      };
+
       await clientHttp(
         "/api/settings",
         {
@@ -205,7 +284,7 @@ export async function saveUserSettings(
             sessionTimeoutMinutes: updated.sessionTimeoutMinutes,
             testerProfile: updated.testerProfile,
             clientProfile: updated.clientProfile,
-            aiSettings: updated.aiSettings,
+            aiSettings: sanitizedAiSettingsForDb,
           }),
         },
         user,

@@ -101,13 +101,15 @@ export async function toPdf(doc: GeneratedDocument): Promise<Uint8Array> {
         const color = b.tone === "missing" ? MISSING : b.tone === "warning" ? WARN : b.tone === "assumption" ? ASSUMPTION : ACCENT;
         const label = (b.tone ?? "info").toUpperCase();
         const inner = PAGE.w - MARGIN * 2 - 16;
-        const lines = wrap(`${label}: ${b.text ?? ""}`, sansFont, 9.5, inner);
-        const boxH = lines.length * 14 + 12;
+        const rawContent = b.text ?? "";
+        const cleanContent = rawContent.replace(new RegExp(`^\\s*(\\[)?${label}\\s*:\\s*`, "i"), "").trim() || rawContent;
+        const lines = wrap(cleanContent, sansFont, 9.5, inner);
+        const boxH = Math.max(lines.length * 14 + 22, 38);
         ensure(boxH + 10);
         y -= 4;
         page.drawRectangle({ x: MARGIN, y: y - boxH + 8, width: PAGE.w - MARGIN * 2, height: boxH, color: CALLOUT_BG, borderColor: color, borderWidth: 1 });
-        page.drawText(label, { x: MARGIN + 8, y: y - 4, size: 9.5, font: sansBold, color });
-        lines.slice(1).forEach((ln, i) => {
+        page.drawText(label, { x: MARGIN + 8, y: y - 4, size: 9, font: sansBold, color });
+        lines.forEach((ln, i) => {
           page.drawText(ln, { x: MARGIN + 8, y: y - 18 - i * 14, size: 9.5, font: sansFont, color: INK });
         });
         y -= boxH + 10;

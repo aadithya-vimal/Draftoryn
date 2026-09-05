@@ -212,6 +212,19 @@ function generateBlocks(ctx: Ctx, s: SectionDef): ContentBlock[] {
       return blocks;
     }
 
+    case "policy_waived": {
+      const policy = (source.policyWaived as string)?.trim() || single(model, "policyWaived") || (source.policy as string)?.trim();
+      if (policy) {
+        return [
+          paragraph(`The following specific organizational security policy, regulatory mandate, or technical standard is subject to this formal waiver exception:`),
+          callout(policy, "info", "Waived Standard / Policy"),
+        ];
+      }
+      return [
+        callout("Specific corporate security policy or technical control standard being waived under this exception.", "info", "Security Policy Identifier"),
+      ];
+    }
+
     case "scope":
     case "in_scope": {
       const scope = model.scope;

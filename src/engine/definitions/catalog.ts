@@ -889,7 +889,7 @@ export const DOCUMENT_DEFINITIONS: DocumentDefinition[] = [
     sections: [
       S("doc_control", "Document Control", "doc_control"),
       S("exception_summary", "Exception Summary and Scope", "intro"),
-      S("policy_waived", "Policy or Standard Being Waived", "scope"),
+      S("policy_waived", "Policy or Standard Being Waived", "policy_waived"),
       S("business_justification", "Business Justification and Rationale", "objectives"),
       S("risk_analysis", "Technical Risk Analysis and Threat Potential", "findings"),
       S("compensating_controls", "Compensating Security Controls", "recommendations"),

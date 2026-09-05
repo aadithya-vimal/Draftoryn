@@ -568,6 +568,21 @@ export default function Settings() {
               </View>
             </View>
 
+            {/* Security Isolation Notice */}
+            <View style={{ backgroundColor: theme.surface2, borderWidth: 1, borderColor: theme.border, borderRadius: 8, padding: 14, marginBottom: 16, flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(47, 107, 255, 0.12)", alignItems: "center", justifyContent: "center" }}>
+                <Icon name="Shield" size={18} color={theme.accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: theme.font.sansSemi, fontSize: 13, color: theme.text, marginBottom: 3 }}>
+                  Client-Side Key Storage & Zero-Knowledge Isolation
+                </Text>
+                <Text style={{ fontFamily: theme.font.sans, fontSize: 12, color: theme.muted, lineHeight: 18 }}>
+                  For maximum security, your API keys are stored exclusively inside your browser's local storage on this device. Keys are strictly client-side and are NEVER transmitted to, saved in, or synced with any remote database.
+                </Text>
+              </View>
+            </View>
+
             {/* Provider Tabs */}
             <View style={styles.aiProviderTabs}>
               {(["openai", "anthropic", "groq", "gemini"] as AiProviderType[]).map((p) => {
@@ -607,7 +622,7 @@ export default function Settings() {
                 </View>
                 {aiSettings.defaultProvider !== activeAiTab ? (
                   <Button
-                    label="Set as Default"
+                    label="Set as Default Provider"
                     variant="secondary"
                     onPress={() => {
                       updateAiSetting({ defaultProvider: activeAiTab });
@@ -617,24 +632,51 @@ export default function Settings() {
                 ) : (
                   <View style={styles.aiActiveDefaultPill}>
                     <Icon name="CheckCircle" size={13} color={theme.ok} />
-                    <Text style={styles.aiActiveDefaultPillText}>Active Default</Text>
+                    <Text style={styles.aiActiveDefaultPillText}>Active Default Provider</Text>
                   </View>
                 )}
               </View>
 
-              {/* Model Selection */}
+              {/* Model Input & Presets */}
               <View style={{ gap: 6, marginTop: 14 }}>
-                <Text style={styles.inputLabel}>Model Selection</Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <Text style={styles.inputLabel}>Model Identifier</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={
+                    activeAiTab === "openai"
+                      ? (aiSettings.openaiModel !== undefined ? aiSettings.openaiModel : AI_PROVIDERS.openai.defaultModel)
+                      : activeAiTab === "anthropic"
+                      ? (aiSettings.anthropicModel !== undefined ? aiSettings.anthropicModel : AI_PROVIDERS.anthropic.defaultModel)
+                      : activeAiTab === "groq"
+                      ? (aiSettings.groqModel !== undefined ? aiSettings.groqModel : AI_PROVIDERS.groq.defaultModel)
+                      : (aiSettings.geminiModel !== undefined ? aiSettings.geminiModel : AI_PROVIDERS.gemini.defaultModel)
+                  }
+                  onChangeText={(val) => {
+                    if (activeAiTab === "openai") updateAiSetting({ openaiModel: val });
+                    else if (activeAiTab === "anthropic") updateAiSetting({ anthropicModel: val });
+                    else if (activeAiTab === "groq") updateAiSetting({ groqModel: val });
+                    else if (activeAiTab === "gemini") updateAiSetting({ geminiModel: val });
+                  }}
+                  placeholder={AI_PROVIDERS[activeAiTab].defaultModel}
+                  placeholderTextColor={theme.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <Text style={{ fontFamily: theme.font.sans, fontSize: 11.5, color: theme.muted }}>
+                  Enter any model name supported by your {AI_PROVIDERS[activeAiTab].name} account, or choose a preset below:
+                </Text>
+
+                {/* Preset Chips */}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
                   {AI_PROVIDERS[activeAiTab].models.map((m) => {
                     const currentModel =
                       activeAiTab === "openai"
-                        ? aiSettings.openaiModel || AI_PROVIDERS.openai.defaultModel
+                        ? (aiSettings.openaiModel || AI_PROVIDERS.openai.defaultModel)
                         : activeAiTab === "anthropic"
-                        ? aiSettings.anthropicModel || AI_PROVIDERS.anthropic.defaultModel
+                        ? (aiSettings.anthropicModel || AI_PROVIDERS.anthropic.defaultModel)
                         : activeAiTab === "groq"
-                        ? aiSettings.groqModel || AI_PROVIDERS.groq.defaultModel
-                        : aiSettings.geminiModel || AI_PROVIDERS.gemini.defaultModel;
+                        ? (aiSettings.groqModel || AI_PROVIDERS.groq.defaultModel)
+                        : (aiSettings.geminiModel || AI_PROVIDERS.gemini.defaultModel);
                     const isModelChosen = currentModel === m;
                     return (
                       <Pressable
