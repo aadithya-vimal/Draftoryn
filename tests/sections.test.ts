@@ -29,14 +29,15 @@ describe("sections", () => {
   });
 
   it("adds an available optional section", () => {
-    const def = getDefinition("pentest_communications")!;
-    const optional = def.sections.find((s) => s.optional)!;
+    const def = getDefinition("pentest_report")!;
+    const optionalSectionDef = { id: "custom_notes", title: "Custom Notes", kind: "custom", optional: true };
+    const customDef = { ...def, sections: [...def.sections, optionalSectionDef] };
     let sections = createEmptySections(def);
-    sections = removeSection(sections, optional.id);
-    expect(sections.some((s) => s.id === optional.id)).toBe(false);
-    const next = addSection(sections, optional);
-    expect(next.some((s) => s.id === optional.id)).toBe(true);
-    expect(availableSections(def, next).some((s) => s.id === optional.id)).toBe(false);
+    expect(sections.some((s) => s.id === optionalSectionDef.id)).toBe(false);
+    expect(availableSections(customDef, sections).some((s) => s.id === optionalSectionDef.id)).toBe(true);
+    const next = addSection(sections, optionalSectionDef);
+    expect(next.some((s) => s.id === optionalSectionDef.id)).toBe(true);
+    expect(availableSections(customDef, next).some((s) => s.id === optionalSectionDef.id)).toBe(false);
   });
 
   it("identifies dependent sections for a changed concept (consistency)", () => {
@@ -48,8 +49,8 @@ describe("sections", () => {
 });
 
 describe("serialization / versioning", () => {
-  const v1: DocumentVersion = createVersion(1, "Doc", {}, { documentType: "x", category: "penetration_testing", documentName: "Doc", people: [], constraints: [], methodology: [], evidence: [], findings: [], risks: [], recommendations: [], assumptions: [], extra: {} }, [], "draft");
-  const v2: DocumentVersion = createVersion(2, "Doc", {}, { documentType: "x", category: "penetration_testing", documentName: "Doc", people: [], constraints: [], methodology: [], evidence: [], findings: [], risks: [], recommendations: [], assumptions: [], extra: {} }, [], "draft");
+  const v1: DocumentVersion = createVersion(1, "Doc", {}, { documentType: "x", category: "offensive_security", documentName: "Doc", people: [], constraints: [], methodology: [], evidence: [], findings: [], risks: [], recommendations: [], assumptions: [], extra: {} }, [], "draft");
+  const v2: DocumentVersion = createVersion(2, "Doc", {}, { documentType: "x", category: "offensive_security", documentName: "Doc", people: [], constraints: [], methodology: [], evidence: [], findings: [], risks: [], recommendations: [], assumptions: [], extra: {} }, [], "draft");
 
   it("computes next version number", () => {
     expect(nextVersionNumber([v1, v2])).toBe(3);

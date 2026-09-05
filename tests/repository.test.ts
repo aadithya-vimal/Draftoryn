@@ -5,7 +5,7 @@ import type { DocumentRecord } from "../src/repository/types";
 import { createVersion } from "../src/engine/serialization";
 
 function makeRecord(id: string, ownerId: string, title: string): DocumentRecord {
-  const v = createVersion(1, title, {}, { documentType: "x", category: "penetration_testing", documentName: title, people: [], constraints: [], methodology: [], evidence: [], findings: [], risks: [], recommendations: [], assumptions: [], extra: {} }, [], "ready");
+  const v = createVersion(1, title, {}, { documentType: "x", category: "offensive_security", documentName: title, people: [], constraints: [], methodology: [], evidence: [], findings: [], risks: [], recommendations: [], assumptions: [], extra: {} }, [], "ready");
   return {
     id,
     ownerId,

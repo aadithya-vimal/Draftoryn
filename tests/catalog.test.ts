@@ -8,16 +8,16 @@ import {
 } from "../src/engine/definitions/catalog";
 
 describe("catalog", () => {
-  it("includes all 12 day-one categories", () => {
-    expect(CATEGORIES.length).toBe(12);
+  it("includes all 6 core cybersecurity categories", () => {
+    expect(CATEGORIES.length).toBe(6);
     for (const c of CATEGORIES) {
       expect(CATEGORY_LABELS[c]).toBeTruthy();
       expect(definitionsByCategory(c).length).toBeGreaterThan(0);
     }
   });
 
-  it("defines the full day-one document catalog (100+ types)", () => {
-    expect(DOCUMENT_DEFINITIONS.length).toBeGreaterThanOrEqual(100);
+  it("defines exactly the 30 core document definitions", () => {
+    expect(DOCUMENT_DEFINITIONS.length).toBe(30);
   });
 
   it("every document has unique section ids within its definition", () => {
@@ -40,22 +40,26 @@ describe("catalog", () => {
   it("can look documents up by id and slug", () => {
     const first = DOCUMENT_DEFINITIONS[0]!;
     expect(getDefinition(first.id)).toBe(first);
-    expect(getDefinition(first.slug.replace(/-/g, "_") === first.id ? first.id : first.id)).toBeTruthy();
-    const bySlug = DOCUMENT_DEFINITIONS.find((d) => d.slug === first.slug);
-    expect(bySlug).toBe(first);
+    expect(getDefinition(first.slug)).toBe(first);
   });
 
-  it("documents differ by category structure (pentest vs threat model vs incident response)", () => {
-    const pentest = getDefinition("pentest_report")!;
-    const tm = getDefinition("tm_report")!;
+  it("verifies documents across all 6 domains have rich domain-specific sections", () => {
+    const roe = getDefinition("roe")!;
     const ir = getDefinition("ir_plan")!;
-    const pentestKinds = new Set(pentest.sections.map((s) => s.kind));
-    const tmKinds = new Set(tm.sections.map((s) => s.kind));
-    const irKinds = new Set(ir.sections.map((s) => s.kind));
-    expect(tmKinds.has("threat_catalog")).toBe(true);
-    expect(tmKinds.has("mitigations")).toBe(true);
-    expect(irKinds.has("classification")).toBe(true);
-    expect(irKinds.has("containment")).toBe(true);
-    expect(pentestKinds.has("mitigations")).toBe(false);
+    const tm = getDefinition("threat_model")!;
+    const risk = getDefinition("cyber_risk_assessment")!;
+    const bcp = getDefinition("bcp_plan")!;
+    const intel = getDefinition("threat_intel_report")!;
+
+    expect(roe.category).toBe("offensive_security");
+    expect(ir.category).toBe("incident_response_dfir");
+    expect(tm.category).toBe("security_architecture_engineering");
+    expect(risk.category).toBe("risk_governance");
+    expect(bcp.category).toBe("resilience");
+    expect(intel.category).toBe("threat_intelligence");
+
+    expect(roe.sections.length).toBeGreaterThanOrEqual(8);
+    expect(ir.sections.length).toBeGreaterThanOrEqual(8);
+    expect(tm.sections.length).toBeGreaterThanOrEqual(8);
   });
 });

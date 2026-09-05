@@ -10,76 +10,40 @@ export interface CategoryVisual {
 
 // Coherent icon system (Lucide) + restrained accent per family.
 export const CATEGORY_VISUALS: Record<DocumentCategory, CategoryVisual> = {
-  penetration_testing: {
+  offensive_security: {
     icon: "Crosshair",
-    label: "Penetration Testing",
-    blurb: "Authorized simulated attacks to find exploitable weaknesses.",
-    accent: "#B8860B",
+    label: "Offensive Security",
+    blurb: "Rules of engagement, authorization agreements, penetration testing, and red team reports.",
+    accent: "#3B82F6",
   },
-  red_team: {
-    icon: "Swords",
-    label: "Red Team",
-    blurb: "Goal-based adversarial emulation against people, process, and tech.",
-    accent: "#9B2C2C",
-  },
-  vulnerability_assessment: {
-    icon: "ScanLine",
-    label: "Vulnerability Assessment",
-    blurb: "Systematic identification and rating of vulnerabilities.",
-    accent: "#A9791B",
-  },
-  security_assessment: {
-    icon: "ShieldCheck",
-    label: "Security Assessment",
-    blurb: "Broad evaluation of security posture and controls.",
-    accent: "#4F6F52",
-  },
-  cloud_security_assessment: {
-    icon: "Cloud",
-    label: "Cloud Security Assessment",
-    blurb: "Review of cloud configuration, identity, and workload risk.",
-    accent: "#3F6FB0",
-  },
-  security_architecture_review: {
-    icon: "Building2",
-    label: "Security Architecture Review",
-    blurb: "Evaluation of design, trust boundaries, and control placement.",
-    accent: "#5B4B8A",
-  },
-  threat_modeling: {
-    icon: "Network",
-    label: "Threat Modeling",
-    blurb: "Structured analysis of threats, assets, and trust boundaries.",
-    accent: "#7C3AED",
-  },
-  digital_forensics: {
-    icon: "Fingerprint",
-    label: "Digital Forensics",
-    blurb: "Acquisition, analysis, and preservation of digital evidence.",
-    accent: "#4B5563",
-  },
-  incident_response: {
+  incident_response_dfir: {
     icon: "Siren",
-    label: "Incident Response",
-    blurb: "Detection, containment, and recovery from security incidents.",
-    accent: "#9B2C2C",
+    label: "Incident Response / DFIR",
+    blurb: "Incident plans, playbooks, digital forensics, malware analysis, and post-incident reviews.",
+    accent: "#EC4899",
   },
-  vulnerability_disclosure: {
-    icon: "Megaphone",
-    label: "Vulnerability Disclosure",
-    blurb: "Coordinated disclosure and safe-harbor workflow.",
-    accent: "#A9791B",
+  threat_intelligence: {
+    icon: "Network",
+    label: "Threat Intelligence",
+    blurb: "Actor profiles, threat assessments, campaign tracking, and tactical intelligence briefs.",
+    accent: "#8B5CF6",
   },
-  bug_bounty: {
-    icon: "Target",
-    label: "Bug Bounty",
-    blurb: "Researcher programs and submission handling.",
-    accent: "#4F6F52",
+  security_architecture_engineering: {
+    icon: "Building2",
+    label: "Security Architecture / Engineering",
+    blurb: "Threat models, architecture blueprints, design reviews, cloud, and app assessments.",
+    accent: "#06B6D4",
   },
-  secure_development: {
-    icon: "Code2",
-    label: "Secure Development",
-    blurb: "Secure SDLC, requirements, and review guidance.",
-    accent: "#3F6FB0",
+  risk_governance: {
+    icon: "ShieldCheck",
+    label: "Risk / Governance",
+    blurb: "Cyber risk assessments, enterprise risk registers, vendor reviews, and exception waivers.",
+    accent: "#F59E0B",
+  },
+  resilience: {
+    icon: "RefreshCw",
+    label: "Resilience",
+    blurb: "Business impact analyses, continuity plans, disaster recovery, and cyber recovery playbooks.",
+    accent: "#10B981",
   },
 };

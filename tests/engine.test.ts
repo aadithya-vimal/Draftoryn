@@ -59,7 +59,7 @@ describe("generation safety (no fabrication)", () => {
   });
 
   it("marks missing required information rather than inventing it", () => {
-    const def = getDefinition("pentest_authorization")!;
+    const def = getDefinition("pentest_agreement")!;
     const gen = generateDocument(def, {});
     const auth = gen.sections.find((s) => s.kind === "authorization")!;
     expect(auth.status).toBe("missing");
@@ -77,7 +77,7 @@ describe("generation safety (no fabrication)", () => {
 
 describe("generation determinism & structure", () => {
   it("is deterministic for the same input", () => {
-    const def = getDefinition("pentest_sow")!;
+    const def = getDefinition("pentest_plan")!;
     const src = { clientName: "Acme", objective: "Find holes" };
     const a = JSON.stringify(generateDocument(def, src).sections);
     const b = JSON.stringify(generateDocument(def, src).sections);
@@ -85,20 +85,20 @@ describe("generation determinism & structure", () => {
   });
 
   it("includes category-appropriate sections", () => {
-    const gen = generateDocument(getDefinition("tm_report")!, { clientName: "Acme" });
+    const gen = generateDocument(getDefinition("threat_model")!, { clientName: "Acme" });
     const kinds = gen.sections.map((s) => s.kind);
-    expect(kinds).toContain("asset_inventory");
-    expect(kinds).toContain("trust_boundaries");
-    expect(kinds).toContain("mitigations");
+    expect(kinds).toContain("scope");
+    expect(kinds).toContain("findings");
+    expect(kinds).toContain("recommendations");
   });
 
   it("regenerating a single section only replaces that section", () => {
     const def = getDefinition("pentest_report")!;
     const src = { clientName: "Acme" };
     const gen = generateDocument(def, src);
-    const before = gen.sections.find((s) => s.kind === "methodology")!.blocks;
-    const updated = regenerateSection(def, "methodology", src);
-    expect(updated?.id).toBe("methodology");
+    const before = gen.sections.find((s) => s.id === "scope_methodology")!.blocks;
+    const updated = regenerateSection(def, "scope_methodology", src);
+    expect(updated?.id).toBe("scope_methodology");
     void before;
   });
 

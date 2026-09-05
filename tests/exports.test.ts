@@ -15,7 +15,7 @@ describe("exports", () => {
 
   it("markdown preserves the title and sections", () => {
     const md = toMarkdown(gen);
-    expect(md).toContain("# Penetration Test Report");
+    expect(md).toContain("Penetration Testing Report");
     expect(md).toContain("Scope");
   });
 
@@ -40,7 +40,7 @@ describe("exports", () => {
   it("html is a full document", () => {
     const html = toHtml(gen);
     expect(html).toContain("<!doctype html>");
-    expect(html).toContain("Penetration Test Report");
+    expect(html).toContain("Penetration Testing Report");
   });
 
   it("pdf produces a non-empty buffer", async () => {
@@ -58,7 +58,7 @@ describe("exports", () => {
 
   it("exportDocument returns the right filename + mime per format", async () => {
     const r = await exportDocument(gen, "json");
-    expect(r.filename).toBe("acme-corp-penetration-test-report.json");
+    expect(r.filename).toBe("acme-corp-penetration-testing-report.json");
     expect(r.mimeType).toBe("application/json");
   });
 });

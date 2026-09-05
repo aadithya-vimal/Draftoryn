@@ -4,18 +4,12 @@
 import type { GeneratorMeta } from "./watermark";
 
 export type DocumentCategory =
-  | "penetration_testing"
-  | "red_team"
-  | "vulnerability_assessment"
-  | "security_assessment"
-  | "cloud_security_assessment"
-  | "security_architecture_review"
-  | "threat_modeling"
-  | "digital_forensics"
-  | "incident_response"
-  | "vulnerability_disclosure"
-  | "bug_bounty"
-  | "secure_development";
+  | "offensive_security"
+  | "incident_response_dfir"
+  | "threat_intelligence"
+  | "security_architecture_engineering"
+  | "risk_governance"
+  | "resilience";
 
 export type FieldType =
   | "text"
