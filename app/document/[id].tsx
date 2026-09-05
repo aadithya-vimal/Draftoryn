@@ -847,7 +847,15 @@ export default function DocumentEditor() {
   );
 
   // ---- Layout ------------------------------------------------------------
-  if (user.isLoaded && !user.isSignedIn) {
+  if (!user.isLoaded) {
+    return (
+      <Screen title="Document">
+        <LoadingOverlay message="Verifying authentication…" />
+      </Screen>
+    );
+  }
+
+  if (!user.isSignedIn) {
     return (
       <Screen title="Authentication Required">
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, minHeight: 480 }}>

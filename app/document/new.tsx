@@ -214,7 +214,20 @@ export default function NewDocumentScreen() {
   const completedStepsCount = stepsMeta.filter((s) => s.isComplete).length;
   const currentStepMeta = stepsMeta[Math.min(step, totalSteps - 1)];
 
-  if (user.isLoaded && !user.isSignedIn) {
+  if (!user.isLoaded) {
+    return (
+      <Screen title="Document">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 400 }}>
+          <ActivityIndicator size="large" color={theme.accent} />
+          <Text style={{ fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, marginTop: 12 }}>
+            Verifying authentication…
+          </Text>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!user.isSignedIn) {
     return (
       <Screen title="Authentication Required">
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, minHeight: 480 }}>

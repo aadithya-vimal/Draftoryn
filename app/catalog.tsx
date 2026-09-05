@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
+import { useAppUser } from "../src/auth/clerk";
 import { PublicHeader } from "../src/ui/PublicHeader";
 import { Button, Card, Heading, Input, theme } from "../src/ui/primitives";
 import { CATEGORIES, DOCUMENT_DEFINITIONS, definitionsByCategory } from "../src/engine/definitions/catalog";
@@ -12,8 +13,17 @@ const ALL = "__all__" as const;
 
 export default function CatalogPage() {
   const router = useRouter();
+  const user = useAppUser();
   const { width } = useWindowDimensions();
   const isMobile = width < 840;
+
+  const handleDraftClick = (defId: string) => {
+    if (!user.isSignedIn) {
+      router.push("/(auth)/login");
+      return;
+    }
+    router.push(`/document/new?def=${defId}`);
+  };
 
   const [activeCategory, setActiveCategory] = useState<DocumentCategory | typeof ALL>(ALL);
   const [query, setQuery] = useState("");
@@ -127,8 +137,8 @@ export default function CatalogPage() {
 
                     <View style={styles.cardActionRow}>
                       <Button
-                        label="Draft Specification →"
-                        onPress={() => router.push("/document/new?def=" + def.id)}
+                        label={user.isSignedIn ? "Draft Specification →" : "Sign in to Draft →"}
+                        onPress={() => handleDraftClick(def.id)}
                         style={{ width: "100%" }}
                       />
                     </View>

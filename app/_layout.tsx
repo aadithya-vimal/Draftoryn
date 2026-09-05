@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Text, View } from "react-native";
 import { ClerkProvider } from "@clerk/expo";
 import { CLERK_PUBLISHABLE_KEY, getTokenCache } from "../src/auth/clerk";
 import { theme, ThemeProvider } from "../src/ui/primitives";
@@ -38,7 +38,8 @@ function MissingKey() {
 import Head from "expo-router/head";
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const isWeb = Platform.OS === "web";
+  const [fontsLoaded, fontError] = useFonts({
     InterTight_400Regular,
     InterTight_500Medium,
     InterTight_600SemiBold,
@@ -49,7 +50,7 @@ export default function RootLayout() {
     IBMPlexMono_500Medium,
   });
 
-  if (!fontsLoaded) return <FontSplash />;
+  if (!fontsLoaded && !fontError && !isWeb) return <FontSplash />;
   if (!CLERK_PUBLISHABLE_KEY) return <MissingKey />;
 
   return (
