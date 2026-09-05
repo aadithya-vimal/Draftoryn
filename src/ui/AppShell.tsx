@@ -1,9 +1,15 @@
-import React from "react";
-import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { usePathname, useRouter } from "expo-router";
 import { useAppUser } from "../auth/clerk";
-import { Icon } from "./components";
-import { theme } from "./primitives";
+import { Dialog, Icon } from "./components";
+import { Button, theme } from "./primitives";
+import {
+  listWorkspaces,
+  createWorkspace,
+  setDefaultWorkspace,
+  type WorkspaceRecord,
+} from "../data/workspaces";
 
 interface NavItem {
   href: string;
@@ -17,9 +23,17 @@ const NAV: NavItem[] = [
   { href: "/(app)/library", label: "Library", icon: "Folder" },
 ];
 
+function normalizePath(p: string): string {
+  if (!p) return "";
+  const stripped = p.replace(/\/\([^)]+\)/g, "").replace(/\/+$/, "");
+  return stripped === "" ? "/" : stripped;
+}
+
 function isNavActive(current: string, target: string): boolean {
-  if (current === target) return true;
-  if (target !== "/" && current.startsWith(target + "/")) return true;
+  const cur = normalizePath(current);
+  const tgt = normalizePath(target);
+  if (cur === tgt) return true;
+  if (tgt !== "/" && cur.startsWith(tgt + "/")) return true;
   return false;
 }
 
@@ -33,7 +47,7 @@ function Brand() {
       />
       <View>
         <Text style={styles.brandText}>DRAFTORYN</Text>
-        <Text style={styles.brandSub}>DOC STUDIO // V1</Text>
+        <Text style={styles.brandSub}>SPECIFICATION SYSTEM</Text>
       </View>
     </View>
   );
@@ -42,9 +56,65 @@ function Brand() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
-  const { name, email, signOut } = useAppUser();
+  const user = useAppUser();
+  const { name, email, signOut, isSignedIn, userId } = user;
   const { width } = useWindowDimensions();
   const isMobile = width < 840;
+
+  const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
+  const [activeWs, setActiveWs] = useState<WorkspaceRecord | null>(null);
+  const [wsModalOpen, setWsModalOpen] = useState<boolean>(false);
+  const [newWsName, setNewWsName] = useState<string>("");
+  const [creatingWs, setCreatingWs] = useState<boolean>(false);
+
+  const loadWorkspaces = async () => {
+    if (!isSignedIn) return;
+    try {
+      const list = await listWorkspaces(user);
+      setWorkspaces(list);
+      const def = list.find((w) => w.isDefault) || list[0] || null;
+      setActiveWs(def);
+    } catch (e) {
+      console.warn("Could not load workspaces in AppShell", e);
+    }
+  };
+
+  useEffect(() => {
+    loadWorkspaces();
+  }, [isSignedIn, userId]);
+
+  const handleSelectWorkspace = async (ws: WorkspaceRecord) => {
+    try {
+      await setDefaultWorkspace(user, ws.id);
+      setActiveWs(ws);
+      setWorkspaces((prev) =>
+        prev.map((w) => ({
+          ...w,
+          isDefault: w.id === ws.id,
+        })),
+      );
+      setWsModalOpen(false);
+    } catch (e) {
+      console.error("Failed to select workspace", e);
+    }
+  };
+
+  const handleCreateWorkspace = async () => {
+    const trimmed = newWsName.trim();
+    if (!trimmed || creatingWs) return;
+    setCreatingWs(true);
+    try {
+      const created = await createWorkspace(user, trimmed);
+      await setDefaultWorkspace(user, created.id);
+      setNewWsName("");
+      await loadWorkspaces();
+      setWsModalOpen(false);
+    } catch (e) {
+      console.error("Failed to create workspace", e);
+    } finally {
+      setCreatingWs(false);
+    }
+  };
 
   const activeNav: NavItem = NAV.find((n) => isNavActive(pathname, n.href)) ?? NAV[0]!;
   const isSettingsActive = isNavActive(pathname, "/(app)/settings");
@@ -56,21 +126,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Brand />
         </Pressable>
 
-        {/* Workspace Context Indicator */}
-        <View style={styles.workspaceCard}>
+        {/* Workspace Context Indicator & Switcher */}
+        <Pressable
+          style={({ pressed }) => [styles.workspaceCard, pressed && styles.workspaceCardPressed]}
+          onPress={() => setWsModalOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Switch Workspace"
+        >
           <View style={styles.workspaceDot} />
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.workspaceLabel}>WORKSPACE</Text>
-            <Text style={styles.workspaceName} numberOfLines={1}>Primary Workspace</Text>
+            <Text style={styles.workspaceName} numberOfLines={1}>
+              {activeWs?.name || "Primary Workspace"}
+            </Text>
           </View>
-          <View style={styles.workspaceBadge}>
-            <Text style={styles.workspaceBadgeText}>LIVE</Text>
-          </View>
-        </View>
+          <Icon name="ChevronDown" size={13} color={theme.muted} />
+        </Pressable>
 
         {/* Navigation links */}
         <View style={styles.railNav}>
-          <Text style={styles.navGroupLabel}>STUDIO</Text>
+          <Text style={styles.navGroupLabel}>NAVIGATION</Text>
           {NAV.map((n) => {
             const active = isNavActive(pathname, n.href);
             return (
@@ -149,10 +224,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Pressable onPress={() => router.push("/(app)/home")}>
         <Brand />
       </Pressable>
-      <View style={styles.mobilePageBadge}>
-        <Icon name={activeNav.icon} size={13} color={theme.accent} />
-        <Text style={styles.mobilePageBadgeText}>{activeNav.label}</Text>
-      </View>
+      <Pressable
+        onPress={() => setWsModalOpen(true)}
+        style={styles.mobileWsButton}
+        accessibilityRole="button"
+        accessibilityLabel="Switch Workspace"
+      >
+        <View style={styles.workspaceDot} />
+        <Text style={styles.mobileWsText} numberOfLines={1}>
+          {activeWs?.name || "Workspace"}
+        </Text>
+        <Icon name="ChevronDown" size={11} color={theme.muted} />
+      </Pressable>
       <Pressable onPress={() => router.push("/(app)/settings")} hitSlop={8}>
         <View style={[styles.avatar, isSettingsActive && styles.avatarActive]}>
           <Icon name="User" size={15} color={isSettingsActive ? theme.accent : theme.muted} />
@@ -161,12 +244,91 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </View>
   );
 
+  const wsDialog = (
+    <Dialog
+      open={wsModalOpen}
+      onClose={() => setWsModalOpen(false)}
+      title="Security Workspaces"
+    >
+      <Text style={styles.wsModalHint}>
+        Workspaces isolate specifications, assessments, and client deliverables in Neon PostgreSQL.
+      </Text>
+
+      <View style={styles.wsList}>
+        {workspaces.map((w) => {
+          const isSelected = activeWs?.id === w.id || w.isDefault;
+          return (
+            <Pressable
+              key={w.id}
+              style={[styles.wsRow, isSelected && styles.wsRowSelected]}
+              onPress={() => handleSelectWorkspace(w)}
+            >
+              <View style={[styles.wsRadio, isSelected && styles.wsRadioSelected]}>
+                {isSelected && <View style={styles.wsRadioInner} />}
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={[styles.wsRowName, isSelected && styles.wsRowNameSelected]} numberOfLines={1}>
+                  {w.name}
+                </Text>
+                <Text style={styles.wsRowSlug}>slug: {w.slug}</Text>
+              </View>
+              {isSelected && (
+                <View style={styles.wsActiveBadge}>
+                  <Text style={styles.wsActiveBadgeText}>ACTIVE</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.wsCreateSection}>
+        <Text style={styles.wsCreateLabel}>Create New Workspace</Text>
+        <View style={styles.wsCreateRow}>
+          <TextInput
+            style={styles.wsInput}
+            value={newWsName}
+            onChangeText={setNewWsName}
+            placeholder="e.g., Red Team Practice"
+            placeholderTextColor={theme.muted}
+          />
+          <Button
+            label={creatingWs ? "Creating…" : "Create"}
+            variant="secondary"
+            onPress={handleCreateWorkspace}
+            disabled={!newWsName.trim() || creatingWs}
+            style={{ minWidth: 84 }}
+          />
+        </View>
+      </View>
+
+      <View style={styles.wsFooterRow}>
+        <Pressable
+          onPress={() => {
+            setWsModalOpen(false);
+            router.push("/(app)/settings");
+          }}
+          style={styles.manageLink}
+        >
+          <Icon name="Settings" size={13} color={theme.accent} />
+          <Text style={styles.manageLinkText}>Manage in Settings</Text>
+        </Pressable>
+        <Button
+          label="Close"
+          variant="ghost"
+          onPress={() => setWsModalOpen(false)}
+        />
+      </View>
+    </Dialog>
+  );
+
   if (isMobile) {
     return (
       <View style={styles.shellMobile}>
         {mobileTopHeader}
         <View style={styles.contentMobile}>{children}</View>
         {bottomTabs}
+        {wsDialog}
       </View>
     );
   }
@@ -175,6 +337,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <View style={styles.shellWeb}>
       <View style={styles.rail}>{rail}</View>
       <View style={styles.contentWeb}>{children}</View>
+      {wsDialog}
     </View>
   );
 }
@@ -196,11 +359,150 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
     marginTop: 18,
   },
+  workspaceCardPressed: {
+    backgroundColor: theme.surfaceHover,
+    borderColor: theme.borderActive,
+  },
   workspaceDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.ok },
   workspaceLabel: { fontFamily: theme.font.mono, fontSize: 8.5, letterSpacing: 1.5, color: theme.muted, textTransform: "uppercase" },
   workspaceName: { fontFamily: theme.font.sansSemi, fontSize: 12, color: theme.text },
-  workspaceBadge: { paddingVertical: 2, paddingHorizontal: 5, backgroundColor: theme.okBg, borderRadius: 2 },
-  workspaceBadgeText: { fontFamily: theme.font.monoMedium, fontSize: 8.5, color: theme.ok, letterSpacing: 0.8 },
+  mobileWsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    backgroundColor: theme.surface2,
+    borderRadius: theme.radiusSm,
+    borderWidth: 1,
+    borderColor: theme.border,
+    maxWidth: 160,
+  },
+  mobileWsText: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 11,
+    color: theme.text,
+  },
+  wsModalHint: {
+    fontFamily: theme.font.sans,
+    fontSize: 13,
+    color: theme.muted,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  wsList: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  wsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 10,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: theme.radiusSm,
+  },
+  wsRowSelected: {
+    borderColor: theme.accent,
+    backgroundColor: theme.surfaceHover,
+  },
+  wsRadio: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: theme.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  wsRadioSelected: {
+    borderColor: theme.accent,
+  },
+  wsRadioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.accent,
+  },
+  wsRowName: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 13,
+    color: theme.text,
+  },
+  wsRowNameSelected: {
+    fontFamily: theme.font.sansSemi,
+    color: theme.text,
+  },
+  wsRowSlug: {
+    fontFamily: theme.font.mono,
+    fontSize: 10,
+    color: theme.muted,
+    marginTop: 2,
+  },
+  wsActiveBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    backgroundColor: "rgba(47, 107, 255, 0.12)",
+    borderRadius: 2,
+  },
+  wsActiveBadgeText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 9,
+    color: theme.accent,
+    letterSpacing: 0.8,
+  },
+  wsCreateSection: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderColor: theme.border,
+    marginBottom: 16,
+  },
+  wsCreateLabel: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    color: theme.muted,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  wsCreateRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  wsInput: {
+    flex: 1,
+    height: 36,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: theme.radiusSm,
+    paddingHorizontal: 10,
+    color: theme.text,
+    fontFamily: theme.font.sans,
+    fontSize: 13,
+  },
+  wsFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderColor: theme.border,
+  },
+  manageLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+  },
+  manageLinkText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    color: theme.accent,
+    letterSpacing: 0.5,
+  },
   navGroupLabel: { fontFamily: theme.font.monoMedium, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: theme.textDim, marginBottom: 8, marginTop: 16 },
   rail: { width: 232, backgroundColor: "#101216", borderRightWidth: 1, borderColor: "#272B32" },
   railInner: { flex: 1, padding: 16, paddingTop: 20, justifyContent: "space-between" },

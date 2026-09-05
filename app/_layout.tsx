@@ -54,7 +54,7 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={getTokenCache()}>
       <Head>
         <title>Draftoryn</title>
-        <meta name="description" content="Professional document studio for software requirements, architecture specifications, and security assessment scopes." />
+        <meta name="description" content="Professional technical specification system for cybersecurity authorizations, assessment reports, threat models, and architecture documentation." />
         <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
         <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icon.png" />

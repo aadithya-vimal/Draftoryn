@@ -283,7 +283,7 @@ export default function LandingPage() {
             <View style={styles.paperHeader}>
               <View>
                 <Text style={styles.paperOrg}>APEX CYBER LABS // DEFENSE OPERATIONS</Text>
-                <Text style={styles.paperDocId}>DELIVERABLE SPEC-ROE-2026-V1</Text>
+                <Text style={styles.paperDocId}>SPECIFICATION REF: SPEC-ROE-2026</Text>
               </View>
               <Text style={styles.paperClassification}>CONFIDENTIAL // AUTHORIZED ACCESS ONLY</Text>
             </View>

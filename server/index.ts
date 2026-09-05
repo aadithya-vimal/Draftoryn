@@ -30,6 +30,9 @@ import {
   putUserSettings,
   getWorkspaces,
   createWorkspace,
+  updateWorkspace,
+  setDefaultWorkspace,
+  deleteWorkspace,
   listDocuments,
   getDocument,
   putDocument,
@@ -227,6 +230,52 @@ app.post("/api/workspaces", async (c) => {
     return c.json(ws);
   } catch (e) {
     return c.json({ error: e instanceof Error ? e.message : "Failed to create workspace." }, 500);
+  }
+});
+
+app.patch("/api/workspaces/:id", async (c) => {
+  const auth = await authenticate(c as never);
+  if (!auth) return c.json({ error: "Unauthorized" }, 401);
+
+  const workspaceId = c.req.param("id");
+  let body: { name?: string; slug?: string; settings?: Record<string, unknown> };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  try {
+    const ws = await updateWorkspace(auth.userId, workspaceId, body);
+    return c.json(ws);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Failed to update workspace." }, 500);
+  }
+});
+
+app.post("/api/workspaces/:id/default", async (c) => {
+  const auth = await authenticate(c as never);
+  if (!auth) return c.json({ error: "Unauthorized" }, 401);
+
+  const workspaceId = c.req.param("id");
+  try {
+    const ws = await setDefaultWorkspace(auth.userId, workspaceId);
+    return c.json(ws);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Failed to set default workspace." }, 500);
+  }
+});
+
+app.delete("/api/workspaces/:id", async (c) => {
+  const auth = await authenticate(c as never);
+  if (!auth) return c.json({ error: "Unauthorized" }, 401);
+
+  const workspaceId = c.req.param("id");
+  try {
+    const result = await deleteWorkspace(auth.userId, workspaceId);
+    return c.json(result);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Failed to delete workspace." }, 500);
   }
 });
 

@@ -95,7 +95,7 @@ export default function Home() {
         {/* Workspace Metadata Header */}
         <View style={styles.workspaceHeader}>
           <View style={styles.workspaceHeaderLeft}>
-            <View style={styles.liveIndicator} />
+            <View style={styles.statusDot} />
             <Text style={styles.workspaceTag}>
               WORKSPACE // {workspaceName.toUpperCase()}
             </Text>
@@ -103,7 +103,7 @@ export default function Home() {
               <Text style={styles.personaPillText}>{userRole.toUpperCase()}</Text>
             </View>
           </View>
-          <Text style={styles.persistenceTag}>NEON DB // SYNCHRONIZED</Text>
+          <Text style={styles.persistenceTag}>NEON POSTGRESQL</Text>
         </View>
 
         {/* Hero Banner with Asymmetric Editorial Layout */}
@@ -115,7 +115,7 @@ export default function Home() {
                 style={{ width: 32, height: 32, borderRadius: 6 }}
                 resizeMode="contain"
               />
-              <Text style={styles.kicker}>SPECIFICATION & DOCUMENTATION STUDIO</Text>
+              <Text style={styles.kicker}>SECURITY SPECIFICATION SYSTEM</Text>
             </View>
             <Heading level={1} style={isMobile ? styles.h1Mobile : styles.h1}>
               Draftoryn
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  liveIndicator: {
+  statusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,

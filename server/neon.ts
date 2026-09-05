@@ -589,6 +589,159 @@ export async function createWorkspace(
   });
 }
 
+export async function updateWorkspace(
+  userId: string,
+  workspaceId: string,
+  updates: { name?: string; slug?: string; settings?: Record<string, unknown> },
+): Promise<DbWorkspace> {
+  return withRls(userId, async (sql) => {
+    const existing = (await sql(
+      `SELECT id, owner_id, name, slug, is_default, settings, created_at, updated_at
+       FROM workspaces WHERE owner_id = $1 AND id = $2`,
+      [userId, workspaceId],
+    )) as Array<{
+      id: string;
+      owner_id: string;
+      name: string;
+      slug: string;
+      is_default: boolean;
+      settings: Record<string, unknown>;
+      created_at: string;
+      updated_at: string;
+    }>;
+
+    const firstExisting = existing[0];
+    if (!firstExisting) {
+      throw new Error(`Workspace ${workspaceId} not found or unauthorized`);
+    }
+
+    const newName = updates.name?.trim() || firstExisting.name;
+    const newSlug = updates.slug?.trim() || firstExisting.slug;
+    const newSettings = updates.settings ? { ...(firstExisting.settings || {}), ...updates.settings } : firstExisting.settings;
+
+    const rows = (await sql(
+      `UPDATE workspaces
+       SET name = $1, slug = $2, settings = $3::jsonb, updated_at = now()
+       WHERE owner_id = $4 AND id = $5
+       RETURNING id, owner_id, name, slug, is_default, settings, created_at, updated_at`,
+      [newName, newSlug, JSON.stringify(newSettings || {}), userId, workspaceId],
+    )) as Array<{
+      id: string;
+      owner_id: string;
+      name: string;
+      slug: string;
+      is_default: boolean;
+      settings: Record<string, unknown>;
+      created_at: string;
+      updated_at: string;
+    }>;
+
+    const w = rows[0];
+    if (!w) {
+      throw new Error(`Failed to update workspace ${workspaceId}`);
+    }
+    return {
+      id: w.id,
+      ownerId: w.owner_id,
+      name: w.name,
+      slug: w.slug,
+      isDefault: Boolean(w.is_default),
+      settings: w.settings ?? {},
+      createdAt: w.created_at,
+      updatedAt: w.updated_at,
+    };
+  });
+}
+
+export async function setDefaultWorkspace(
+  userId: string,
+  workspaceId: string,
+): Promise<DbWorkspace> {
+  return withRls(userId, async (sql) => {
+    await sql(
+      `UPDATE workspaces SET is_default = false, updated_at = now() WHERE owner_id = $1`,
+      [userId],
+    );
+
+    const rows = (await sql(
+      `UPDATE workspaces
+       SET is_default = true, updated_at = now()
+       WHERE owner_id = $1 AND id = $2
+       RETURNING id, owner_id, name, slug, is_default, settings, created_at, updated_at`,
+      [userId, workspaceId],
+    )) as Array<{
+      id: string;
+      owner_id: string;
+      name: string;
+      slug: string;
+      is_default: boolean;
+      settings: Record<string, unknown>;
+      created_at: string;
+      updated_at: string;
+    }>;
+
+    const w = rows[0];
+    if (!w) {
+      throw new Error(`Workspace ${workspaceId} not found or unauthorized`);
+    }
+
+    return {
+      id: w.id,
+      ownerId: w.owner_id,
+      name: w.name,
+      slug: w.slug,
+      isDefault: true,
+      settings: w.settings ?? {},
+      createdAt: w.created_at,
+      updatedAt: w.updated_at,
+    };
+  });
+}
+
+export async function deleteWorkspace(
+  userId: string,
+  workspaceId: string,
+): Promise<{ success: boolean; activeWorkspaceId: string }> {
+  return withRls(userId, async (sql) => {
+    const all = (await sql(
+      `SELECT id, is_default FROM workspaces WHERE owner_id = $1 ORDER BY is_default DESC, created_at ASC`,
+      [userId],
+    )) as Array<{ id: string; is_default: boolean }>;
+
+    if (!all.some((w) => w.id === workspaceId)) {
+      throw new Error(`Workspace ${workspaceId} not found or unauthorized`);
+    }
+
+    if (all.length <= 1) {
+      throw new Error("Cannot delete your only workspace. Create another workspace first.");
+    }
+
+    const isDeletingDefault = all.find((w) => w.id === workspaceId)?.is_default;
+
+    await sql(`DELETE FROM workspaces WHERE owner_id = $1 AND id = $2`, [userId, workspaceId]);
+
+    let activeWorkspaceId = "";
+    if (isDeletingDefault) {
+      const remaining = all.filter((w) => w.id !== workspaceId);
+      const nextWs = remaining[0];
+      if (!nextWs) {
+        throw new Error("No remaining workspace found");
+      }
+      activeWorkspaceId = nextWs.id;
+      await sql(
+        `UPDATE workspaces SET is_default = true, updated_at = now() WHERE owner_id = $1 AND id = $2`,
+        [userId, activeWorkspaceId],
+      );
+    } else {
+      const def = all.find((w) => w.id !== workspaceId && w.is_default);
+      const remaining = all.filter((w) => w.id !== workspaceId);
+      activeWorkspaceId = def?.id || remaining[0]?.id || "";
+    }
+
+    return { success: true, activeWorkspaceId };
+  });
+}
+
 // ---------------------------------------------------------------------------
 // 4. Documents CRUD & Scoping
 // ---------------------------------------------------------------------------

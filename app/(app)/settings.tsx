@@ -33,6 +33,14 @@ import {
   validateEmail,
   validatePhone,
 } from "../../src/engine/validation";
+import {
+  listWorkspaces,
+  createWorkspace,
+  updateWorkspace,
+  setDefaultWorkspace,
+  deleteWorkspace,
+  type WorkspaceRecord,
+} from "../../src/data/workspaces";
 
 type ExportOption = "pdf" | "docx" | "markdown" | "html" | "json";
 
@@ -44,6 +52,12 @@ export default function Settings() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [manageOpen, setManageOpen] = useState<boolean>(false);
   const [workspace, setWorkspace] = useState<{ id: string; name: string } | null>(null);
+
+  const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
+  const [newWsName, setNewWsName] = useState<string>("");
+  const [isCreatingWs, setIsCreatingWs] = useState<boolean>(false);
+  const [editingWsId, setEditingWsId] = useState<string | null>(null);
+  const [editingWsName, setEditingWsName] = useState<string>("");
 
   const [exportFormat, setExportFormat] = useState<ExportOption>("pdf");
   const [compactLists, setCompactLists] = useState<boolean>(false);
@@ -65,6 +79,20 @@ export default function Settings() {
     authorizedBy: "",
   });
 
+  const loadWorkspacesData = async () => {
+    if (!user.isSignedIn) return;
+    try {
+      const list = await listWorkspaces(user);
+      setWorkspaces(list);
+      const def = list.find((w) => w.isDefault) || list[0] || null;
+      if (def) {
+        setWorkspace({ id: def.id, name: def.name });
+      }
+    } catch (e) {
+      console.warn("Could not load workspaces in settings", e);
+    }
+  };
+
   // Load persisted settings from Neon (with local fallback)
   useEffect(() => {
     let mounted = true;
@@ -78,6 +106,7 @@ export default function Settings() {
     });
 
     if (user.isSignedIn) {
+      loadWorkspacesData();
       fetchUserMe(user).then((data) => {
         if (!mounted || !data) return;
         setWorkspace({ id: data.workspace.id, name: data.workspace.name });
@@ -88,6 +117,56 @@ export default function Settings() {
       mounted = false;
     };
   }, [user.userId, user.isSignedIn, user.isLoaded]);
+
+  const handleCreateNewWorkspace = async () => {
+    const trimmed = newWsName.trim();
+    if (!trimmed || isCreatingWs) return;
+    setIsCreatingWs(true);
+    try {
+      await createWorkspace(user, trimmed);
+      setNewWsName("");
+      await loadWorkspacesData();
+      showSavedFeedback();
+    } catch (e) {
+      console.error("Failed to create workspace:", e);
+    } finally {
+      setIsCreatingWs(false);
+    }
+  };
+
+  const handleUpdateWorkspace = async (id: string) => {
+    const trimmed = editingWsName.trim();
+    if (!trimmed) return;
+    try {
+      await updateWorkspace(user, id, { name: trimmed });
+      setEditingWsId(null);
+      await loadWorkspacesData();
+      showSavedFeedback();
+    } catch (e) {
+      console.error("Failed to update workspace:", e);
+    }
+  };
+
+  const handleSetDefaultWorkspace = async (id: string) => {
+    try {
+      await setDefaultWorkspace(user, id);
+      await loadWorkspacesData();
+      showSavedFeedback();
+    } catch (e) {
+      console.error("Failed to set default workspace:", e);
+    }
+  };
+
+  const handleDeleteWorkspace = async (id: string) => {
+    if (workspaces.length <= 1) return;
+    try {
+      await deleteWorkspace(user, id);
+      await loadWorkspacesData();
+      showSavedFeedback();
+    } catch (e) {
+      console.error("Failed to delete workspace:", e);
+    }
+  };
 
   const handleExportFormatChange = async (format: ExportOption) => {
     setExportFormat(format);
@@ -189,30 +268,119 @@ export default function Settings() {
             />
           </Card>
 
-          {/* Active Workspace */}
-          <SectionLabel>Active Workspace</SectionLabel>
+          {/* Workspaces */}
+          <SectionLabel>Workspaces</SectionLabel>
           <Card>
             <View style={styles.workspaceRow}>
               <View style={styles.workspaceIconWrap}>
                 <Icon name="Database" size={20} color={theme.accent} />
               </View>
               <View style={styles.workspaceMeta}>
-                <Text style={styles.workspaceName}>{workspace?.name ?? "Primary Security Workspace"}</Text>
+                <Text style={styles.workspaceName}>Neon PostgreSQL Multi-Tenant Storage</Text>
                 <View style={styles.neonSyncRow}>
                   <View style={styles.neonDot} />
-                  <Text style={styles.neonSyncText}>Neon PostgreSQL · Source of Truth</Text>
+                  <Text style={styles.neonSyncText}>Authoritative persistence · Isolated schemas</Text>
                 </View>
               </View>
             </View>
-            <View style={{ marginTop: 14 }}>
-              <Text style={styles.inputLabel}>Workspace Name</Text>
-              <TextInput
-                style={styles.textInput}
-                value={workspace?.name ?? ""}
-                onChangeText={(v) => setWorkspace((w) => (w ? { ...w, name: v } : { id: "default", name: v }))}
-                placeholder="Primary Security Workspace"
-                placeholderTextColor={theme.muted}
-              />
+
+            <View style={{ marginTop: 16, gap: 10 }}>
+              {workspaces.map((w) => {
+                const isDef = w.isDefault;
+                const isEditing = editingWsId === w.id;
+                return (
+                  <View key={w.id} style={[styles.wsItemCard, isDef && styles.wsItemCardActive]}>
+                    {isEditing ? (
+                      <View style={{ gap: 8 }}>
+                        <TextInput
+                          style={styles.textInput}
+                          value={editingWsName}
+                          onChangeText={setEditingWsName}
+                          placeholder="Workspace Name"
+                          placeholderTextColor={theme.muted}
+                          autoFocus
+                        />
+                        <View style={{ flexDirection: "row", gap: 8 }}>
+                          <Button
+                            label="Save"
+                            variant="primary"
+                            onPress={() => handleUpdateWorkspace(w.id)}
+                            style={{ minWidth: 70 }}
+                          />
+                          <Button
+                            label="Cancel"
+                            variant="secondary"
+                            onPress={() => setEditingWsId(null)}
+                            style={{ minWidth: 70 }}
+                          />
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={styles.wsItemContent}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                            <Text style={styles.wsItemTitle} numberOfLines={1}>{w.name}</Text>
+                            {isDef && (
+                              <View style={styles.wsActivePill}>
+                                <Text style={styles.wsActivePillText}>DEFAULT</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.wsItemSlug}>ID: {w.id} · slug: {w.slug}</Text>
+                        </View>
+
+                        <View style={styles.wsItemActions}>
+                          {!isDef && (
+                            <Button
+                              label="Make Active"
+                              variant="secondary"
+                              onPress={() => handleSetDefaultWorkspace(w.id)}
+                              style={styles.wsActionBtn}
+                            />
+                          )}
+                          <Button
+                            label="Rename"
+                            variant="ghost"
+                            onPress={() => {
+                              setEditingWsId(w.id);
+                              setEditingWsName(w.name);
+                            }}
+                            style={styles.wsActionBtn}
+                          />
+                          {workspaces.length > 1 && (
+                            <Button
+                              label="Delete"
+                              variant="danger"
+                              onPress={() => handleDeleteWorkspace(w.id)}
+                              style={styles.wsActionBtn}
+                            />
+                          )}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Create New Workspace */}
+            <View style={styles.createWsBox}>
+              <Text style={styles.createWsTitle}>Create Workspace</Text>
+              <View style={styles.createWsRow}>
+                <TextInput
+                  style={[styles.textInput, { flex: 1 }]}
+                  value={newWsName}
+                  onChangeText={setNewWsName}
+                  placeholder="New workspace name…"
+                  placeholderTextColor={theme.muted}
+                />
+                <Button
+                  label={isCreatingWs ? "Creating…" : "Create Workspace"}
+                  variant="primary"
+                  onPress={handleCreateNewWorkspace}
+                  disabled={!newWsName.trim() || isCreatingWs}
+                />
+              </View>
             </View>
           </Card>
 
@@ -467,10 +635,9 @@ export default function Settings() {
                 />
                 <Text style={styles.aboutName}>Draftoryn</Text>
               </View>
-              <Text style={styles.aboutVersion}>Version 2.0.0</Text>
             </View>
             <Text style={styles.bodyText}>
-              A specialist cybersecurity writing and generation studio turning briefs and requirements into polished, export-ready governance and testing documents.
+              Professional technical editorial software for cybersecurity authorizations, assessment reports, threat models, and architectural specifications.
             </Text>
           </Card>
 
@@ -769,5 +936,74 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.monoMedium,
     fontSize: 12,
     color: theme.muted,
+  },
+  wsItemCard: {
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: theme.radiusSm,
+    padding: 12,
+  },
+  wsItemCardActive: {
+    borderColor: theme.accent,
+    backgroundColor: theme.surfaceHover,
+  },
+  wsItemContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  wsItemTitle: {
+    fontFamily: theme.font.sansSemi,
+    fontSize: 14,
+    color: theme.text,
+  },
+  wsActivePill: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    backgroundColor: "rgba(47, 107, 255, 0.12)",
+    borderRadius: 2,
+  },
+  wsActivePillText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 9,
+    color: theme.accent,
+    letterSpacing: 0.8,
+  },
+  wsItemSlug: {
+    fontFamily: theme.font.mono,
+    fontSize: 11,
+    color: theme.muted,
+    marginTop: 3,
+  },
+  wsItemActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  wsActionBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  createWsBox: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderColor: theme.border,
+  },
+  createWsTitle: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: theme.muted,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  createWsRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
   },
 });

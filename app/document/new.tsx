@@ -577,7 +577,7 @@ export default function NewDocumentScreen() {
         After the last step, we assemble your draft, run validation, and open it
         for review. You can regenerate any section afterwards.
       </Text>
-      <SectionLabel style={styles.helpHeader}>Live summary</SectionLabel>
+      <SectionLabel style={styles.helpHeader}>Parameter Summary</SectionLabel>
       {summary.length === 0 ? (
         <Text style={styles.muted}>Nothing filled in yet.</Text>
       ) : (
