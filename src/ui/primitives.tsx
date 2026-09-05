@@ -14,27 +14,40 @@ import {
 } from "react-native";
 
 // ---------------------------------------------------------------------------
-// Serif design tokens
-// Warm ivory canvas, rich-black ink, a single burnished-gold accent.
-// Centralized here so every screen inherits the system by using primitives.
+// Dark Editorial SaaS Design Tokens
+// Near-black navy/indigo canvas (#07080F), deep navy/purple surfaces (#101223, #171932),
+// thin borders (#23264A), high-contrast white typography, electric blue (#3B82F6),
+// and vivid magenta/pink (#EC4899) secondary accents.
 // ---------------------------------------------------------------------------
 export const theme = {
-  bg: "#FAFAF8",
-  surface: "#FFFFFF",
-  surface2: "#F5F3F0",
-  border: "#E8E4DF",
-  text: "#1A1A1A",
-  muted: "#6B6B6B",
-  accent: "#B8860B",
-  accentSecondary: "#D4A84B",
+  bg: "#07080F",
+  bgAlt: "#0B0C18",
+  surface: "#101223",
+  surface2: "#171932",
+  surfaceHover: "#1D2040",
+  border: "#23264A",
+  borderLight: "#2E335E",
+  borderActive: "#3B82F6",
+  text: "#FFFFFF",
+  textSecondary: "#C5CBE3",
+  muted: "#787F9E",
+  mutedLight: "#9EA6C7",
+  accent: "#3B82F6", // electric blue
+  accentHover: "#60A5FA",
+  accentSecondary: "#EC4899", // vivid magenta/pink
   accentForeground: "#FFFFFF",
-  danger: "#9B2C2C",
-  warn: "#A9791B",
-  ok: "#4F6F52",
+  danger: "#EF4444",
+  dangerBg: "rgba(239, 68, 68, 0.15)",
+  warn: "#F59E0B",
+  warnBg: "rgba(245, 158, 11, 0.15)",
+  ok: "#10B981",
+  okBg: "rgba(16, 185, 129, 0.15)",
+  info: "#38BDF8",
+  infoBg: "rgba(56, 189, 248, 0.15)",
   radius: 8,
   radiusSm: 6,
   spacing: 12,
-  // Typography families (loaded via expo-font in app/_layout.tsx).
+  // Typography families (loaded via expo-font in app/_layout.tsx)
   font: {
     serif: "PlayfairDisplay_400Regular",
     serifSemi: "PlayfairDisplay_600SemiBold",
@@ -46,20 +59,26 @@ export const theme = {
     mono: "IBMPlexMono_400Regular",
     monoMedium: "IBMPlexMono_500Medium",
   } as const,
-  // Subtle, refined shadows (no harsh depth — restraint is the point).
   shadowSm: {
-    shadowColor: "#1A1A1A",
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 1,
+    shadowColor: "#000000",
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   } as ViewStyle,
   shadowMd: {
-    shadowColor: "#1A1A1A",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowColor: "#000000",
+    shadowOpacity: 0.55,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  } as ViewStyle,
+  shadowGlow: {
+    shadowColor: "#3B82F6",
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    elevation: 4,
   } as ViewStyle,
 };
 
@@ -73,8 +92,7 @@ export function Screen({ children, title }: { children: React.ReactNode; title?:
 }
 
 // ---------------------------------------------------------------------------
-// Heading: the signature serif. One component, three levels, so headlines
-// stay consistent everywhere instead of ad-hoc Text styles per screen.
+// Heading: refined typography hierarchy with tight letterspacing.
 // ---------------------------------------------------------------------------
 export function Heading({
   level = 3,
@@ -111,8 +129,7 @@ export function Heading({
 }
 
 // ---------------------------------------------------------------------------
-// SectionLabel: tracked uppercase mono label flanked by hairline rules.
-// The defining editorial rhythm of the Serif system.
+// SectionLabel: tracked uppercase mono label flanked by hairline dark borders.
 // ---------------------------------------------------------------------------
 export function SectionLabel({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   return (
@@ -147,7 +164,7 @@ export function Card({
         styles.card,
         elevated ? theme.shadowMd : undefined,
         accentTop ? styles.cardAccentTop : undefined,
-        hovered ? { backgroundColor: "#FBF7EE" } : undefined,
+        hovered ? { backgroundColor: theme.surfaceHover, borderColor: theme.borderLight } : undefined,
         style,
       ]}
       {...hoverProps}
@@ -174,27 +191,27 @@ export function Button({
   const base: ViewStyle = variant === "primary" || variant === "danger" ? styles.btnPrimary : styles.btnSecondary;
   const palette =
     variant === "danger"
-      ? { bg: theme.danger, fg: theme.accentForeground }
+      ? { bg: theme.danger, fg: "#FFFFFF" }
       : variant === "primary"
         ? { bg: theme.accent, fg: theme.accentForeground }
         : variant === "secondary"
-          ? { bg: "transparent", fg: theme.text }
+          ? { bg: theme.surface2, fg: theme.text }
           : { bg: "transparent", fg: theme.muted };
   const hoverBg =
     variant === "primary"
-      ? theme.accentSecondary
+      ? theme.accentHover
       : variant === "danger"
-        ? "#7E2323"
+        ? "#DC2626"
         : variant === "secondary"
-          ? theme.surface2
-          : "transparent";
+          ? theme.surfaceHover
+          : theme.surface2;
   const compute = (s: PressableStateCallbackType): StyleProp<ViewStyle> => [
     base,
     { backgroundColor: hovered && !disabled ? hoverBg : palette.bg },
-          variant === "secondary" && hovered ? { borderColor: theme.accent } : {},
-          variant === "ghost" && hovered ? { backgroundColor: theme.surface2 } : {},
-          disabled ? { opacity: 0.45 } : undefined,
-          style as ViewStyle,
+    variant === "secondary" && hovered ? { borderColor: theme.accent } : {},
+    variant === "ghost" && hovered ? { backgroundColor: theme.surface2 } : {},
+    disabled ? { opacity: 0.45 } : undefined,
+    style as ViewStyle,
   ];
   return (
     <Pressable
@@ -209,7 +226,7 @@ export function Button({
         style={[
           styles.buttonText,
           { color: hovered && variant === "secondary" ? theme.accent : palette.fg },
-          variant === "ghost" && hovered && { textDecorationLine: "underline", textDecorationColor: theme.accent },
+          variant === "ghost" && hovered && { color: theme.text },
         ]}
       >
         {label}
@@ -243,7 +260,10 @@ export function Input({
         style={[
           styles.input,
           multiline && styles.inputMultiline,
-          { borderColor: focused ? theme.accent : theme.border },
+          {
+            borderColor: focused ? theme.accent : theme.border,
+            backgroundColor: focused ? theme.surfaceHover : theme.surface2,
+          },
         ]}
         value={value}
         onChangeText={onChangeText}
@@ -268,7 +288,7 @@ export function Chip({ label, onPress, active }: { label: string; onPress?: () =
         pressed && { opacity: 0.8 },
       ]}
     >
-      <Text style={[styles.chipText, active && { color: theme.accentForeground }]}>{label}</Text>
+      <Text style={[styles.chipText, active && { color: "#FFFFFF" }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -325,9 +345,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg, padding: theme.spacing, paddingTop: 28 },
   screenTitle: { marginBottom: 16 },
   screenBody: { flex: 1 },
-  h1: { color: theme.text, fontSize: 56, lineHeight: 62, letterSpacing: -1.5, marginBottom: 8 },
+  h1: { color: theme.text, fontSize: 52, lineHeight: 58, letterSpacing: -1.2, marginBottom: 8 },
   h1Mobile: { color: theme.text, fontSize: 32, lineHeight: 38, letterSpacing: -0.5, marginBottom: 8 },
-  h2: { color: theme.text, fontSize: 36, lineHeight: 42, letterSpacing: -0.5, marginBottom: 8 },
+  h2: { color: theme.text, fontSize: 34, lineHeight: 40, letterSpacing: -0.6, marginBottom: 8 },
   h2Mobile: { color: theme.text, fontSize: 24, lineHeight: 30, letterSpacing: -0.3, marginBottom: 8 },
   h3: { color: theme.text, fontSize: 20, lineHeight: 26, fontWeight: "600", marginBottom: 6 },
   h3Mobile: { color: theme.text, fontSize: 17, lineHeight: 22, fontWeight: "600", marginBottom: 6 },
@@ -367,25 +387,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 44,
     borderWidth: 1,
-    borderColor: theme.text,
-    backgroundColor: "transparent",
+    borderColor: theme.border,
+    backgroundColor: theme.surface2,
   },
-  buttonText: { fontFamily: theme.font.sansMedium, fontSize: 15, letterSpacing: 0.5 },
+  buttonText: { fontFamily: theme.font.sansSemi, fontSize: 14, letterSpacing: 0.3 },
   field: { marginBottom: 16 },
-  label: { fontFamily: theme.font.monoMedium, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: theme.muted, marginBottom: 8 },
+  label: { fontFamily: theme.font.monoMedium, fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase", color: theme.muted, marginBottom: 8 },
   input: {
-    backgroundColor: "transparent",
+    backgroundColor: theme.surface2,
     borderWidth: 1,
     borderRadius: theme.radiusSm,
     color: theme.text,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: theme.font.sans,
   },
   inputMultiline: { minHeight: 110, textAlignVertical: "top" },
   chip: {
-    backgroundColor: "transparent",
+    backgroundColor: theme.surface2,
     borderWidth: 1,
     borderColor: theme.border,
     borderRadius: theme.radiusSm,
@@ -394,7 +414,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  chipText: { fontFamily: theme.font.sansMedium, fontSize: 13, color: theme.muted },
+  chipText: { fontFamily: theme.font.sansMedium, fontSize: 13, color: theme.mutedLight },
   empty: { padding: 48, alignItems: "center" },
   emptyTitle: { color: theme.text, marginBottom: 8 },
   emptySub: { fontFamily: theme.font.sans, fontSize: 14, color: theme.muted, textAlign: "center" },
@@ -407,7 +427,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: "rgba(247, 245, 240, 0.82)",
+    backgroundColor: "rgba(7, 8, 15, 0.88)",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 999,

@@ -187,8 +187,8 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   railItemActive: {
-    backgroundColor: "#FAF6EE",
-    borderColor: "rgba(184, 134, 11, 0.25)",
+    backgroundColor: "rgba(59, 130, 246, 0.12)",
+    borderColor: "rgba(59, 130, 246, 0.28)",
   },
   railActiveIndicator: {
     position: "absolute",
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
   railUser: { flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 16, borderTopWidth: 1, borderColor: theme.border },
   avatar: { width: 32, height: 32, borderRadius: 999, backgroundColor: theme.surface2, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "transparent" },
-  avatarActive: { borderColor: theme.accent, backgroundColor: "#FAF6EE" },
+  avatarActive: { borderColor: theme.accent, backgroundColor: "rgba(59, 130, 246, 0.15)" },
   userName: { fontFamily: theme.font.sansMedium, fontSize: 13, color: theme.text },
   userEmail: { fontFamily: theme.font.mono, fontSize: 10, color: theme.muted },
   shellWeb: { flex: 1, flexDirection: "row", backgroundColor: theme.bg },
@@ -240,9 +240,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#FAF6EE",
+    backgroundColor: "rgba(59, 130, 246, 0.12)",
     borderWidth: 1,
-    borderColor: "rgba(184, 134, 11, 0.25)",
+    borderColor: "rgba(59, 130, 246, 0.28)",
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 14,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
   },
   bottomIconWrapActive: {
-    backgroundColor: "rgba(184, 134, 11, 0.12)",
+    backgroundColor: "rgba(59, 130, 246, 0.14)",
   },
   bottomLabel: {
     fontFamily: theme.font.mono,

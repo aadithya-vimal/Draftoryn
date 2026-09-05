@@ -21,19 +21,19 @@ export type BadgeTone = "neutral" | "accent" | "ok" | "warn" | "danger" | "info"
 
 const BADGE_BG: Record<BadgeTone, string> = {
   neutral: theme.surface2,
-  accent: "#FBF3E0",
-  ok: "#EDF3EE",
-  warn: "#FBF6EC",
-  danger: "#FBF1F1",
-  info: "#EFF3FA",
+  accent: "rgba(59, 130, 246, 0.16)",
+  ok: "rgba(16, 185, 129, 0.16)",
+  warn: "rgba(245, 158, 11, 0.16)",
+  danger: "rgba(239, 68, 68, 0.16)",
+  info: "rgba(56, 189, 248, 0.16)",
 };
 const BADGE_FG: Record<BadgeTone, string> = {
-  neutral: theme.muted,
-  accent: "#8A6708",
-  ok: "#3F5B43",
-  warn: "#8A6708",
-  danger: "#7E2323",
-  info: "#2F5B8F",
+  neutral: theme.mutedLight,
+  accent: "#60A5FA",
+  ok: "#34D399",
+  warn: "#FBBF24",
+  danger: "#F87171",
+  info: "#38BDF8",
 };
 
 export function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: BadgeTone }) {
@@ -116,7 +116,7 @@ export function ProgressBar({
       <View
         style={[
           styles.progressFill,
-          { width: `${Math.round(pct * 100)}%`, height },
+          { width: (Math.round(pct * 100) + "%") as any, height },
           indeterminate && styles.progressIndeterminate,
         ]}
       />
@@ -195,17 +195,17 @@ export function PageIllustration({ width = 220, height = 280 }: { width?: number
 
 const styles = StyleSheet.create({
   badge: { alignSelf: "flex-start", paddingVertical: 3, paddingHorizontal: 9, borderRadius: 999 },
-  badgeText: { fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 1, textTransform: "uppercase" },
-  segment: { flexDirection: "row", backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: theme.radiusSm, padding: 3, gap: 2 },
+  badgeText: { fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 0.8, textTransform: "uppercase" },
+  segment: { flexDirection: "row", backgroundColor: theme.surface2, borderWidth: 1, borderColor: theme.border, borderRadius: theme.radiusSm, padding: 3, gap: 2 },
   segmentItem: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: theme.radiusSm - 1 },
   segmentItemActive: { backgroundColor: theme.accent },
-  segmentText: { fontFamily: theme.font.sansMedium, fontSize: 13, color: theme.muted },
+  segmentText: { fontFamily: theme.font.sansMedium, fontSize: 13, color: theme.mutedLight },
   segmentTextActive: { color: theme.accentForeground },
   progressTrack: { height: 6, backgroundColor: theme.surface2, borderRadius: 999, overflow: "hidden" },
   progressFill: { height: 6, backgroundColor: theme.accent, borderRadius: 999 },
   progressIndeterminate: { width: "40%", opacity: 0.6 },
-  overlay: { flex: 1, backgroundColor: "rgba(26,26,26,0.5)", justifyContent: "center", alignItems: "center", padding: 24 },
-  overlayBottom: { flex: 1, backgroundColor: "rgba(26,26,26,0.5)", justifyContent: "flex-end" },
+  overlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "center", alignItems: "center", padding: 24 },
+  overlayBottom: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "flex-end" },
   dialog: { width: "100%", maxWidth: 480, backgroundColor: theme.surface, borderRadius: theme.radius, padding: 22, borderWidth: 1, borderColor: theme.border, ...theme.shadowMd },
   sheet: { width: "100%", backgroundColor: theme.surface, borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 18, paddingBottom: 32, borderWidth: 1, borderColor: theme.border },
   sheetHandle: { width: 40, height: 4, borderRadius: 999, backgroundColor: theme.border, alignSelf: "center", marginBottom: 12 },
@@ -215,5 +215,5 @@ const styles = StyleSheet.create({
   pageRule: { height: 1, backgroundColor: theme.accent, opacity: 0.6, marginTop: 12, marginBottom: 14 },
   pageLine: { height: 7, backgroundColor: theme.surface2, borderRadius: 3, marginBottom: 9 },
   pageGap: { height: 10 },
-  pageAccent: { position: "absolute", right: 16, bottom: 16, width: 8, height: 8, borderRadius: 2, backgroundColor: theme.accent, opacity: 0.8 },
+  pageAccent: { position: "absolute", right: 16, bottom: 16, width: 8, height: 8, borderRadius: 2, backgroundColor: theme.accentSecondary, opacity: 0.9 },
 });

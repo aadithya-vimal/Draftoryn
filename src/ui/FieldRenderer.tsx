@@ -413,7 +413,7 @@ function EmailFieldControl({
         />
         <View style={styles.inputEndIcon}>
           {emailStr && isValid ? (
-            <Icon name="Check" size={16} color="#3F5B43" strokeWidth={2.5} />
+            <Icon name="Check" size={16} color={theme.ok} strokeWidth={2.5} />
           ) : (
             <Icon name="Mail" size={16} color={theme.muted} />
           )}
@@ -462,7 +462,7 @@ function PhoneFieldControl({
         />
         <View style={styles.inputEndIcon}>
           {phoneStr && isValid ? (
-            <Icon name="Check" size={16} color="#3F5B43" strokeWidth={2.5} />
+            <Icon name="Check" size={16} color={theme.ok} strokeWidth={2.5} />
           ) : (
             <Icon name="Phone" size={16} color={theme.muted} />
           )}
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
   hint: { color: theme.muted, fontSize: 12, fontFamily: theme.font.sans, marginTop: 4, lineHeight: 16 },
 
   input: {
-    backgroundColor: theme.surface,
+    backgroundColor: theme.surface2,
     borderWidth: 1,
     borderColor: theme.border,
     borderRadius: theme.radiusSm,
@@ -722,11 +722,11 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderColor: theme.accent,
-    backgroundColor: "#FFFCF6",
+    backgroundColor: theme.surfaceHover,
   },
   inputError: {
     borderColor: theme.danger,
-    backgroundColor: "#FDF4F4",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
   },
   multiline: {
     minHeight: 96,
@@ -769,9 +769,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   calendarBtn: {
-    backgroundColor: "#FAF6EE",
+    backgroundColor: theme.surface2,
     borderWidth: 1,
-    borderColor: "rgba(184, 134, 11, 0.3)",
+    borderColor: theme.border,
     borderRadius: theme.radiusSm,
     padding: 10,
     alignItems: "center",
@@ -838,9 +838,9 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingVertical: 6,
     paddingHorizontal: 10,
-    backgroundColor: "#FAF6EE",
+    backgroundColor: "rgba(59, 130, 246, 0.14)",
     borderWidth: 1,
-    borderColor: "rgba(184, 134, 11, 0.25)",
+    borderColor: "rgba(59, 130, 246, 0.35)",
     borderRadius: 6,
   },
   addText: {
@@ -881,7 +881,7 @@ const styles = StyleSheet.create({
   // Modal Date Picker Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(26,26,26,0.55)",
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 6,
-    backgroundColor: "#FAF6EE",
+    backgroundColor: "rgba(59, 130, 246, 0.14)",
   },
   todayBtnText: {
     fontFamily: theme.font.sansMedium,
