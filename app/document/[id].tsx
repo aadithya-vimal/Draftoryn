@@ -295,6 +295,7 @@ export default function DocumentEditor() {
       try {
         const gen = await generateDocumentClient(def.id, sourceRef.current, {
           sectionId: sid,
+          useAi: true,
           getToken: user.getToken,
         });
         const found = gen.sections.find((s) => s.id === sid);
@@ -323,6 +324,7 @@ export default function DocumentEditor() {
       setBusy(true);
       try {
         const gen = await generateDocumentClient(def.id, useSrc, {
+          useAi: true,
           getToken: user.getToken,
         });
         updateSections(() =>

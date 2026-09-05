@@ -77,7 +77,7 @@ app.post("/api/generate", async (c) => {
   const userId = await authenticate(c as never);
   if (!userId) return c.json({ error: "Unauthorized. Please sign in to generate documents." }, 401);
   
-  let body: { definitionId?: string; source?: Record<string, unknown>; sectionId?: string };
+  let body: { definitionId?: string; source?: Record<string, unknown>; sectionId?: string; useAi?: boolean };
   try {
     body = await c.req.json();
   } catch {
@@ -87,7 +87,10 @@ app.post("/api/generate", async (c) => {
   if (!body.definitionId) return c.json({ error: "definitionId is required" }, 400);
   
   try {
-    const doc = await runGeneration(body.definitionId, body.source ?? {}, body.sectionId);
+    const doc = await runGeneration(body.definitionId, body.source ?? {}, {
+      sectionId: body.sectionId,
+      useAi: Boolean(body.useAi),
+    });
     return c.json(doc);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";

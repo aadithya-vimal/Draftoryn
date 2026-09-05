@@ -148,6 +148,7 @@ export default function NewDocumentScreen() {
   }, []);
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [generatingWithAi, setGeneratingWithAi] = useState(false);
   const [error, setError] = useState<string>("");
 
   const change = (id: string, value: unknown) =>
@@ -286,12 +287,24 @@ export default function NewDocumentScreen() {
     setStep(Math.max(0, Math.min(totalSteps - 1, target)));
   };
 
-  const onGenerate = async () => {
+  const onGenerate = async (useAi = false) => {
     if (!validateStep(currentStepFields)) return;
+
+    if (useAi) {
+      // Require user context before triggering real AI inference
+      const filledCount = def ? def.fields.filter((f) => !isEmptyValue(source[f.id])).length : 0;
+      if (filledCount === 0) {
+        setError("Please enter your organization or engagement context before populating with AI.");
+        return;
+      }
+    }
+
     setBusy(true);
+    setGeneratingWithAi(useAi);
     setError("");
     try {
       const gen: GeneratedDocument = await generateDocumentClient(def.id, source, {
+        useAi,
         getToken: user.getToken,
       });
       const version: DocumentVersion = createVersion(
@@ -301,7 +314,7 @@ export default function NewDocumentScreen() {
         gen.model,
         gen.sections,
         "ready" as DocumentStatus,
-        "Initial draft",
+        useAi ? "AI synthesized draft" : "Manual structural draft",
       );
       const now = new Date().toISOString();
       const id = `doc_${Date.now().toString(36)}`;
@@ -322,6 +335,7 @@ export default function NewDocumentScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Generation failed. Please try again.");
       setBusy(false);
+      setGeneratingWithAi(false);
     }
   };
 
@@ -523,12 +537,20 @@ export default function NewDocumentScreen() {
           style={styles.navBtn}
         />
         {isLastStep ? (
-          <Button
-            label={busy ? "Generating…" : "Generate document"}
-            disabled={busy}
-            onPress={onGenerate}
-            style={styles.navBtn}
-          />
+          <View style={{ flexDirection: "row", gap: 10, flex: 1, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <Button
+              label={busy && !generatingWithAi ? "Creating…" : "Create Document"}
+              variant="primary"
+              disabled={busy}
+              onPress={() => onGenerate(false)}
+            />
+            <Button
+              label={busy && generatingWithAi ? "Synthesizing…" : "Populate with AI"}
+              variant="secondary"
+              disabled={busy}
+              onPress={() => onGenerate(true)}
+            />
+          </View>
         ) : (
           <Button
             label="Continue"
@@ -573,9 +595,15 @@ export default function NewDocumentScreen() {
     <Card accentTop style={styles.fieldsCard}>
       <View style={styles.genInner}>
         <ActivityIndicator size="large" color={theme.accent} style={{ marginBottom: 8 }} />
-        <Heading level={3} style={styles.genTitle}>Generating your document…</Heading>
+        <Heading level={3} style={styles.genTitle}>
+          {generatingWithAi ? "Synthesizing document with AI…" : "Generating your document…"}
+        </Heading>
         <ProgressBar indeterminate height={6} />
-        <Text style={styles.genSub}>Preparing structure · Synthesizing clauses · Validating</Text>
+        <Text style={styles.genSub}>
+          {generatingWithAi
+            ? "Analyzing context · Generating technical sections · Applying safety guardrails"
+            : "Building structure · Embedding inputs · Generating baseline clauses"}
+        </Text>
       </View>
     </Card>
   );

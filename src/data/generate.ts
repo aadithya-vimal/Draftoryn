@@ -8,6 +8,7 @@ export interface GenerateOpts {
   getToken?: () => Promise<string | null>;
   onStageChange?: (stage: string) => void;
   allowLocalFallback?: boolean;
+  useAi?: boolean;
 }
 
 export async function serverGenerate(
@@ -21,11 +22,16 @@ export async function serverGenerate(
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  opts.onStageChange?.("Preparing request");
+  opts.onStageChange?.(opts.useAi ? "Synthesizing document with AI engine" : "Building structured document");
   const res = await fetch(apiUrl("/api/generate"), {
     method: "POST",
     headers,
-    body: JSON.stringify({ definitionId, source, sectionId: opts.sectionId }),
+    body: JSON.stringify({
+      definitionId,
+      source,
+      sectionId: opts.sectionId,
+      useAi: Boolean(opts.useAi),
+    }),
   });
 
   const text = await res.text();
@@ -55,19 +61,33 @@ export async function generateDocumentClient(
   const def = getDefinition(definitionId);
   if (!def) throw new Error(`Unknown document definition: ${definitionId}`);
 
-  opts.onStageChange?.("Contacting AI engine");
+  // Default: Manual fill generates deterministic, professional-grade baseline immediately
+  if (!opts.useAi) {
+    opts.onStageChange?.("Generating structured specification");
+    if (opts.sectionId) {
+      const full = generateDocument(def, source);
+      const sec = regenerateSection(def, opts.sectionId, source);
+      if (sec) {
+        const idx = full.sections.findIndex((s) => s.id === opts.sectionId);
+        if (idx >= 0) full.sections[idx] = sec;
+      }
+      return full;
+    }
+    return generateDocument(def, source);
+  }
 
-  // 1. Primary: Server-side AI Generation via Groq / LLaMA 3.3
+  // Explicit AI generation requested by user
+  opts.onStageChange?.("Connecting to AI synthesis service");
+
   try {
     const result = await serverGenerate(definitionId, source, opts);
     return result;
   } catch (serverErr) {
-    // If the error was an explicit AI error or authorization failure from server, rethrow so user sees real error
     const msg = serverErr instanceof Error ? serverErr.message : String(serverErr);
     
-    // If offline / local dev fallback is explicitly permitted (e.g. server down or offline development)
+    // If offline or local dev fallback is permitted
     if (opts.allowLocalFallback || msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("fetch failed")) {
-      opts.onStageChange?.("Generating local structural baseline");
+      opts.onStageChange?.("Falling back to local structural baseline");
       if (opts.sectionId) {
         const full = generateDocument(def, source);
         const sec = regenerateSection(def, opts.sectionId, source);

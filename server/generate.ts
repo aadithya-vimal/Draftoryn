@@ -5,9 +5,9 @@ import { validateGeneratedDocument } from "../src/engine/validation";
 import type { GeneratedDocument, Section } from "../src/engine/types";
 
 function getAiConfig() {
-  const apiKey = process.env.DRAFTORYN_AI_API_KEY || process.env.GROQ_API_KEY;
-  const baseUrl = process.env.DRAFTORYN_AI_BASE_URL || process.env.GROQ_BASE_URL || (process.env.GROQ_API_KEY ? "https://api.groq.com/openai/v1" : "https://api.openai.com/v1");
-  const model = process.env.DRAFTORYN_AI_MODEL || process.env.GROQ_MODEL || (process.env.GROQ_API_KEY ? "llama-3.3-70b-versatile" : "gpt-4o");
+  const apiKey = process.env.DRAFTORYN_AI_API_KEY || process.env.OPENAI_API_KEY || process.env.AI_API_KEY;
+  const baseUrl = process.env.DRAFTORYN_AI_BASE_URL || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+  const model = process.env.DRAFTORYN_AI_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
   return { apiKey, baseUrl, model };
 }
 
@@ -15,32 +15,54 @@ function getAiConfig() {
 export async function runGeneration(
   definitionId: string,
   source: Record<string, unknown>,
-  sectionId?: string,
+  opts: { sectionId?: string; useAi?: boolean } = {},
 ): Promise<GeneratedDocument | Section> {
   const def = getDefinition(definitionId);
   if (!def) throw new Error(`Unknown document definition: ${definitionId}`);
 
-  const { apiKey, baseUrl, model } = getAiConfig();
-
-  if (sectionId) {
-    if (apiKey) {
-      const secDef = def.sections.find((s) => s.id === sectionId);
-      if (!secDef) throw new Error(`Unknown section: ${sectionId}`);
-      const baseDoc = generateDocument(def, source);
-      const aiSection = await generateAiSection(def, secDef, baseDoc.model, source, apiKey, baseUrl, model);
-      if (aiSection) return aiSection;
+  // Default: Manual fill / structural baseline generation
+  if (!opts.useAi) {
+    if (opts.sectionId) {
+      const section = regenerateSection(def, opts.sectionId, source);
+      if (!section) throw new Error(`Unknown section: ${opts.sectionId}`);
+      return section;
     }
-    const section = regenerateSection(def, sectionId, source);
-    if (!section) throw new Error(`Unknown section: ${sectionId}`);
-    return section;
+    return generateDocument(def, source);
   }
 
-  if (apiKey) {
-    const aiDoc = await generateAiDocument(def, source, apiKey, baseUrl, model);
-    if (aiDoc) return aiDoc;
+  // Explicit AI requested: Require user context first
+  const filledEntries = Object.entries(source).filter(
+    ([_, v]) => v !== undefined && v !== null && String(v).trim() !== "" && (Array.isArray(v) ? v.length > 0 : true),
+  );
+
+  if (filledEntries.length === 0) {
+    throw new Error(
+      "AI synthesis requires context. Please fill out organization, scope, or objective details before generating with AI.",
+    );
   }
 
-  // If no AI key was configured on the server, generate the deterministic baseline document
+  const { apiKey, baseUrl, model } = getAiConfig();
+  if (!apiKey) {
+    throw new Error(
+      "AI inference service is not configured on the server. Please set DRAFTORYN_AI_API_KEY or generate manually.",
+    );
+  }
+
+  if (opts.sectionId) {
+    const secDef = def.sections.find((s) => s.id === opts.sectionId);
+    if (!secDef) throw new Error(`Unknown section: ${opts.sectionId}`);
+    const baseDoc = generateDocument(def, source);
+    const aiSection = await generateAiSection(def, secDef, baseDoc.model, source, apiKey, baseUrl, model);
+    if (aiSection) return aiSection;
+    const fallback = regenerateSection(def, opts.sectionId, source);
+    if (!fallback) throw new Error(`Unknown section: ${opts.sectionId}`);
+    return fallback;
+  }
+
+  const aiDoc = await generateAiDocument(def, source, apiKey, baseUrl, model);
+  if (aiDoc) return aiDoc;
+
+  // Fallback to structural baseline if AI synthesis could not complete
   return generateDocument(def, source);
 }
 
