@@ -18,6 +18,7 @@ import {
   Heading,
   SectionLabel,
   theme,
+  useTheme,
 } from "../../src/ui/primitives";
 import { Badge, Dialog, Icon, SegmentedControl } from "../../src/ui/components";
 import {
@@ -25,9 +26,11 @@ import {
   saveUserSettings,
   type ClientProfile,
   type TesterProfile,
+  type ThemeMode,
   type UserExportFormat,
   type UserSettings,
 } from "../../src/lib/userSettings";
+import { useSessionTimeout } from "../../src/ui/SessionTimeoutProvider";
 import { fetchUserMe, saveOnboardingProgress } from "../../src/data/onboarding";
 import {
   validateEmail,
@@ -58,6 +61,10 @@ export default function Settings() {
   const [isCreatingWs, setIsCreatingWs] = useState<boolean>(false);
   const [editingWsId, setEditingWsId] = useState<string | null>(null);
   const [editingWsName, setEditingWsName] = useState<string>("");
+
+  const { mode: currentThemeMode, setMode: setCurrentThemeMode } = useTheme();
+  const { triggerTestWarning } = useSessionTimeout();
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState<number>(15);
 
   const [exportFormat, setExportFormat] = useState<ExportOption>("pdf");
   const [compactLists, setCompactLists] = useState<boolean>(false);
@@ -100,6 +107,8 @@ export default function Settings() {
       if (!mounted) return;
       setExportFormat((s.defaultExportFormat as ExportOption) || "pdf");
       setCompactLists(Boolean(s.compactLists));
+      if (s.themeMode) setCurrentThemeMode(s.themeMode);
+      if (s.sessionTimeoutMinutes) setSessionTimeoutMinutes(s.sessionTimeoutMinutes);
       setTesterProfile(s.testerProfile);
       setClientProfile(s.clientProfile);
       setLoading(false);
@@ -178,6 +187,19 @@ export default function Settings() {
     const next = !compactLists;
     setCompactLists(next);
     await saveUserSettings({ compactLists: next }, user);
+    showSavedFeedback();
+  };
+
+  const handleThemeChange = async (newMode: ThemeMode) => {
+    setCurrentThemeMode(newMode);
+    await saveUserSettings({ themeMode: newMode }, user);
+    showSavedFeedback();
+  };
+
+  const handleTimeoutChange = async (minsStr: string) => {
+    const mins = parseInt(minsStr, 10) || 15;
+    setSessionTimeoutMinutes(mins);
+    await saveUserSettings({ sessionTimeoutMinutes: mins }, user);
     showSavedFeedback();
   };
 
@@ -423,6 +445,60 @@ export default function Settings() {
                 <View style={[styles.knob, compactLists && styles.knobOn]} />
               </View>
             </Pressable>
+          </Card>
+
+          {/* Appearance & Interface Theme */}
+          <SectionLabel>Appearance & Interface Theme</SectionLabel>
+          <Card>
+            <View style={styles.prefRow}>
+              <View style={styles.prefText}>
+                <Text style={styles.prefLabel}>Visual Theme</Text>
+                <Text style={styles.prefHint}>
+                  Choose between high-contrast dark technical editorial or crisp white document drafting.
+                </Text>
+              </View>
+            </View>
+            <SegmentedControl<ThemeMode>
+              options={[
+                { value: "dark", label: "Dark Mode", icon: "Moon" },
+                { value: "light", label: "Light Mode", icon: "Sun" },
+              ]}
+              value={currentThemeMode}
+              onChange={handleThemeChange}
+            />
+          </Card>
+
+          {/* Security & Session Inactivity Timeout */}
+          <SectionLabel>Security & Session Inactivity Timeout</SectionLabel>
+          <Card>
+            <View style={styles.prefRow}>
+              <View style={styles.prefText}>
+                <Text style={styles.prefLabel}>Idle Session Timeout</Text>
+                <Text style={styles.prefHint}>
+                  To protect confidential penetration testing agreements and security findings, sessions automatically lock after inactivity.
+                </Text>
+              </View>
+            </View>
+            <SegmentedControl<string>
+              options={[
+                { value: "15", label: "15 min (Standard)" },
+                { value: "30", label: "30 min" },
+                { value: "60", label: "60 min" },
+              ]}
+              value={String(sessionTimeoutMinutes)}
+              onChange={handleTimeoutChange}
+            />
+            <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderColor: theme.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontFamily: theme.font.sansSemi, fontSize: 13, color: theme.text }}>Preview Warning Popup</Text>
+                <Text style={{ fontFamily: theme.font.sans, fontSize: 12, color: theme.muted }}>Test the "Extend Session" warning dialog and countdown.</Text>
+              </View>
+              <Button
+                label="Test Warning"
+                variant="secondary"
+                onPress={triggerTestWarning}
+              />
+            </View>
           </Card>
 
           {/* Cybersecurity Tester / Provider Profile */}

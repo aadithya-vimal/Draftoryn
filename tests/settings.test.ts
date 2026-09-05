@@ -9,6 +9,8 @@ describe("user settings & autofill", () => {
   const sampleSettings: UserSettings = {
     defaultExportFormat: "docx",
     compactLists: true,
+    themeMode: "dark",
+    sessionTimeoutMinutes: 15,
     testerProfile: {
       providerName: "Aegis Red Team Labs",
       providerContactName: "Alex Vance",
@@ -66,5 +68,10 @@ describe("user settings & autofill", () => {
     const filled = autofillFromProfiles(initialSource, DEFAULT_USER_SETTINGS, "all");
 
     expect(filled.clientName).toBe("Existing Corp");
+  });
+
+  it("provides secure defaults for theme mode and session timeout", () => {
+    expect(DEFAULT_USER_SETTINGS.themeMode).toBe("dark");
+    expect(DEFAULT_USER_SETTINGS.sessionTimeoutMinutes).toBe(15);
   });
 });

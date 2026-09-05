@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -15,13 +16,11 @@ import {
 
 // ---------------------------------------------------------------------------
 // Strict Technical Editorial Design Tokens
-// Background: #090A0C | Surface: #101216 | Secondary: #15181D
-// Border: #272B32 | Strong: #343941 | Text: #F5F3EE | Secondary: #A1A5AD
-// Muted: #727780 | Blue: #2F6BFF | Dark Blue: #1F4FD1
-// Semantic: Success #31B77A | Warning #D99A24 | Error #D94A4A
-// Zero decorative gradients. Flat colors only.
+// Dark Mode: Background: #090A0C | Surface: #101216 | Border: #272B32 | Text: #F5F3EE | Accent: #2F6BFF
+// Light Mode: Background: #F6F7F9 | Surface: #FFFFFF | Border: #D6D9E0 | Text: #0D0F12 | Accent: #1F5EFF
 // ---------------------------------------------------------------------------
-export const theme = {
+
+export const darkColors = {
   bg: "#090A0C",
   bgAlt: "#101216",
   surface: "#101216",
@@ -48,6 +47,66 @@ export const theme = {
   okBg: "rgba(49, 183, 122, 0.12)",
   info: "#2F6BFF",
   infoBg: "rgba(47, 107, 255, 0.12)",
+};
+
+export const lightColors = {
+  bg: "#F6F7F9",
+  bgAlt: "#FFFFFF",
+  surface: "#FFFFFF",
+  surface2: "#F0F2F5",
+  surfaceHover: "#E8EBEF",
+  border: "#D6D9E0",
+  borderLight: "#E2E5EB",
+  borderActive: "#1F5EFF",
+  text: "#0D0F12",
+  textSecondary: "#474C56",
+  muted: "#686E7B",
+  mutedLight: "#8C93A1",
+  textDim: "#A6ACB8",
+  accent: "#1F5EFF",
+  accentHover: "#0F4BD9",
+  accentSubtle: "rgba(31, 94, 255, 0.09)",
+  accentSecondary: "#E2E5EB",
+  accentForeground: "#FFFFFF",
+  danger: "#DC2626",
+  dangerBg: "rgba(220, 38, 38, 0.08)",
+  warn: "#B45309",
+  warnBg: "rgba(180, 83, 9, 0.08)",
+  ok: "#15803D",
+  okBg: "rgba(21, 128, 61, 0.08)",
+  info: "#1F5EFF",
+  infoBg: "rgba(31, 94, 255, 0.08)",
+};
+
+const isWeb = Platform.OS === "web";
+
+export const theme = {
+  bg: isWeb ? "var(--color-bg, #090A0C)" : darkColors.bg,
+  bgAlt: isWeb ? "var(--color-bg-alt, #101216)" : darkColors.bgAlt,
+  surface: isWeb ? "var(--color-surface, #101216)" : darkColors.surface,
+  surface2: isWeb ? "var(--color-surface2, #15181D)" : darkColors.surface2,
+  surfaceHover: isWeb ? "var(--color-surface-hover, #191C22)" : darkColors.surfaceHover,
+  border: isWeb ? "var(--color-border, #272B32)" : darkColors.border,
+  borderLight: isWeb ? "var(--color-border-light, #343941)" : darkColors.borderLight,
+  borderActive: isWeb ? "var(--color-border-active, #2F6BFF)" : darkColors.borderActive,
+  text: isWeb ? "var(--color-text, #F5F3EE)" : darkColors.text,
+  textSecondary: isWeb ? "var(--color-text-secondary, #A1A5AD)" : darkColors.textSecondary,
+  muted: isWeb ? "var(--color-muted, #727780)" : darkColors.muted,
+  mutedLight: isWeb ? "var(--color-muted-light, #A1A5AD)" : darkColors.mutedLight,
+  textDim: isWeb ? "var(--color-text-dim, #525760)" : darkColors.textDim,
+  accent: isWeb ? "var(--color-accent, #2F6BFF)" : darkColors.accent,
+  accentHover: isWeb ? "var(--color-accent-hover, #1F4FD1)" : darkColors.accentHover,
+  accentSubtle: isWeb ? "var(--color-accent-subtle, rgba(47, 107, 255, 0.12))" : darkColors.accentSubtle,
+  accentSecondary: isWeb ? "var(--color-accent-secondary, #343941)" : darkColors.accentSecondary,
+  accentForeground: "#FFFFFF",
+  danger: isWeb ? "var(--color-danger, #D94A4A)" : darkColors.danger,
+  dangerBg: isWeb ? "var(--color-danger-bg, rgba(217, 74, 74, 0.12))" : darkColors.dangerBg,
+  warn: isWeb ? "var(--color-warn, #D99A24)" : darkColors.warn,
+  warnBg: isWeb ? "var(--color-warn-bg, rgba(217, 154, 36, 0.12))" : darkColors.warnBg,
+  ok: isWeb ? "var(--color-ok, #31B77A)" : darkColors.ok,
+  okBg: isWeb ? "var(--color-ok-bg, rgba(49, 183, 122, 0.12))" : darkColors.okBg,
+  info: isWeb ? "var(--color-info, #2F6BFF)" : darkColors.info,
+  infoBg: isWeb ? "var(--color-info-bg, rgba(47, 107, 255, 0.12))" : darkColors.infoBg,
   radius: 8,      // Cards: 8px
   radiusSm: 6,    // Buttons & Inputs: 6px
   radiusLg: 10,   // Large product frames: 10px
@@ -91,6 +150,82 @@ export const theme = {
     elevation: 2,
   } as ViewStyle,
 };
+
+// ---------------------------------------------------------------------------
+// Theme Context & State Provider
+// ---------------------------------------------------------------------------
+export type ThemeMode = "dark" | "light";
+
+export interface ThemeContextValue {
+  mode: ThemeMode;
+  isDark: boolean;
+  setMode: (mode: ThemeMode) => void;
+  toggleTheme: () => void;
+  rawColors: typeof darkColors;
+}
+
+export const ThemeContext = createContext<ThemeContextValue>({
+  mode: "dark",
+  isDark: true,
+  setMode: () => {},
+  toggleTheme: () => {},
+  rawColors: darkColors,
+});
+
+export function useTheme(): ThemeContextValue {
+  return useContext(ThemeContext);
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [mode, setModeState] = useState<ThemeMode>("dark");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const saved = window.localStorage.getItem("draftoryn_theme_mode") as ThemeMode | null;
+      if (saved === "light" || saved === "dark") {
+        setModeState(saved);
+        applyDomTheme(saved);
+        return;
+      }
+    }
+    applyDomTheme("dark");
+  }, []);
+
+  const setMode = (newMode: ThemeMode) => {
+    setModeState(newMode);
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem("draftoryn_theme_mode", newMode);
+    }
+    applyDomTheme(newMode);
+  };
+
+  const toggleTheme = () => {
+    setMode(mode === "dark" ? "light" : "dark");
+  };
+
+  return (
+    <ThemeContext.Provider
+      value={{
+        mode,
+        isDark: mode === "dark",
+        setMode,
+        toggleTheme,
+        rawColors: mode === "dark" ? darkColors : lightColors,
+      }}
+    >
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+function applyDomTheme(targetMode: ThemeMode) {
+  if (typeof document === "undefined") return;
+  document.documentElement.setAttribute("data-theme", targetMode);
+  if (document.body) {
+    document.body.style.backgroundColor = targetMode === "light" ? lightColors.bg : darkColors.bg;
+    document.body.style.color = targetMode === "light" ? lightColors.text : darkColors.text;
+  }
+}
 
 export function Screen({ children, title }: { children: React.ReactNode; title?: string }) {
   return (

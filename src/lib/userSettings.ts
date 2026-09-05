@@ -20,9 +20,13 @@ export interface ClientProfile {
   authorizedBy: string;
 }
 
+export type ThemeMode = "dark" | "light";
+
 export interface UserSettings {
   defaultExportFormat: UserExportFormat;
   compactLists: boolean;
+  themeMode: ThemeMode;
+  sessionTimeoutMinutes: number;
   testerProfile: TesterProfile;
   clientProfile: ClientProfile;
 }
@@ -30,6 +34,8 @@ export interface UserSettings {
 export const DEFAULT_USER_SETTINGS: UserSettings = {
   defaultExportFormat: "pdf",
   compactLists: false,
+  themeMode: "dark",
+  sessionTimeoutMinutes: 15,
   testerProfile: {
     providerName: "",
     providerContactName: "",
@@ -63,9 +69,12 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
       }>("/api/settings", { method: "GET" }, user);
 
       if (remote) {
+        const remotePrefs = (remote.testerProfile as Record<string, unknown>) || {};
         const merged: UserSettings = {
           defaultExportFormat: (remote.defaultExportFormat as UserExportFormat) || DEFAULT_USER_SETTINGS.defaultExportFormat,
           compactLists: Boolean(remote.compactLists),
+          themeMode: (remotePrefs.themeMode as ThemeMode) || DEFAULT_USER_SETTINGS.themeMode,
+          sessionTimeoutMinutes: typeof remotePrefs.sessionTimeoutMinutes === "number" ? remotePrefs.sessionTimeoutMinutes : DEFAULT_USER_SETTINGS.sessionTimeoutMinutes,
           testerProfile: {
             ...DEFAULT_USER_SETTINGS.testerProfile,
             ...((remote.testerProfile as Partial<TesterProfile>) || {}),
@@ -91,6 +100,8 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
     return {
       defaultExportFormat: parsed.defaultExportFormat || DEFAULT_USER_SETTINGS.defaultExportFormat,
       compactLists: Boolean(parsed.compactLists),
+      themeMode: parsed.themeMode || DEFAULT_USER_SETTINGS.themeMode,
+      sessionTimeoutMinutes: typeof parsed.sessionTimeoutMinutes === "number" ? parsed.sessionTimeoutMinutes : DEFAULT_USER_SETTINGS.sessionTimeoutMinutes,
       testerProfile: {
         ...DEFAULT_USER_SETTINGS.testerProfile,
         ...(parsed.testerProfile || {}),
@@ -114,6 +125,8 @@ export async function saveUserSettings(
   const updated: UserSettings = {
     defaultExportFormat: settings.defaultExportFormat ?? current.defaultExportFormat,
     compactLists: settings.compactLists !== undefined ? settings.compactLists : current.compactLists,
+    themeMode: settings.themeMode ?? current.themeMode,
+    sessionTimeoutMinutes: settings.sessionTimeoutMinutes ?? current.sessionTimeoutMinutes,
     testerProfile: {
       ...current.testerProfile,
       ...(settings.testerProfile || {}),
@@ -141,7 +154,11 @@ export async function saveUserSettings(
           body: JSON.stringify({
             defaultExportFormat: updated.defaultExportFormat,
             compactLists: updated.compactLists,
-            testerProfile: updated.testerProfile,
+            testerProfile: {
+              ...updated.testerProfile,
+              themeMode: updated.themeMode,
+              sessionTimeoutMinutes: updated.sessionTimeoutMinutes,
+            },
             clientProfile: updated.clientProfile,
           }),
         },

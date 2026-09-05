@@ -3,7 +3,7 @@ import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindo
 import { usePathname, useRouter } from "expo-router";
 import { useAppUser } from "../auth/clerk";
 import { Dialog, Icon } from "./components";
-import { Button, theme } from "./primitives";
+import { Button, theme, useTheme } from "./primitives";
 import {
   listWorkspaces,
   createWorkspace,
@@ -60,6 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { name, email, signOut, isSignedIn, userId } = user;
   const { width } = useWindowDimensions();
   const isMobile = width < 840;
+  const { isDark, toggleTheme } = useTheme();
 
   const [workspaces, setWorkspaces] = useState<WorkspaceRecord[]>([]);
   const [activeWs, setActiveWs] = useState<WorkspaceRecord | null>(null);
@@ -182,6 +183,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Text style={styles.userName} numberOfLines={1}>{name ?? "Operator"}</Text>
           <Text style={styles.userEmail} numberOfLines={1}>{email ?? "user@draftoryn.io"}</Text>
         </View>
+        <Pressable
+          onPress={toggleTheme}
+          hitSlop={8}
+          accessibilityLabel={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          style={styles.themeToggleBtn}
+        >
+          <Icon name={isDark ? "Sun" : "Moon"} size={14} color={theme.muted} />
+        </Pressable>
         <Pressable onPress={() => signOut()} hitSlop={8} accessibilityLabel="Sign out" style={styles.logoutBtn}>
           <Icon name="LogOut" size={15} color={theme.muted} />
         </Pressable>
@@ -235,6 +244,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {activeWs?.name || "Workspace"}
         </Text>
         <Icon name="ChevronDown" size={11} color={theme.muted} />
+      </Pressable>
+      <Pressable
+        onPress={toggleTheme}
+        hitSlop={8}
+        accessibilityLabel={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        style={styles.mobileThemeBtn}
+      >
+        <Icon name={isDark ? "Sun" : "Moon"} size={15} color={theme.muted} />
       </Pressable>
       <Pressable onPress={() => router.push("/(app)/settings")} hitSlop={8}>
         <View style={[styles.avatar, isSettingsActive && styles.avatarActive]}>
@@ -550,11 +567,29 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
     backgroundColor: "#2F6BFF",
   },
-  railUser: { flexDirection: "row", alignItems: "center", gap: 9, paddingTop: 14, borderTopWidth: 1, borderColor: theme.border },
+  railUser: { flexDirection: "row", alignItems: "center", gap: 7, paddingTop: 14, borderTopWidth: 1, borderColor: theme.border },
   avatar: { width: 28, height: 28, borderRadius: theme.radiusSm, backgroundColor: theme.surface2, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: theme.border },
   avatarActive: { borderColor: theme.accent, backgroundColor: theme.accentSubtle },
   userName: { fontFamily: theme.font.sansMedium, fontSize: 12, color: theme.text },
   userEmail: { fontFamily: theme.font.mono, fontSize: 9.5, color: theme.muted },
+  themeToggleBtn: {
+    padding: 5,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mobileThemeBtn: {
+    padding: 6,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   logoutBtn: { padding: 4 },
   shellWeb: { flex: 1, flexDirection: "row", backgroundColor: theme.bg },
   contentWeb: { flex: 1, backgroundColor: theme.bg },

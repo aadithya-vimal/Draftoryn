@@ -3,7 +3,8 @@ import { useFonts } from "expo-font";
 import { ActivityIndicator, Text, View } from "react-native";
 import { ClerkProvider } from "@clerk/expo";
 import { CLERK_PUBLISHABLE_KEY, getTokenCache } from "../src/auth/clerk";
-import { theme } from "../src/ui/primitives";
+import { theme, ThemeProvider } from "../src/ui/primitives";
+import { SessionTimeoutProvider } from "../src/ui/SessionTimeoutProvider";
 import { Redirect } from "expo-router";
 import { InterTight_400Regular } from "@expo-google-fonts/inter-tight/400Regular";
 import { InterTight_500Medium } from "@expo-google-fonts/inter-tight/500Medium";
@@ -52,19 +53,23 @@ export default function RootLayout() {
 
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={getTokenCache()}>
-      <Head>
-        <title>Draftoryn</title>
-        <meta name="description" content="Professional technical specification system for cybersecurity authorizations, assessment reports, threat models, and architecture documentation." />
-        <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
-        <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icon.png" />
-      </Head>
-      <Stack screenOptions={{ headerShown: false, title: "Draftoryn" }}>
-        <Stack.Screen name="(auth)" options={{ title: "Draftoryn" }} />
-        <Stack.Screen name="(app)" options={{ title: "Draftoryn" }} />
-        <Stack.Screen name="document" options={{ title: "Draftoryn" }} />
-        <Stack.Screen name="index" options={{ title: "Draftoryn" }} />
-      </Stack>
+      <ThemeProvider>
+        <SessionTimeoutProvider>
+          <Head>
+            <title>Draftoryn</title>
+            <meta name="description" content="Professional technical specification system for cybersecurity authorizations, assessment reports, threat models, and architecture documentation." />
+            <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+            <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+            <link rel="apple-touch-icon" sizes="180x180" href="/icon.png" />
+          </Head>
+          <Stack screenOptions={{ headerShown: false, title: "Draftoryn" }}>
+            <Stack.Screen name="(auth)" options={{ title: "Draftoryn" }} />
+            <Stack.Screen name="(app)" options={{ title: "Draftoryn" }} />
+            <Stack.Screen name="document" options={{ title: "Draftoryn" }} />
+            <Stack.Screen name="index" options={{ title: "Draftoryn" }} />
+          </Stack>
+        </SessionTimeoutProvider>
+      </ThemeProvider>
     </ClerkProvider>
   );
 }
