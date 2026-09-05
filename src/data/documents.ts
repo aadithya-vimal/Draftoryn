@@ -7,58 +7,62 @@ import type { AppUser } from "../auth/clerk";
 const localRepo = new LocalRepository(getPlatformStorage());
 
 export async function listDocuments(user: AppUser, workspaceId?: string): Promise<DocumentSummary[]> {
+  if (!user.isSignedIn || !user.userId) {
+    throw new Error("Authentication required: you must be signed in to view documents.");
+  }
   const path = workspaceId ? `/api/documents?workspaceId=${encodeURIComponent(workspaceId)}` : "/api/documents";
   try {
-    return await clientHttp<DocumentSummary[]>(path, { method: "GET" }, user);
+    const list = await clientHttp<DocumentSummary[]>(path, { method: "GET" }, user);
+    return list;
   } catch (err) {
-    const ownerId = user.userId ?? "local";
-    return localRepo.list(ownerId);
+    // In case of transient network failure, read offline mirror for the authenticated user only
+    return localRepo.list(user.userId);
   }
 }
 
 export async function getDocument(user: AppUser, id: string): Promise<DocumentRecord | null> {
+  if (!user.isSignedIn || !user.userId) {
+    throw new Error("Authentication required: you must be signed in to view documents.");
+  }
   try {
-    return await clientHttp<DocumentRecord | null>(`/api/documents/${id}`, { method: "GET" }, user);
+    const doc = await clientHttp<DocumentRecord | null>(`/api/documents/${id}`, { method: "GET" }, user);
+    if (doc) await localRepo.put(doc);
+    return doc;
   } catch (err) {
-    const ownerId = user.userId ?? "local";
-    return localRepo.get(id, ownerId);
+    return localRepo.get(id, user.userId);
   }
 }
 
 export async function createDocumentRecord(user: AppUser, record: DocumentRecord): Promise<DocumentRecord> {
-  const ownerId = user.userId ?? "local";
-  const doc = { ...record, ownerId };
-  try {
-    const saved = await clientHttp<DocumentRecord>("/api/documents", { method: "POST", body: JSON.stringify(doc) }, user);
-    await localRepo.put(saved);
-    return saved;
-  } catch (err) {
-    await localRepo.put(doc);
-    return doc;
+  if (!user.isSignedIn || !user.userId) {
+    throw new Error("Authentication required: you must be signed in to save documents to Neon database.");
   }
+  const ownerId = user.userId;
+  const doc = { ...record, ownerId };
+  // Authoritative write directly to Neon database
+  const saved = await clientHttp<DocumentRecord>("/api/documents", { method: "POST", body: JSON.stringify(doc) }, user);
+  await localRepo.put(saved);
+  return saved;
 }
 
 export async function saveDocumentRecord(user: AppUser, record: DocumentRecord): Promise<DocumentRecord> {
-  const ownerId = user.userId ?? "local";
-  const doc = { ...record, ownerId };
-  try {
-    const saved = await clientHttp<DocumentRecord>(`/api/documents/${record.id}`, { method: "PUT", body: JSON.stringify(doc) }, user);
-    await localRepo.put(saved);
-    return saved;
-  } catch (err) {
-    await localRepo.put(doc);
-    return doc;
+  if (!user.isSignedIn || !user.userId) {
+    throw new Error("Authentication required: you must be signed in to save documents to Neon database.");
   }
+  const ownerId = user.userId;
+  const doc = { ...record, ownerId };
+  // Authoritative write directly to Neon database
+  const saved = await clientHttp<DocumentRecord>(`/api/documents/${record.id}`, { method: "PUT", body: JSON.stringify(doc) }, user);
+  await localRepo.put(saved);
+  return saved;
 }
 
 export async function deleteDocument(user: AppUser, id: string): Promise<void> {
-  const ownerId = user.userId ?? "local";
-  try {
-    await clientHttp<{ ok: true }>(`/api/documents/${id}`, { method: "DELETE" }, user);
-    await localRepo.remove(id, ownerId);
-  } catch (err) {
-    await localRepo.remove(id, ownerId);
+  if (!user.isSignedIn || !user.userId) {
+    throw new Error("Authentication required: you must be signed in to delete documents.");
   }
+  await clientHttp<{ ok: true }>(`/api/documents/${id}`, { method: "DELETE" }, user);
+  await localRepo.remove(id, user.userId);
 }
 
 export async function logDocumentExport(user: AppUser, documentId: string, format: string): Promise<void> {

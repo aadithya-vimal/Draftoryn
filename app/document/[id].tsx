@@ -166,8 +166,16 @@ export default function DocumentEditor() {
   }, [sectionOffsets, selectedId]);
 
   useEffect(() => {
-    getUserSettings().then(setUserSettings);
-  }, []);
+    if (user.isLoaded && !user.isSignedIn) {
+      router.replace("/(auth)/login");
+    }
+  }, [user.isLoaded, user.isSignedIn]);
+
+  useEffect(() => {
+    if (user.isSignedIn) {
+      getUserSettings(user).then(setUserSettings);
+    }
+  }, [user.isSignedIn, user.userId]);
   const [busy, setBusy] = useState(false);
   const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
   const [exportingFormat, setExportingFormat] = useState<ExportFormat | null>(null);
@@ -813,6 +821,34 @@ export default function DocumentEditor() {
   );
 
   // ---- Layout ------------------------------------------------------------
+  if (user.isLoaded && !user.isSignedIn) {
+    return (
+      <Screen title="Authentication Required">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, minHeight: 480 }}>
+          <Card accentTop style={{ maxWidth: 480, width: "100%", padding: 28, alignItems: "center" }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.surface2, alignItems: "center", justifyContent: "center", marginBottom: 16, borderWidth: 1, borderColor: theme.border }}>
+              <Icon name="Shield" size={24} color={theme.accent} />
+            </View>
+            <Text style={{ fontFamily: theme.font.monoMedium, fontSize: 11, letterSpacing: 1.5, color: theme.accent, textTransform: "uppercase", marginBottom: 8 }}>
+              AUTHENTICATION REQUIRED // NEON POSTGRESQL
+            </Text>
+            <Heading level={2} style={{ textAlign: "center", marginBottom: 12 }}>
+              Sign In to View Document
+            </Heading>
+            <Text style={{ fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
+              All Draftoryn documents are securely persisted and encrypted within your Neon PostgreSQL workspace. You must be signed in to view or edit this document.
+            </Text>
+            <Button
+              label="Sign In / Register"
+              onPress={() => router.replace("/(auth)/login")}
+              style={{ width: "100%" }}
+            />
+          </Card>
+        </View>
+      </Screen>
+    );
+  }
+
   if (isDesktop) {
     return (
       <View style={styles.screenWeb}>

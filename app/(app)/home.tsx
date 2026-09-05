@@ -10,7 +10,7 @@ import {
 } from "../../src/engine/definitions/catalog";
 import type { DocumentCategory } from "../../src/engine/types";
 import type { DocumentSummary } from "../../src/repository/types";
-import { Button, Card, Heading, SectionLabel, EmptyState, theme } from "../../src/ui/primitives";
+import { Button, Card, Heading, SectionLabel, EmptyState, theme, useTheme } from "../../src/ui/primitives";
 import {
   Icon,
   StatusBadge,
@@ -45,6 +45,7 @@ function categoryLabel(category: string): string {
 export default function Home() {
   const user = useAppUser();
   const router = useRouter();
+  const { mode, toggleTheme } = useTheme();
   const { width } = useWindowDimensions();
   const isMobile = width < 860;
   const [docs, setDocs] = useState<DocumentSummary[]>([]);
@@ -103,7 +104,20 @@ export default function Home() {
               <Text style={styles.personaPillText}>{userRole.toUpperCase()}</Text>
             </View>
           </View>
-          <Text style={styles.persistenceTag}>NEON POSTGRESQL</Text>
+          <View style={styles.workspaceHeaderRight}>
+            <TouchableOpacity
+              onPress={toggleTheme}
+              style={styles.themeToggleBtn}
+              accessibilityRole="button"
+              accessibilityLabel={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+            >
+              <Icon name={mode === "dark" ? "Sun" : "Moon"} size={13} color={theme.text} />
+              <Text style={styles.themeToggleText}>
+                {mode === "dark" ? "LIGHT" : "DARK"}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.persistenceTag}>NEON POSTGRESQL</Text>
+          </View>
         </View>
 
         {/* Hero Banner with Asymmetric Editorial Layout */}
@@ -345,6 +359,28 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     letterSpacing: 1,
     color: theme.mutedLight,
+  },
+  workspaceHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  themeToggleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  themeToggleText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: theme.text,
   },
   persistenceTag: {
     fontFamily: theme.font.mono,

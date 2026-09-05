@@ -179,45 +179,68 @@ export default function Settings() {
 
   const handleExportFormatChange = async (format: ExportOption) => {
     setExportFormat(format);
-    await saveUserSettings({ defaultExportFormat: format as UserExportFormat }, user);
-    showSavedFeedback();
+    try {
+      await saveUserSettings({ defaultExportFormat: format as UserExportFormat }, user);
+      showSavedFeedback();
+    } catch (err) {
+      console.error("Failed to save export format:", err);
+    }
   };
 
   const handleCompactToggle = async () => {
     const next = !compactLists;
     setCompactLists(next);
-    await saveUserSettings({ compactLists: next }, user);
-    showSavedFeedback();
+    try {
+      await saveUserSettings({ compactLists: next }, user);
+      showSavedFeedback();
+    } catch (err) {
+      console.error("Failed to save compact toggle:", err);
+    }
   };
 
   const handleThemeChange = async (newMode: ThemeMode) => {
     setCurrentThemeMode(newMode);
-    await saveUserSettings({ themeMode: newMode }, user);
-    showSavedFeedback();
+    try {
+      await saveUserSettings({ themeMode: newMode }, user);
+      showSavedFeedback();
+    } catch (err) {
+      console.error("Failed to save theme mode:", err);
+    }
   };
 
   const handleTimeoutChange = async (minsStr: string) => {
     const mins = parseInt(minsStr, 10) || 15;
     setSessionTimeoutMinutes(mins);
-    await saveUserSettings({ sessionTimeoutMinutes: mins }, user);
-    showSavedFeedback();
+    try {
+      await saveUserSettings({ sessionTimeoutMinutes: mins }, user);
+      showSavedFeedback();
+    } catch (err) {
+      console.error("Failed to save timeout:", err);
+    }
   };
 
   const handleSaveProfiles = async () => {
     setSaveStatus("saving");
-    if (workspace?.name) {
-      await saveOnboardingProgress(user, {
-        workspaceName: workspace.name,
-      });
+    try {
+      if (workspace?.name) {
+        await saveOnboardingProgress(user, {
+          workspaceName: workspace.name,
+        });
+      }
+      await saveUserSettings({
+        defaultExportFormat: exportFormat as UserExportFormat,
+        compactLists,
+        themeMode: currentThemeMode,
+        sessionTimeoutMinutes,
+        testerProfile,
+        clientProfile,
+      }, user);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2500);
+    } catch (err) {
+      console.error("Failed to save profiles to Neon:", err);
+      setSaveStatus("idle");
     }
-    await saveUserSettings({
-      defaultExportFormat: exportFormat as UserExportFormat,
-      compactLists,
-      testerProfile,
-      clientProfile,
-    }, user);
-    setSaveStatus("saved");
-    setTimeout(() => setSaveStatus("idle"), 2500);
   };
 
   const showSavedFeedback = () => {

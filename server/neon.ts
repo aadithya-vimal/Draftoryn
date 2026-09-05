@@ -30,6 +30,8 @@ export interface DbUserSettings {
   userId: string;
   defaultExportFormat: string;
   compactLists: boolean;
+  themeMode: string;
+  sessionTimeoutMinutes: number;
   testerProfile: Record<string, unknown>;
   clientProfile: Record<string, unknown>;
   updatedAt: string;
@@ -214,13 +216,15 @@ export async function getOrCreateUser(
 
     // 3. Ensure user settings exist
     const settingsRows = (await sql(
-      `SELECT user_id, default_export_format, compact_lists, tester_profile, client_profile, updated_at
+      `SELECT user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, updated_at
        FROM user_settings WHERE user_id = $1`,
       [userId],
     )) as Array<{
       user_id: string;
       default_export_format: string;
       compact_lists: boolean;
+      theme_mode: string;
+      session_timeout_minutes: number;
       tester_profile: Record<string, unknown>;
       client_profile: Record<string, unknown>;
       updated_at: string;
@@ -233,14 +237,16 @@ export async function getOrCreateUser(
         userId: s.user_id,
         defaultExportFormat: s.default_export_format ?? "pdf",
         compactLists: Boolean(s.compact_lists),
+        themeMode: s.theme_mode ?? "dark",
+        sessionTimeoutMinutes: s.session_timeout_minutes ?? 15,
         testerProfile: s.tester_profile ?? {},
         clientProfile: s.client_profile ?? {},
         updatedAt: s.updated_at,
       };
     } else {
       await sql(
-        `INSERT INTO user_settings (user_id, default_export_format, compact_lists, tester_profile, client_profile, updated_at)
-         VALUES ($1, 'pdf', false, '{}'::jsonb, '{}'::jsonb, now())
+        `INSERT INTO user_settings (user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, updated_at)
+         VALUES ($1, 'pdf', false, 'dark', 15, '{}'::jsonb, '{}'::jsonb, now())
          ON CONFLICT (user_id) DO NOTHING`,
         [userId],
       );
@@ -248,6 +254,8 @@ export async function getOrCreateUser(
         userId,
         defaultExportFormat: "pdf",
         compactLists: false,
+        themeMode: "dark",
+        sessionTimeoutMinutes: 15,
         testerProfile: {},
         clientProfile: {},
         updatedAt: new Date().toISOString(),
@@ -437,13 +445,15 @@ export async function updateUserOnboarding(
 export async function getUserSettings(userId: string): Promise<DbUserSettings> {
   return withRls(userId, async (sql) => {
     const rows = (await sql(
-      `SELECT user_id, default_export_format, compact_lists, tester_profile, client_profile, updated_at
+      `SELECT user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, updated_at
        FROM user_settings WHERE user_id = $1`,
       [userId],
     )) as Array<{
       user_id: string;
       default_export_format: string;
       compact_lists: boolean;
+      theme_mode: string;
+      session_timeout_minutes: number;
       tester_profile: Record<string, unknown>;
       client_profile: Record<string, unknown>;
       updated_at: string;
@@ -455,6 +465,8 @@ export async function getUserSettings(userId: string): Promise<DbUserSettings> {
         userId: s.user_id,
         defaultExportFormat: s.default_export_format ?? "pdf",
         compactLists: Boolean(s.compact_lists),
+        themeMode: s.theme_mode ?? "dark",
+        sessionTimeoutMinutes: s.session_timeout_minutes ?? 15,
         testerProfile: s.tester_profile ?? {},
         clientProfile: s.client_profile ?? {},
         updatedAt: s.updated_at,
@@ -467,6 +479,8 @@ export async function getUserSettings(userId: string): Promise<DbUserSettings> {
       userId,
       defaultExportFormat: "pdf",
       compactLists: false,
+      themeMode: "dark",
+      sessionTimeoutMinutes: 15,
       testerProfile: {},
       clientProfile: {},
       updatedAt: new Date().toISOString(),
@@ -479,6 +493,8 @@ export async function putUserSettings(
   settings: {
     defaultExportFormat?: string;
     compactLists?: boolean;
+    themeMode?: string;
+    sessionTimeoutMinutes?: number;
     testerProfile?: Record<string, unknown>;
     clientProfile?: Record<string, unknown>;
   },
@@ -491,16 +507,20 @@ export async function putUserSettings(
     const updated = {
       defaultExportFormat: settings.defaultExportFormat ?? existing.defaultExportFormat,
       compactLists: settings.compactLists !== undefined ? settings.compactLists : existing.compactLists,
+      themeMode: settings.themeMode ?? existing.themeMode,
+      sessionTimeoutMinutes: settings.sessionTimeoutMinutes ?? existing.sessionTimeoutMinutes,
       testerProfile: settings.testerProfile ? { ...existing.testerProfile, ...settings.testerProfile } : existing.testerProfile,
       clientProfile: settings.clientProfile ? { ...existing.clientProfile, ...settings.clientProfile } : existing.clientProfile,
     };
 
     await sql(
-      `INSERT INTO user_settings (user_id, default_export_format, compact_lists, tester_profile, client_profile, updated_at)
-       VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, now())
+      `INSERT INTO user_settings (user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, now())
        ON CONFLICT (user_id) DO UPDATE SET
          default_export_format = EXCLUDED.default_export_format,
          compact_lists = EXCLUDED.compact_lists,
+         theme_mode = EXCLUDED.theme_mode,
+         session_timeout_minutes = EXCLUDED.session_timeout_minutes,
          tester_profile = EXCLUDED.tester_profile,
          client_profile = EXCLUDED.client_profile,
          updated_at = now()`,
@@ -508,6 +528,8 @@ export async function putUserSettings(
         userId,
         updated.defaultExportFormat,
         updated.compactLists,
+        updated.themeMode,
+        updated.sessionTimeoutMinutes,
         JSON.stringify(updated.testerProfile),
         JSON.stringify(updated.clientProfile),
       ],
@@ -517,6 +539,8 @@ export async function putUserSettings(
       userId,
       defaultExportFormat: updated.defaultExportFormat,
       compactLists: updated.compactLists,
+      themeMode: updated.themeMode,
+      sessionTimeoutMinutes: updated.sessionTimeoutMinutes,
       testerProfile: updated.testerProfile,
       clientProfile: updated.clientProfile,
       updatedAt: new Date().toISOString(),

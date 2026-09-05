@@ -1,7 +1,8 @@
 import React from "react";
-import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
-import { Button, theme } from "./primitives";
+import { Button, theme, useTheme } from "./primitives";
+import { Icon } from "./components";
 
 interface PublicHeaderProps {
   activeNav?: "specifications" | "catalog" | "workflow" | "architecture" | null;
@@ -9,6 +10,7 @@ interface PublicHeaderProps {
 
 export function PublicHeader({ activeNav }: PublicHeaderProps) {
   const router = useRouter();
+  const { mode, toggleTheme } = useTheme();
   const { width } = useWindowDimensions();
   const isMobile = width < 840;
 
@@ -97,6 +99,17 @@ export function PublicHeader({ activeNav }: PublicHeaderProps) {
 
         {/* Right: Actions */}
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={toggleTheme}
+            style={styles.themeToggleBtn}
+            accessibilityRole="button"
+            accessibilityLabel={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+          >
+            <Icon name={mode === "dark" ? "Sun" : "Moon"} size={13} color={theme.text} />
+            <Text style={styles.themeToggleText}>
+              {mode === "dark" ? "LIGHT" : "DARK"}
+            </Text>
+          </TouchableOpacity>
           <Button
             label="Sign In"
             variant="ghost"
@@ -117,9 +130,9 @@ export function PublicHeader({ activeNav }: PublicHeaderProps) {
 const styles = StyleSheet.create({
   header: {
     height: 72,
-    backgroundColor: "#101216",
+    backgroundColor: theme.surface,
     borderBottomWidth: 1,
-    borderColor: "#272B32",
+    borderColor: theme.border,
     justifyContent: "center",
   },
   headerInner: {
@@ -145,7 +158,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.sansBold,
     fontSize: 18,
     letterSpacing: -0.5,
-    color: "#F5F3EE",
+    color: theme.text,
   },
   headerNav: {
     flexDirection: "row",
@@ -160,26 +173,43 @@ const styles = StyleSheet.create({
   },
   navItemActive: {
     borderBottomWidth: 2,
-    borderBottomColor: "#2F6BFF",
+    borderBottomColor: theme.accent,
   },
   headerNavLink: {
     fontFamily: theme.font.monoMedium,
     fontSize: 12,
     letterSpacing: 1.2,
-    color: "#A1A5AD",
+    color: theme.muted,
   },
   headerNavLinkActive: {
-    color: "#F5F3EE",
+    color: theme.text,
   },
   navDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#2F6BFF",
+    backgroundColor: theme.accent,
   },
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  themeToggleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 9,
+    borderRadius: theme.radiusSm,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  themeToggleText: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: theme.text,
   },
 });

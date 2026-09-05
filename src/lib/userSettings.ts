@@ -64,6 +64,8 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
       const remote = await clientHttp<{
         defaultExportFormat?: string;
         compactLists?: boolean;
+        themeMode?: string;
+        sessionTimeoutMinutes?: number;
         testerProfile?: Record<string, unknown>;
         clientProfile?: Record<string, unknown>;
       }>("/api/settings", { method: "GET" }, user);
@@ -73,8 +75,13 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
         const merged: UserSettings = {
           defaultExportFormat: (remote.defaultExportFormat as UserExportFormat) || DEFAULT_USER_SETTINGS.defaultExportFormat,
           compactLists: Boolean(remote.compactLists),
-          themeMode: (remotePrefs.themeMode as ThemeMode) || DEFAULT_USER_SETTINGS.themeMode,
-          sessionTimeoutMinutes: typeof remotePrefs.sessionTimeoutMinutes === "number" ? remotePrefs.sessionTimeoutMinutes : DEFAULT_USER_SETTINGS.sessionTimeoutMinutes,
+          themeMode: (remote.themeMode as ThemeMode) || (remotePrefs.themeMode as ThemeMode) || DEFAULT_USER_SETTINGS.themeMode,
+          sessionTimeoutMinutes:
+            typeof remote.sessionTimeoutMinutes === "number"
+              ? remote.sessionTimeoutMinutes
+              : typeof remotePrefs.sessionTimeoutMinutes === "number"
+              ? remotePrefs.sessionTimeoutMinutes
+              : DEFAULT_USER_SETTINGS.sessionTimeoutMinutes,
           testerProfile: {
             ...DEFAULT_USER_SETTINGS.testerProfile,
             ...((remote.testerProfile as Partial<TesterProfile>) || {}),
@@ -154,11 +161,9 @@ export async function saveUserSettings(
           body: JSON.stringify({
             defaultExportFormat: updated.defaultExportFormat,
             compactLists: updated.compactLists,
-            testerProfile: {
-              ...updated.testerProfile,
-              themeMode: updated.themeMode,
-              sessionTimeoutMinutes: updated.sessionTimeoutMinutes,
-            },
+            themeMode: updated.themeMode,
+            sessionTimeoutMinutes: updated.sessionTimeoutMinutes,
+            testerProfile: updated.testerProfile,
             clientProfile: updated.clientProfile,
           }),
         },
@@ -166,6 +171,7 @@ export async function saveUserSettings(
       );
     } catch (err) {
       console.error("[userSettings] Failed to persist to Neon:", err);
+      throw err;
     }
   }
 

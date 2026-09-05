@@ -43,13 +43,18 @@ CREATE INDEX IF NOT EXISTS idx_workspaces_owner ON workspaces (owner_id);
 
 -- 3. User Settings Table (Persisted Preferences & Organization Profiles)
 CREATE TABLE IF NOT EXISTS user_settings (
-  user_id               TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  default_export_format TEXT NOT NULL DEFAULT 'pdf',
-  compact_lists         BOOLEAN NOT NULL DEFAULT false,
-  tester_profile        JSONB NOT NULL DEFAULT '{}'::jsonb,
-  client_profile        JSONB NOT NULL DEFAULT '{}'::jsonb,
-  updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+  user_id                 TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  default_export_format   TEXT NOT NULL DEFAULT 'pdf',
+  compact_lists           BOOLEAN NOT NULL DEFAULT false,
+  theme_mode              TEXT NOT NULL DEFAULT 'dark',
+  session_timeout_minutes INTEGER NOT NULL DEFAULT 15,
+  tester_profile          JSONB NOT NULL DEFAULT '{}'::jsonb,
+  client_profile          JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS theme_mode TEXT NOT NULL DEFAULT 'dark';
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS session_timeout_minutes INTEGER NOT NULL DEFAULT 15;
 
 -- 4. Documents Table (Core Cybersecurity Document Store)
 CREATE TABLE IF NOT EXISTS documents (
