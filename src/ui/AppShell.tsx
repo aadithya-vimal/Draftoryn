@@ -263,7 +263,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Text style={[styles.wsRowName, isSelected && styles.wsRowNameSelected]} numberOfLines={1}>
                   {w.name}
                 </Text>
-                <Text style={styles.wsRowSlug}>slug: {w.slug}</Text>
+                <Text style={styles.wsRowSlug}>{isSelected ? "Active Workspace" : "Click to switch"}</Text>
               </View>
               {isSelected && (
                 <View style={styles.wsActiveBadge}>

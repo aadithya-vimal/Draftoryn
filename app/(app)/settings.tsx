@@ -47,6 +47,7 @@ import {
   updateWorkspace,
   type WorkspaceRecord,
 } from "../../src/data/workspaces";
+import { listDocuments } from "../../src/data/documents";
 import { useWorkspace } from "../../src/context/WorkspaceContext";
 
 type ExportOption = "pdf" | "docx" | "markdown" | "html" | "json";
@@ -73,6 +74,7 @@ export default function Settings() {
   const [editingWsId, setEditingWsId] = useState<string | null>(null);
   const [editingWsName, setEditingWsName] = useState<string>("");
   const [deleteWsTarget, setDeleteWsTarget] = useState<WorkspaceRecord | null>(null);
+  const [deleteTargetDocCount, setDeleteTargetDocCount] = useState<number | null>(null);
   const [isDeletingWs, setIsDeletingWs] = useState<boolean>(false);
 
   const { mode: currentThemeMode, setMode: setCurrentThemeMode } = useTheme();
@@ -171,20 +173,22 @@ export default function Settings() {
     }
   };
 
-  const [wsError, setWsError] = useState<string | null>(null);
+  const [wsCreateError, setWsCreateError] = useState<string | null>(null);
+  const [wsRenameError, setWsRenameError] = useState<string | null>(null);
+  const [wsDeleteError, setWsDeleteError] = useState<string | null>(null);
 
   const handleCreateNewWorkspace = async () => {
     const trimmed = newWsName.trim();
     if (!trimmed || isCreatingWs) return;
     setIsCreatingWs(true);
-    setWsError(null);
+    setWsCreateError(null);
     try {
       await createAndSelectWorkspace(trimmed);
       setNewWsName("");
       showSavedFeedback();
     } catch (e) {
       console.error("Failed to create workspace:", e);
-      setWsError(e instanceof Error ? e.message : "Failed to create workspace.");
+      setWsCreateError(e instanceof Error ? e.message : "Failed to create workspace.");
     } finally {
       setIsCreatingWs(false);
     }
@@ -193,7 +197,7 @@ export default function Settings() {
   const handleUpdateWorkspace = async (id: string) => {
     const trimmed = editingWsName.trim();
     if (!trimmed) return;
-    setWsError(null);
+    setWsRenameError(null);
     try {
       await updateWorkspace(user, id, { name: trimmed });
       setEditingWsId(null);
@@ -201,7 +205,7 @@ export default function Settings() {
       showSavedFeedback();
     } catch (e) {
       console.error("Failed to update workspace:", e);
-      setWsError(e instanceof Error ? e.message : "Failed to update workspace name.");
+      setWsRenameError(e instanceof Error ? e.message : "Failed to update workspace name.");
     }
   };
 
@@ -218,13 +222,15 @@ export default function Settings() {
     if (!deleteWsTarget || isDeletingWs) return;
     if (workspaces.length <= 1) return;
     setIsDeletingWs(true);
+    setWsDeleteError(null);
     try {
       await deleteAndSelectWorkspace(deleteWsTarget.id);
       setDeleteWsTarget(null);
+      setDeleteTargetDocCount(null);
       showSavedFeedback();
     } catch (e) {
       console.error("Failed to delete workspace:", e);
-      setWsError(e instanceof Error ? e.message : "Failed to delete workspace.");
+      setWsDeleteError(e instanceof Error ? e.message : "Failed to delete workspace.");
     } finally {
       setIsDeletingWs(false);
     }
@@ -412,12 +418,12 @@ export default function Settings() {
                             variant="secondary"
                             onPress={() => {
                               setEditingWsId(null);
-                              setWsError(null);
+                              setWsRenameError(null);
                             }}
                             style={{ minWidth: 70 }}
                           />
                         </View>
-                        {wsError ? <Text style={styles.fieldError}>{wsError}</Text> : null}
+                        {wsRenameError ? <Text style={styles.fieldError}>{wsRenameError}</Text> : null}
                       </View>
                     ) : (
                       <View style={styles.wsItemContent}>
@@ -435,7 +441,7 @@ export default function Settings() {
                               </View>
                             )}
                           </View>
-                          <Text style={styles.wsItemSlug}>ID: {w.id} · slug: {w.slug}</Text>
+                          <Text style={styles.wsItemSlug}>Workspace</Text>
                         </View>
 
                         <View style={styles.wsItemActions}>
@@ -453,6 +459,7 @@ export default function Settings() {
                             onPress={() => {
                               setEditingWsId(w.id);
                               setEditingWsName(w.name);
+                              setWsRenameError(null);
                             }}
                             style={styles.wsActionBtn}
                           />
@@ -460,7 +467,14 @@ export default function Settings() {
                             <Button
                               label="Delete"
                               variant="danger"
-                              onPress={() => setDeleteWsTarget(w)}
+                              onPress={() => {
+                                setDeleteWsTarget(w);
+                                setDeleteTargetDocCount(null);
+                                setWsDeleteError(null);
+                                listDocuments(user, w.id)
+                                  .then((docs) => setDeleteTargetDocCount(docs.length))
+                                  .catch(() => setDeleteTargetDocCount(0));
+                              }}
                               style={styles.wsActionBtn}
                             />
                           )}
@@ -490,7 +504,7 @@ export default function Settings() {
                   disabled={!newWsName.trim() || isCreatingWs}
                 />
               </View>
-              {wsError ? <Text style={styles.fieldError}>{wsError}</Text> : null}
+              {wsCreateError ? <Text style={styles.fieldError}>{wsCreateError}</Text> : null}
             </View>
           </Card>
 
@@ -992,7 +1006,7 @@ export default function Settings() {
                 saveStatus === "saving"
                   ? "Saving profiles & preferences…"
                   : saveStatus === "saved"
-                  ? "✓ Saved to Database!"
+                  ? "✓ Profiles & Preferences Saved"
                   : "Save Profiles & Preferences"
               }
               variant={saveStatus === "saved" ? "secondary" : "primary"}
@@ -1003,7 +1017,7 @@ export default function Settings() {
             {saveStatus === "saved" && (
               <View style={styles.saveInlineConfirmation}>
                 <Icon name="Check" size={14} color={theme.ok} />
-                <Text style={styles.saveInlineConfirmationText}>All configuration parameters saved to your workspace.</Text>
+                <Text style={styles.saveInlineConfirmationText}>Settings and profiles saved successfully.</Text>
               </View>
             )}
           </View>
@@ -1072,8 +1086,12 @@ export default function Settings() {
             <Text style={{ fontFamily: theme.font.sansBold, color: theme.text }}>
               "{deleteWsTarget?.name}"
             </Text>
-            ? This will permanently delete the workspace and all documents associated with it. This action cannot be undone.
+            {deleteTargetDocCount !== null
+              ? ` and its ${deleteTargetDocCount} document${deleteTargetDocCount === 1 ? "" : "s"}?`
+              : ` and all documents associated with it?`}{" "}
+            This action cannot be undone.
           </Text>
+          {wsDeleteError ? <Text style={styles.fieldError}>{wsDeleteError}</Text> : null}
           <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
             <Button
               label="Cancel"

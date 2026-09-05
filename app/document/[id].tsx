@@ -182,6 +182,13 @@ export default function DocumentEditor() {
     const offset = sectionOffsets[sid];
     if (scrollViewRef.current && offset !== undefined) {
       scrollViewRef.current.scrollTo({ y: Math.max(0, offset - 10), animated: true });
+    } else {
+      setTimeout(() => {
+        const retryOffset = sectionOffsets[sid];
+        if (scrollViewRef.current && retryOffset !== undefined) {
+          scrollViewRef.current.scrollTo({ y: Math.max(0, retryOffset - 10), animated: true });
+        }
+      }, 100);
     }
   }, [sectionOffsets]);
 
@@ -196,7 +203,23 @@ export default function DocumentEditor() {
       getUserSettings(user).then(setUserSettings);
     }
   }, [user.isSignedIn, user.userId]);
-  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+  const [autosaveEnabled, setAutosaveEnabled] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const stored = window.localStorage.getItem("draftoryn_autosave_enabled");
+      if (stored !== null) return stored === "true";
+    }
+    return true;
+  });
+
+  const toggleAutosave = useCallback(() => {
+    setAutosaveEnabled((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem("draftoryn_autosave_enabled", String(next));
+      }
+      return next;
+    });
+  }, []);
   const [isDirty, setIsDirty] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
@@ -775,7 +798,7 @@ export default function DocumentEditor() {
         {/* Autosave Switch Toggle */}
         <TouchableOpacity
           style={[styles.autosaveToggle, autosaveEnabled ? styles.autosaveToggleOn : styles.autosaveToggleOff]}
-          onPress={() => setAutosaveEnabled((v) => !v)}
+          onPress={toggleAutosave}
           accessibilityRole="button"
           accessibilityLabel={`Autosave is ${autosaveEnabled ? "ON" : "OFF"}`}
         >
@@ -1123,7 +1146,7 @@ export default function DocumentEditor() {
   return (
     <View style={styles.screenMobile}>
       <View style={styles.mobileTop}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleGoBack} style={styles.backBtn}>
           <Icon name="ChevronLeft" size={18} color={theme.muted} />
           <Text style={styles.backText}>Documents</Text>
         </TouchableOpacity>
@@ -1172,6 +1195,19 @@ export default function DocumentEditor() {
       {renderCanvas()}
 
       <View style={styles.mobileActions}>
+        <View style={{ width: "100%", alignItems: "center", marginBottom: 6 }}>
+          <TouchableOpacity
+            style={[styles.autosaveToggle, autosaveEnabled ? styles.autosaveToggleOn : styles.autosaveToggleOff]}
+            onPress={toggleAutosave}
+            accessibilityRole="button"
+            accessibilityLabel={`Autosave is ${autosaveEnabled ? "ON" : "OFF"}`}
+          >
+            <View style={[styles.autosaveDot, autosaveEnabled ? styles.autosaveDotOn : styles.autosaveDotOff]} />
+            <Text style={[styles.autosaveText, autosaveEnabled ? styles.autosaveTextOn : styles.autosaveTextOff]}>
+              {autosaveEnabled ? "Autosave ON" : "Autosave OFF"}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <Button
           label={
             saveState === "saving"

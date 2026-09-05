@@ -42,7 +42,7 @@ export default function CatalogPage() {
             Document Catalog
           </Heading>
           <Text style={styles.heroLead}>
-            Search and inspect all 30 canonical cybersecurity specifications. Filter by operational discipline,
+            Search and inspect all {DOCUMENT_DEFINITIONS.length} canonical specifications across software engineering, architecture, and security. Filter by operational discipline,
             review section schema counts, and launch directly into document creation.
           </Text>
 

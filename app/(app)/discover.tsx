@@ -69,7 +69,7 @@ export default function Discover() {
         <Heading level={2} style={isMobile ? styles.titleMobile : styles.title}>
           Document catalog
         </Heading>
-        <SectionLabel>Professional technical & security templates</SectionLabel>
+        <SectionLabel>Engineering, architecture, and security specifications</SectionLabel>
       </View>
 
       <Input

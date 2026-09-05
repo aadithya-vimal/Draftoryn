@@ -5,6 +5,7 @@ import { useAppUser } from "../../src/auth/clerk";
 import { listDocuments } from "../../src/data/documents";
 import {
   CATEGORIES,
+  DOCUMENT_DEFINITIONS,
   definitionsByCategory,
   getDefinition,
 } from "../../src/engine/definitions/catalog";
@@ -138,8 +139,8 @@ export default function Home() {
             </Heading>
             <Text style={styles.heroDescription}>
               Professional technical agreements, security evaluations, threat models, and architectural
-              specifications. Built with rigorous document schemas, strict typographics, and single-source-of-truth
-              persistence.
+              specifications. Built with rigorous document schemas, strict typographics, and automatic
+              workspace synchronization.
             </Text>
 
             <View style={[styles.ctaRow, isMobile && { flexDirection: "column", width: "100%", gap: 10 }]}>
@@ -149,7 +150,7 @@ export default function Home() {
                 style={isMobile ? { width: "100%" } : undefined}
               />
               <Button
-                label="Browse 30 Specifications"
+                label={`Browse ${DOCUMENT_DEFINITIONS.length} Specifications`}
                 variant="secondary"
                 onPress={() => router.push("/(app)/discover")}
                 style={isMobile ? { width: "100%" } : undefined}
@@ -267,6 +268,15 @@ export default function Home() {
                 </Card>
               </TouchableOpacity>
             ))}
+            {docs.length > 8 && (
+              <View style={{ width: "100%", alignItems: "center", marginTop: 8 }}>
+                <Button
+                  label={`View all ${docs.length} documents in Library →`}
+                  variant="secondary"
+                  onPress={() => router.push("/(app)/library")}
+                />
+              </View>
+            )}
           </View>
         )}
 

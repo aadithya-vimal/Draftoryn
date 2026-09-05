@@ -54,7 +54,7 @@ export default function LandingPage() {
               <Button
                 label="Browse Specifications"
                 variant="secondary"
-                onPress={() => router.push("/(auth)/login")}
+                onPress={() => router.push("/catalog")}
                 style={isMobile ? { width: "100%" } : undefined}
               />
             </View>
