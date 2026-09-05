@@ -39,18 +39,22 @@ import Head from "expo-router/head";
 
 export default function RootLayout() {
   const isWeb = Platform.OS === "web";
-  const [fontsLoaded, fontError] = useFonts({
-    InterTight_400Regular,
-    InterTight_500Medium,
-    InterTight_600SemiBold,
-    InterTight_700Bold,
-    InterTight_800ExtraBold,
-    InterTight_900Black,
-    IBMPlexMono_400Regular,
-    IBMPlexMono_500Medium,
-  });
+  const [fontsLoaded] = useFonts(
+    isWeb
+      ? {}
+      : {
+          InterTight_400Regular,
+          InterTight_500Medium,
+          InterTight_600SemiBold,
+          InterTight_700Bold,
+          InterTight_800ExtraBold,
+          InterTight_900Black,
+          IBMPlexMono_400Regular,
+          IBMPlexMono_500Medium,
+        },
+  );
 
-  if (!fontsLoaded && !fontError && !isWeb) return <FontSplash />;
+  if (!fontsLoaded && !isWeb) return <FontSplash />;
   if (!CLERK_PUBLISHABLE_KEY) return <MissingKey />;
 
   return (
@@ -64,6 +68,12 @@ export default function RootLayout() {
               <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
               <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
               <link rel="apple-touch-icon" sizes="180x180" href="/icon.png" />
+              <link rel="preconnect" href="https://fonts.googleapis.com" />
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+              <link
+                rel="stylesheet"
+                href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter+Tight:ital,wght@0,300..900;1,300..900&display=swap"
+              />
             </Head>
             <Stack screenOptions={{ headerShown: false, title: "Draftoryn" }}>
               <Stack.Screen name="(auth)" options={{ title: "Draftoryn" }} />

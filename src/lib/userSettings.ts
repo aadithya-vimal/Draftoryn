@@ -90,6 +90,29 @@ interface SecureLocalAiKeys {
   geminiApiKey?: string;
 }
 
+const AI_MODELS_LOCAL_STORAGE_KEY = "draftoryn_ai_models_v1";
+
+export async function getLocalAiModels(): Promise<Partial<AiSettings>> {
+  try {
+    const storage = getPlatformStorage();
+    const raw = await storage.get(AI_MODELS_LOCAL_STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+export async function saveLocalAiModels(models: Partial<AiSettings>): Promise<void> {
+  try {
+    const storage = getPlatformStorage();
+    const existing = await getLocalAiModels();
+    await storage.set(AI_MODELS_LOCAL_STORAGE_KEY, JSON.stringify({ ...existing, ...models }));
+  } catch {
+    // Local storage error ignored
+  }
+}
+
 async function getLocalAiKeys(): Promise<SecureLocalAiKeys> {
   try {
     const storage = getPlatformStorage();
@@ -113,6 +136,7 @@ async function saveLocalAiKeys(keys: SecureLocalAiKeys): Promise<void> {
 export async function getUserSettings(user?: AuthLike | null): Promise<UserSettings> {
   const storage = getPlatformStorage();
   const localKeys = await getLocalAiKeys();
+  const localModels = await getLocalAiModels();
 
   // 1. Authoritative fetch from Neon if user is authenticated
   if (user && user.userId) {
@@ -149,11 +173,11 @@ export async function getUserSettings(user?: AuthLike | null): Promise<UserSetti
             ...((remote.clientProfile as Partial<ClientProfile>) || {}),
           },
           aiSettings: {
-            defaultProvider: remoteAi.defaultProvider || DEFAULT_AI_SETTINGS.defaultProvider,
-            openaiModel: remoteAi.openaiModel || DEFAULT_AI_SETTINGS.openaiModel,
-            anthropicModel: remoteAi.anthropicModel || DEFAULT_AI_SETTINGS.anthropicModel,
-            groqModel: remoteAi.groqModel || DEFAULT_AI_SETTINGS.groqModel,
-            geminiModel: remoteAi.geminiModel || DEFAULT_AI_SETTINGS.geminiModel,
+            defaultProvider: remoteAi.defaultProvider || localModels.defaultProvider || DEFAULT_AI_SETTINGS.defaultProvider,
+            openaiModel: remoteAi.openaiModel || localModels.openaiModel || DEFAULT_AI_SETTINGS.openaiModel,
+            anthropicModel: remoteAi.anthropicModel || localModels.anthropicModel || DEFAULT_AI_SETTINGS.anthropicModel,
+            groqModel: remoteAi.groqModel || localModels.groqModel || DEFAULT_AI_SETTINGS.groqModel,
+            geminiModel: remoteAi.geminiModel || localModels.geminiModel || DEFAULT_AI_SETTINGS.geminiModel,
             // API keys are strictly loaded from local storage only - NEVER from database
             openaiApiKey: localKeys.openaiApiKey ?? "",
             anthropicApiKey: localKeys.anthropicApiKey ?? "",
@@ -237,6 +261,15 @@ export async function saveUserSettings(
     anthropicApiKey: newAiSettings.anthropicApiKey ?? "",
     groqApiKey: newAiSettings.groqApiKey ?? "",
     geminiApiKey: newAiSettings.geminiApiKey ?? "",
+  });
+
+  // 2. Persist chosen models to local storage
+  await saveLocalAiModels({
+    openaiModel: newAiSettings.openaiModel,
+    anthropicModel: newAiSettings.anthropicModel,
+    groqModel: newAiSettings.groqModel,
+    geminiModel: newAiSettings.geminiModel,
+    defaultProvider: newAiSettings.defaultProvider,
   });
 
   const updated: UserSettings = {

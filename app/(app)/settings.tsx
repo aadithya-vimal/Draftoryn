@@ -139,6 +139,34 @@ export default function Settings() {
     });
   };
 
+  const [savedModelModal, setSavedModelModal] = useState<{ open: boolean; model: string; providerName: string }>({
+    open: false,
+    model: "",
+    providerName: "",
+  });
+
+  const handleSaveModel = (modelToSave?: string) => {
+    const model = (modelToSave !== undefined ? modelToSave : (
+      activeAiTab === "openai" ? (aiSettings.openaiModel || AI_PROVIDERS.openai.defaultModel) :
+      activeAiTab === "anthropic" ? (aiSettings.anthropicModel || AI_PROVIDERS.anthropic.defaultModel) :
+      activeAiTab === "groq" ? (aiSettings.groqModel || AI_PROVIDERS.groq.defaultModel) :
+      (aiSettings.geminiModel || AI_PROVIDERS.gemini.defaultModel)
+    )).trim();
+
+    const patch =
+      activeAiTab === "openai" ? { openaiModel: model } :
+      activeAiTab === "anthropic" ? { anthropicModel: model } :
+      activeAiTab === "groq" ? { groqModel: model } :
+      { geminiModel: model };
+
+    updateAiSetting(patch);
+    setSavedModelModal({
+      open: true,
+      model,
+      providerName: AI_PROVIDERS[activeAiTab].name,
+    });
+  };
+
   const handleTestAi = async () => {
     setTestingAi(true);
     setTestResult(null);
@@ -654,28 +682,36 @@ export default function Settings() {
               {/* Model Input & Presets */}
               <View style={{ gap: 6, marginTop: 14 }}>
                 <Text style={styles.inputLabel}>Model Identifier</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={
-                    activeAiTab === "openai"
-                      ? (aiSettings.openaiModel !== undefined ? aiSettings.openaiModel : AI_PROVIDERS.openai.defaultModel)
-                      : activeAiTab === "anthropic"
-                      ? (aiSettings.anthropicModel !== undefined ? aiSettings.anthropicModel : AI_PROVIDERS.anthropic.defaultModel)
-                      : activeAiTab === "groq"
-                      ? (aiSettings.groqModel !== undefined ? aiSettings.groqModel : AI_PROVIDERS.groq.defaultModel)
-                      : (aiSettings.geminiModel !== undefined ? aiSettings.geminiModel : AI_PROVIDERS.gemini.defaultModel)
-                  }
-                  onChangeText={(val) => {
-                    if (activeAiTab === "openai") updateAiSetting({ openaiModel: val });
-                    else if (activeAiTab === "anthropic") updateAiSetting({ anthropicModel: val });
-                    else if (activeAiTab === "groq") updateAiSetting({ groqModel: val });
-                    else if (activeAiTab === "gemini") updateAiSetting({ geminiModel: val });
-                  }}
-                  placeholder={AI_PROVIDERS[activeAiTab].defaultModel}
-                  placeholderTextColor={theme.muted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                  <TextInput
+                    style={[styles.textInput, { flex: 1 }]}
+                    value={
+                      activeAiTab === "openai"
+                        ? (aiSettings.openaiModel !== undefined ? aiSettings.openaiModel : AI_PROVIDERS.openai.defaultModel)
+                        : activeAiTab === "anthropic"
+                        ? (aiSettings.anthropicModel !== undefined ? aiSettings.anthropicModel : AI_PROVIDERS.anthropic.defaultModel)
+                        : activeAiTab === "groq"
+                        ? (aiSettings.groqModel !== undefined ? aiSettings.groqModel : AI_PROVIDERS.groq.defaultModel)
+                        : (aiSettings.geminiModel !== undefined ? aiSettings.geminiModel : AI_PROVIDERS.gemini.defaultModel)
+                    }
+                    onChangeText={(val) => {
+                      if (activeAiTab === "openai") setAiSettings((p) => ({ ...p, openaiModel: val }));
+                      else if (activeAiTab === "anthropic") setAiSettings((p) => ({ ...p, anthropicModel: val }));
+                      else if (activeAiTab === "groq") setAiSettings((p) => ({ ...p, groqModel: val }));
+                      else if (activeAiTab === "gemini") setAiSettings((p) => ({ ...p, geminiModel: val }));
+                    }}
+                    placeholder={AI_PROVIDERS[activeAiTab].defaultModel}
+                    placeholderTextColor={theme.muted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <Button
+                    label="Save Model"
+                    variant="primary"
+                    onPress={() => handleSaveModel()}
+                    style={{ minWidth: 100 }}
+                  />
+                </View>
                 <Text style={{ fontFamily: theme.font.sans, fontSize: 11.5, color: theme.muted }}>
                   Enter any model name supported by your {AI_PROVIDERS[activeAiTab].name} account, or choose a preset below:
                 </Text>
@@ -696,12 +732,7 @@ export default function Settings() {
                       <Pressable
                         key={m}
                         style={[styles.aiModelChip, isModelChosen && styles.aiModelChipSelected]}
-                        onPress={() => {
-                          if (activeAiTab === "openai") updateAiSetting({ openaiModel: m });
-                          else if (activeAiTab === "anthropic") updateAiSetting({ anthropicModel: m });
-                          else if (activeAiTab === "groq") updateAiSetting({ groqModel: m });
-                          else if (activeAiTab === "gemini") updateAiSetting({ geminiModel: m });
-                        }}
+                        onPress={() => handleSaveModel(m)}
                       >
                         <Text style={[styles.aiModelChipText, isModelChosen && styles.aiModelChipTextSelected]}>
                           {m}
@@ -1103,6 +1134,65 @@ export default function Settings() {
               variant="danger"
               onPress={handleConfirmDeleteWorkspace}
               disabled={isDeletingWs}
+            />
+          </View>
+        </View>
+      </Dialog>
+
+      {/* Saved Model Identifier Confirmation Dialog */}
+      <Dialog
+        open={savedModelModal.open}
+        onClose={() => setSavedModelModal((prev) => ({ ...prev, open: false }))}
+        title="Model Identifier Saved"
+      >
+        <View style={{ gap: 16 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: theme.okBg,
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: theme.ok,
+              }}
+            >
+              <Icon name="Check" size={20} color={theme.ok} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: theme.font.sansBold, fontSize: 15, color: theme.text }}>
+                {savedModelModal.providerName} Model Updated
+              </Text>
+              <Text style={{ fontFamily: theme.font.sans, fontSize: 13, color: theme.muted, marginTop: 2 }}>
+                Model configuration successfully saved to your profile and device.
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={{
+              padding: 12,
+              backgroundColor: theme.surface2,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }}
+          >
+            <Text style={{ fontFamily: theme.font.mono, fontSize: 11, color: theme.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Active Model Identifier
+            </Text>
+            <Text style={{ fontFamily: theme.font.mono, fontWeight: "600", fontSize: 14, color: theme.text, marginTop: 4 }}>
+              {savedModelModal.model}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 4 }}>
+            <Button
+              label="Got it"
+              variant="primary"
+              onPress={() => setSavedModelModal((prev) => ({ ...prev, open: false }))}
             />
           </View>
         </View>
