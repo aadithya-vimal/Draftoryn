@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { exportDocument } from "../engine/exports";
+import { exportProtectedZip } from "./protectedExport";
 import type { ExportFormat, GeneratedDocument } from "../engine/types";
 
 function toBase64(bytes: Uint8Array): string {
@@ -11,8 +12,7 @@ function toBase64(bytes: Uint8Array): string {
   return (globalThis as unknown as { btoa?: (s: string) => string }).btoa?.(bin) ?? "";
 }
 
-export async function exportAndSave(doc: GeneratedDocument, format: ExportFormat): Promise<void> {
-  const result = await exportDocument(doc, format);
+async function saveResult(result: { filename: string; mimeType: string; data: Uint8Array | string }): Promise<void> {
   const data = result.data;
 
   if (Platform.OS === "web") {
@@ -36,4 +36,23 @@ export async function exportAndSave(doc: GeneratedDocument, format: ExportFormat
     await FileSystem.writeAsStringAsync(path, data as string);
   }
   await Sharing.shareAsync(path);
+}
+
+export async function exportAndSave(doc: GeneratedDocument, format: ExportFormat): Promise<void> {
+  const result = await exportDocument(doc, format);
+  await saveResult(result);
+}
+
+/**
+ * Generates the requested export and saves it as a password-protected
+ * (AES-256) ZIP archive. Encryption happens entirely on-device; the password
+ * is never transmitted, stored, or logged.
+ */
+export async function exportAndSaveProtected(
+  doc: GeneratedDocument,
+  format: ExportFormat,
+  password: string,
+): Promise<void> {
+  const result = await exportProtectedZip(doc, format, password);
+  await saveResult(result);
 }

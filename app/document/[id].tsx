@@ -40,13 +40,18 @@ import type {
 } from "../../src/engine/types";
 import { getDocument, saveDocumentRecord, logDocumentExport } from "../../src/data/documents";
 import { generateDocumentClient } from "../../src/data/generate";
-import { exportAndSave } from "../../src/lib/download";
+import { exportAndSave, exportAndSaveProtected } from "../../src/lib/download";
+import {
+  MIN_EXPORT_PASSWORD_LENGTH,
+  validateExportPassword,
+} from "../../src/lib/protectedExport";
 import type { DocumentRecord } from "../../src/repository/types";
 import {
   Button,
   Card,
   ErrorText,
   Heading,
+  Input,
   LoadingOverlay,
   Screen,
   SectionLabel,
@@ -230,6 +235,9 @@ export default function DocumentEditor() {
   const [exportErr, setExportErr] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportAcknowledged, setExportAcknowledged] = useState(false);
+  const [protectEnabled, setProtectEnabled] = useState(false);
+  const [protectPassword, setProtectPassword] = useState("");
+  const [protectConfirm, setProtectConfirm] = useState("");
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -465,6 +473,55 @@ export default function DocumentEditor() {
       }
     },
     [def, model, exportAcknowledged, user],
+  );
+
+  const doProtectedExport = useCallback(
+    async (format: ExportFormat) => {
+      if (!def || !model) return;
+      if (!exportAcknowledged) {
+        setExportErr("Please tick the acknowledgement below confirming you will review the document before relying on it.");
+        return;
+      }
+      const check = validateExportPassword(protectPassword, protectConfirm);
+      if (!check.ok) {
+        setExportErr(check.error ?? "Invalid export password.");
+        return;
+      }
+      const gen: GeneratedDocument = {
+        definitionId: def.id,
+        title: titleRef.current,
+        metadata: recordRef.current ? { id: recordRef.current.id, title: recordRef.current.title } : {},
+        model: modelRef.current ?? model,
+        sections: sectionsRef.current,
+      };
+      setExportingFormat(format);
+      setExportErr("");
+      try {
+        // Encryption happens entirely on-device; the password is never
+        // transmitted, stored, or logged.
+        await exportAndSaveProtected(gen, format, protectPassword);
+        if (recordRef.current?.id) {
+          logDocumentExport(user, recordRef.current.id, format).catch(() => {});
+        }
+        setExportOpen(false);
+      } catch (e) {
+        setExportErr(e instanceof Error ? e.message : "Protected export failed.");
+      } finally {
+        setExportingFormat(null);
+      }
+    },
+    [def, model, exportAcknowledged, protectPassword, protectConfirm, user],
+  );
+
+  const handleFormatPress = useCallback(
+    (format: ExportFormat) => {
+      if (protectEnabled) {
+        void doProtectedExport(format);
+      } else {
+        void doExport(format);
+      }
+    },
+    [protectEnabled, doProtectedExport, doExport],
   );
 
   // ---- Derived -----------------------------------------------------------
@@ -855,20 +912,71 @@ export default function DocumentEditor() {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.protectBox}>
+              <TouchableOpacity
+                style={styles.protectHeaderRow}
+                onPress={() => {
+                  setExportErr("");
+                  setProtectEnabled((v) => !v);
+                }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: protectEnabled }}
+                accessibilityLabel="Protect export with password"
+              >
+                <View style={[styles.exportAckBox, protectEnabled && styles.exportAckBoxChecked]}>
+                  {protectEnabled ? <Icon name="Check" size={13} color="#FFFFFF" /> : null}
+                </View>
+                <Icon name="Lock" size={15} color={theme.accent} />
+                <Text style={styles.protectTitle}>Protect with password</Text>
+                {protectEnabled ? <Badge tone="accent">ON</Badge> : <Badge tone="neutral">OFF</Badge>}
+              </TouchableOpacity>
+              {protectEnabled ? (
+                <View style={styles.protectFields}>
+                  <Text style={styles.protectNote}>
+                    Native PDF / DOCX open-passwords aren&apos;t supported by the export engine, so
+                    protected downloads arrive as a password-protected ZIP (AES-256) containing
+                    your file — for every format. Encryption happens only on this device; your
+                    password is never sent, stored, or logged.
+                  </Text>
+                  <Input
+                    label={`Password (min ${MIN_EXPORT_PASSWORD_LENGTH} characters)`}
+                    value={protectPassword}
+                    onChangeText={(t) => {
+                      setProtectPassword(t);
+                      setExportErr("");
+                    }}
+                    placeholder="Enter export password"
+                    secure
+                  />
+                  <Input
+                    label="Confirm password"
+                    value={protectConfirm}
+                    onChangeText={(t) => {
+                      setProtectConfirm(t);
+                      setExportErr("");
+                    }}
+                    placeholder="Repeat export password"
+                    secure
+                  />
+                </View>
+              ) : null}
+            </View>
+
             <TouchableOpacity
               style={[styles.quickExportBanner, !exportAcknowledged && styles.exportDisabled]}
-              onPress={() => doExport(userSettings.defaultExportFormat || "pdf")}
+              onPress={() => handleFormatPress(userSettings.defaultExportFormat || "pdf")}
               disabled={!!exportingFormat}
             >
               <View style={styles.quickExportTextCol}>
                 <View style={styles.quickExportBadgeRow}>
                   <Text style={styles.quickExportLabel}>DEFAULT EXPORT FORMAT</Text>
                   <Badge tone="accent">{(userSettings.defaultExportFormat || "pdf").toUpperCase()}</Badge>
+                  {protectEnabled ? <Badge tone="warn">PROTECTED ZIP</Badge> : null}
                 </View>
                 <Text style={styles.quickExportTitle}>Export as {(userSettings.defaultExportFormat || "pdf").toUpperCase()}</Text>
               </View>
               <View style={styles.quickExportBtn}>
-                <Icon name="Download" size={16} color={theme.accentForeground} />
+                <Icon name={protectEnabled ? "Lock" : "Download"} size={16} color={theme.accentForeground} />
                 <Text style={styles.quickExportBtnText}>Download</Text>
               </View>
             </TouchableOpacity>
@@ -882,17 +990,18 @@ export default function DocumentEditor() {
                     <TouchableOpacity
                       key={it.format}
                       style={[styles.exportRow, isDefault && styles.exportRowDefault, !exportAcknowledged && styles.exportDisabled]}
-                      onPress={() => doExport(it.format)}
+                      onPress={() => handleFormatPress(it.format)}
                       disabled={!!exportingFormat}
                     >
                       <View style={styles.exportRowText}>
                         <View style={styles.exportRowTitleWrap}>
                           <Text style={styles.exportRowTitle}>{it.title}</Text>
                           {isDefault ? <Badge tone="accent">Default</Badge> : null}
+                          {protectEnabled ? <Badge tone="warn">Protected</Badge> : null}
                         </View>
-                        <Text style={styles.muted}>{it.description}</Text>
+                        <Text style={styles.muted}>{protectEnabled ? "Password-protected ZIP (AES-256)" : it.description}</Text>
                       </View>
-                      <Icon name="Download" size={18} color={theme.accent} />
+                      <Icon name={protectEnabled ? "Lock" : "Download"} size={18} color={theme.accent} />
                     </TouchableOpacity>
                   );
                 })}
@@ -1660,6 +1769,36 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     lineHeight: 18,
     color: theme.text,
+  },
+  protectBox: {
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: theme.radiusSm,
+    padding: 12,
+    marginBottom: 16,
+  },
+  protectHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  protectTitle: {
+    flex: 1,
+    fontFamily: theme.font.sansSemi,
+    fontSize: 13.5,
+    color: theme.text,
+  },
+  protectFields: {
+    marginTop: 10,
+    gap: 4,
+  },
+  protectNote: {
+    fontFamily: theme.font.sans,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: theme.muted,
+    marginBottom: 6,
   },
   quickExportTextCol: {
     flex: 1,

@@ -23,7 +23,7 @@ const SECTIONS: { heading: string; body: string }[] = [
   },
   {
     heading: "5. Storage and security",
-    body: "Documents persist in workspace-scoped relational storage with tenant isolation enforced at the API and database layers. No system can guarantee absolute security; you are responsible for safeguarding credentials, API keys, and exported files.",
+    body: "Documents persist in workspace-scoped relational storage with tenant isolation enforced at the API and database layers. Export passwords used for password-protected downloads never leave your device: encryption happens locally and passwords are never transmitted, stored, or logged. No system can guarantee absolute security; you are responsible for safeguarding credentials, API keys, passwords, and exported files.",
   },
   {
     heading: "6. Your choices and rights",
