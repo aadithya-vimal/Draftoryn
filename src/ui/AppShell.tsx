@@ -567,9 +567,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logoutBtn: { padding: 4 },
-  shellWeb: { flex: 1, flexDirection: "row", backgroundColor: theme.bg },
-  contentWeb: { flex: 1, backgroundColor: theme.bg },
-  shellMobile: { flex: 1, backgroundColor: theme.bg },
+  shellWeb: { flex: 1, flexDirection: "row", backgroundColor: theme.bg, minHeight: 0 as any },
+  contentWeb: { flex: 1, backgroundColor: theme.bg, minHeight: 0 as any, overflow: "hidden" as any },
+  shellMobile: { flex: 1, backgroundColor: theme.bg, minHeight: 0 as any },
   mobileHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     color: theme.accent,
     textTransform: "uppercase",
   },
-  contentMobile: { flex: 1 },
+  contentMobile: { flex: 1, minHeight: 0 as any, overflow: "hidden" as any },
   bottomBar: {
     flexDirection: "row",
     backgroundColor: theme.surface,

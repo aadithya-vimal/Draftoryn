@@ -383,7 +383,9 @@ const styles = StyleSheet.create({
   modalCard: {
     width: "100%",
     maxWidth: 760,
-    maxHeight: "88%",
+    height: "88%" as any,
+    maxHeight: 760,
+    minHeight: 0 as any,
     backgroundColor: theme.surface,
     borderRadius: theme.radiusLg,
     borderWidth: 1,
@@ -391,6 +393,7 @@ const styles = StyleSheet.create({
     ...theme.shadowMd,
     overflow: "hidden",
     flexDirection: "column",
+    flexShrink: 1 as any,
   },
   modalHeader: {
     flexDirection: "row",
@@ -401,6 +404,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: theme.border,
     backgroundColor: theme.surface,
+    flexShrink: 0 as any,
   },
   modalKicker: {
     fontFamily: theme.font.monoMedium,
@@ -435,6 +439,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(217, 154, 36, 0.12)",
     borderBottomWidth: 1,
     borderColor: "rgba(217, 154, 36, 0.3)",
+    flexShrink: 0 as any,
   },
   discardBannerLeft: {
     flexDirection: "row",
@@ -489,10 +494,16 @@ const styles = StyleSheet.create({
 
   modalScroll: {
     flex: 1,
+    flexGrow: 1 as any,
+    flexShrink: 1 as any,
+    flexBasis: 0 as any,
+    minHeight: 0 as any,
   },
   modalScrollContent: {
     padding: 20,
+    paddingBottom: 28,
     gap: 16,
+    flexGrow: 0 as any,
   },
   emptyState: {
     padding: 32,
@@ -746,6 +757,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: theme.border,
     backgroundColor: theme.surface,
+    flexShrink: 0 as any,
   },
   cancelBtn: {
     paddingHorizontal: 16,

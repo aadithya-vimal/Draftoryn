@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import * as Lucide from "lucide-react-native";
 import { theme, Card, Heading } from "./primitives";
 import type { DocumentStatus } from "../engine/types";
@@ -145,7 +145,14 @@ export function Dialog({
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.dialog} onPress={() => {}}>
           {title ? <Heading level={3} style={styles.dialogTitle}>{title}</Heading> : null}
-          {children}
+          <ScrollView
+            style={styles.dialogScroll}
+            contentContainerStyle={styles.dialogScrollContent}
+            showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -169,7 +176,7 @@ export function Sheet({
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.sheetHandle} />
           {title ? <Heading level={3} style={styles.dialogTitle}>{title}</Heading> : null}
-          {children}
+          <View style={styles.sheetBody}>{children}</View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -204,10 +211,13 @@ const styles = StyleSheet.create({
   progressTrack: { height: 4, backgroundColor: theme.surface2, borderRadius: 2, overflow: "hidden" },
   progressFill: { height: 4, backgroundColor: theme.accent, borderRadius: 2 },
   progressIndeterminate: { width: "40%", opacity: 0.6 },
-  overlay: { flex: 1, backgroundColor: "rgba(9, 10, 12, 0.85)", justifyContent: "center", alignItems: "center", padding: 24 },
-  overlayBottom: { flex: 1, backgroundColor: "rgba(9, 10, 12, 0.85)", justifyContent: "flex-end" },
-  dialog: { width: "100%", maxWidth: 480, backgroundColor: theme.surface, borderRadius: theme.radiusLg, padding: 24, borderWidth: 1, borderColor: theme.borderLight, ...theme.shadowMd },
-  sheet: { width: "100%", backgroundColor: theme.surface, borderTopLeftRadius: theme.radiusLg, borderTopRightRadius: theme.radiusLg, padding: 20, paddingBottom: 36, borderWidth: 1, borderColor: theme.border },
+  overlay: { flex: 1, backgroundColor: "rgba(9, 10, 12, 0.85)", justifyContent: "center", alignItems: "center", padding: 24, minHeight: 0 as any },
+  overlayBottom: { flex: 1, backgroundColor: "rgba(9, 10, 12, 0.85)", justifyContent: "flex-end", minHeight: 0 as any },
+  dialog: { width: "100%", maxWidth: 480, maxHeight: "90%" as any, minHeight: 0 as any, flexShrink: 1 as any, backgroundColor: theme.surface, borderRadius: theme.radiusLg, padding: 24, borderWidth: 1, borderColor: theme.borderLight, overflow: "hidden" as any, ...theme.shadowMd },
+  dialogScroll: { flexGrow: 0 as any, flexShrink: 1 as any, minHeight: 0 as any },
+  dialogScrollContent: { paddingBottom: 8, flexGrow: 0 as any },
+  sheet: { width: "100%", maxHeight: "92%" as any, minHeight: 0 as any, flexShrink: 1 as any, backgroundColor: theme.surface, borderTopLeftRadius: theme.radiusLg, borderTopRightRadius: theme.radiusLg, padding: 20, paddingBottom: 36, borderWidth: 1, borderColor: theme.border, overflow: "hidden" as any },
+  sheetBody: { minHeight: 0 as any, flexShrink: 1 as any },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.border, alignSelf: "center", marginBottom: 14 },
   dialogTitle: { marginBottom: 14 },
   page: { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: theme.radiusLg, padding: 18, ...theme.shadowSm },

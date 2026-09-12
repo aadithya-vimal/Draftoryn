@@ -573,9 +573,9 @@ export function ErrorText({ message }: { message: string }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg, padding: theme.spacing, paddingTop: 28 },
+  screen: { flex: 1, backgroundColor: theme.bg, padding: theme.spacing, paddingTop: 28, minHeight: 0 as any },
   screenTitle: { marginBottom: 16 },
-  screenBody: { flex: 1 },
+  screenBody: { flex: 1, minHeight: 0 as any },
   h1: { color: theme.text, fontSize: 48, lineHeight: 48, letterSpacing: -1.92, marginBottom: 8, fontFamily: theme.font.sansBold },
   h1Mobile: { color: theme.text, fontSize: 36, lineHeight: 38, letterSpacing: -1.4, marginBottom: 8, fontFamily: theme.font.sansBold },
   h2: { color: theme.text, fontSize: 24, lineHeight: 26.4, letterSpacing: -0.6, marginBottom: 8, fontFamily: theme.font.sansSemi },

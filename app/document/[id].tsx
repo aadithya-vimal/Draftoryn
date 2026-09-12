@@ -623,7 +623,14 @@ export default function DocumentEditor() {
   };
 
   const renderCanvas = () => (
-    <ScrollView style={styles.canvasScroll} contentContainerStyle={styles.canvasScrollContent} ref={scrollViewRef} onScroll={handleScroll} scrollEventThrottle={16}>
+    <ScrollView
+      style={styles.canvasScroll}
+      contentContainerStyle={styles.canvasScrollContent}
+      ref={scrollViewRef}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+      showsVerticalScrollIndicator
+    >
       <View style={styles.page}>
         <View style={styles.docTitleContainer}>
           <TextInput
@@ -889,13 +896,21 @@ export default function DocumentEditor() {
         {renderTopBar()}
         <View style={styles.columns}>
           <View style={styles.leftCol}>
-            <Card style={styles.leftCard}>{renderNavigator()}</Card>
+            <Card style={styles.leftCard}>
+              <ScrollView style={styles.sideScroll} contentContainerStyle={styles.sideScrollContent} showsVerticalScrollIndicator>
+                {renderNavigator()}
+              </ScrollView>
+            </Card>
           </View>
           <View style={styles.centerCol}>
             {renderCanvas()}
           </View>
           <View style={styles.rightCol}>
-            <Card style={styles.rightCard}>{renderContext()}</Card>
+            <Card style={styles.rightCard}>
+              <ScrollView style={styles.sideScroll} contentContainerStyle={styles.sideScrollContent} showsVerticalScrollIndicator>
+                {renderContext()}
+              </ScrollView>
+            </Card>
           </View>
         </View>
 
@@ -967,7 +982,7 @@ export default function DocumentEditor() {
 
         {/* Add section sheet */}
         <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Add section">
-          <View>
+          <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent} showsVerticalScrollIndicator>
             {available.map((a) => (
               <TouchableOpacity
                 key={a.id}
@@ -981,7 +996,7 @@ export default function DocumentEditor() {
                 {a.description ? <Text style={styles.muted}>{a.description}</Text> : null}
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </Sheet>
 
         {/* Versions sheet */}
@@ -1497,15 +1512,17 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 2,
   },
-  screenWeb: { flex: 1, backgroundColor: theme.bg, padding: 16, paddingTop: 20 },
-  columns: { flexDirection: "row", gap: 16, flex: 1, maxWidth: 1280, alignSelf: "center", width: "100%" },
-  leftCol: { width: 280 },
-  centerCol: { flex: 1, minWidth: 0, overflow: "hidden" as any },
-  rightCol: { width: 280 },
-  leftCard: { padding: 14, maxHeight: "100%" },
-  rightCard: { padding: 14, maxHeight: "100%" },
+  screenWeb: { flex: 1, backgroundColor: theme.bg, padding: 16, paddingTop: 20, minHeight: 0 as any, overflow: "hidden" as any },
+  columns: { flexDirection: "row", gap: 16, flex: 1, maxWidth: 1280, alignSelf: "center", width: "100%", minHeight: 0 as any, flexShrink: 1 as any, alignItems: "stretch" as any, overflow: "hidden" as any },
+  leftCol: { width: 280, minHeight: 0 as any, maxHeight: "100%" as any, flexShrink: 0 as any, alignSelf: "stretch" as any, overflow: "hidden" as any },
+  centerCol: { flex: 1, minWidth: 0, minHeight: 0 as any, flexShrink: 1 as any, alignSelf: "stretch" as any, overflow: "hidden" as any },
+  rightCol: { width: 280, minHeight: 0 as any, maxHeight: "100%" as any, flexShrink: 0 as any, alignSelf: "stretch" as any, overflow: "hidden" as any },
+  leftCard: { padding: 14, maxHeight: "100%" as any, flex: 1 as any, minHeight: 0 as any, overflow: "hidden" as any },
+  rightCard: { padding: 14, maxHeight: "100%" as any, flex: 1 as any, minHeight: 0 as any, overflow: "hidden" as any },
+  sideScroll: { flex: 1 as any, minHeight: 0 as any },
+  sideScrollContent: { paddingBottom: 12, flexGrow: 0 as any },
 
-  topbar: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" },
+  topbar: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap", flexShrink: 0 as any },
   backBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   backText: { color: theme.muted, fontSize: 13, fontFamily: theme.font.sansMedium },
   titleWrap: { flex: 1, minWidth: 200 },
@@ -1524,8 +1541,8 @@ const styles = StyleSheet.create({
   saveStatus: { color: theme.ok, fontSize: 12, fontFamily: theme.font.monoMedium, minWidth: 70, textAlign: "right" },
   topActions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
 
-  canvasScroll: { flex: 1 },
-  canvasScrollContent: { paddingBottom: 40 },
+  canvasScroll: { flex: 1 as any, minHeight: 0 as any, flexGrow: 1 as any, flexShrink: 1 as any },
+  canvasScrollContent: { paddingBottom: 64, flexGrow: 0 as any },
   page: {
     backgroundColor: theme.surface,
     borderWidth: 1,
@@ -1670,7 +1687,8 @@ const styles = StyleSheet.create({
   detailKey: { color: theme.muted, fontSize: 12, fontFamily: theme.font.monoMedium, letterSpacing: 1, textTransform: "uppercase" },
   detailVal: { color: theme.text, fontSize: 13, fontFamily: theme.font.sans, flexShrink: 1, textAlign: "right" },
 
-  sheetScroll: { maxHeight: 420 },
+  sheetScroll: { maxHeight: 420, minHeight: 0 as any, flexShrink: 1 as any },
+  sheetScrollContent: { paddingBottom: 12, flexGrow: 0 as any },
   sheetActions: { flexDirection: "row", gap: 10, marginTop: 12 },
   addItem: { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: theme.radiusSm, padding: 12, marginBottom: 8 },
   addItemTitle: { color: theme.text, fontSize: 14, fontFamily: theme.font.sansMedium },
@@ -1691,8 +1709,8 @@ const styles = StyleSheet.create({
   muted: { color: theme.muted, fontSize: 13, fontFamily: theme.font.sans },
   inlineActions: { flexDirection: "row", marginTop: 14 },
 
-  screenMobile: { flex: 1, backgroundColor: theme.bg, padding: 12, paddingTop: 18 },
-  mobileTop: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  screenMobile: { flex: 1, backgroundColor: theme.bg, padding: 12, paddingTop: 18, minHeight: 0 as any, overflow: "hidden" as any },
+  mobileTop: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6, flexShrink: 0 as any },
   mobileTitle: {
     flex: 1,
     color: theme.text,
@@ -1720,7 +1738,7 @@ const styles = StyleSheet.create({
   exportProgressTitle: { color: theme.text, fontSize: 16, fontFamily: theme.font.serifSemi, marginBottom: 6 },
   exportProgressSub: { color: theme.muted, fontSize: 13, fontFamily: theme.font.sans, textAlign: "center" },
 
-  mobileBar: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  mobileActions: { flexDirection: "row", gap: 8, marginTop: 8 },
+  mobileBar: { flexDirection: "row", gap: 8, marginBottom: 8, flexShrink: 0 as any },
+  mobileActions: { flexDirection: "row", gap: 8, marginTop: 8, flexShrink: 0 as any },
   mobileAction: { flex: 1 },
 });
