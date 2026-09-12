@@ -74,32 +74,38 @@ export function validateSource(
 
 const contentBlockSchema = z.object({
   type: z.enum(["heading", "paragraph", "list", "table", "callout", "divider"]),
-  text: z.string().optional(),
-  level: z.number().optional(),
-  items: z.array(z.string()).optional(),
+  text: z.string().max(20000).optional(),
+  level: z.number().int().min(1).max(6).optional(),
+  items: z.array(z.string().max(5000)).max(200).optional(),
   table: z
-    .object({ headers: z.array(z.string()), rows: z.array(z.array(z.string())) })
+    .object({
+      headers: z.array(z.string().max(2000)).max(50),
+      rows: z.array(z.array(z.string().max(5000)).max(50)).max(500),
+    })
     .optional(),
   tone: z.enum(["info", "warning", "missing", "assumption", "neutral"]).optional(),
 });
 
 const sectionSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  kind: z.string(),
-  blocks: z.array(contentBlockSchema),
-  status: z.string(),
+  id: z.string().min(1).max(80),
+  title: z.string().min(1).max(300),
+  kind: z.string().min(1).max(80),
+  blocks: z.array(contentBlockSchema).max(300),
+  status: z.string().min(1).max(40),
   hidden: z.boolean().optional(),
-  flagged: z.string().optional(),
-  generatedAt: z.string().optional(),
+  flagged: z.string().max(200).optional(),
+  generatedAt: z.string().max(40).optional(),
 });
 
 export const generatedDocumentSchema = z.object({
-  definitionId: z.string(),
-  title: z.string(),
-  metadata: z.record(z.string()).optional(),
-  model: z.any(),
-  sections: z.array(sectionSchema),
+  definitionId: z.string().min(1).max(80),
+  title: z.string().min(1).max(300),
+  metadata: z
+    .record(z.string().max(2000))
+    .refine((o) => Object.keys(o).length <= 50, { message: "Too many metadata entries" })
+    .optional(),
+  model: z.unknown(),
+  sections: z.array(sectionSchema).max(100),
 });
 
 export interface GeneratedValidationResult {

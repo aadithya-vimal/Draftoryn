@@ -57,7 +57,46 @@ export interface AiCallOptions {
   userPrompt: string;
   schema?: string;
   temperature?: number;
-  baseUrl?: string;
+  /** Per-call output cap. Defaults per provider below. */
+  maxTokens?: number;
+  /** Abort timeout in ms. Defaults to AI_REQUEST_TIMEOUT_MS. */
+  timeoutMs?: number;
+}
+
+// Fixed provider endpoints. There is intentionally NO custom-baseUrl option:
+// arbitrary server-side fetch targets would be an SSRF vector.
+const OPENAI_BASE_URL = "https://api.openai.com/v1";
+const ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1";
+const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
+
+export const AI_REQUEST_TIMEOUT_MS = 90_000;
+export const AI_DEFAULT_MAX_TOKENS = 8192;
+export const AI_ANTHROPIC_DEFAULT_MAX_TOKENS = 4096;
+/** Upper bound on accepted model output (chars) before aborting. */
+export const AI_MAX_RESPONSE_CHARS = 300_000;
+
+function requestSignal(timeoutMs: number): AbortSignal | undefined {
+  const normalized = Number.isFinite(timeoutMs) ? Math.min(Math.max(timeoutMs, 1000), 300_000) : AI_REQUEST_TIMEOUT_MS;
+  try {
+    if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+      return AbortSignal.timeout(normalized);
+    }
+  } catch {
+    // fall through to no signal
+  }
+  return undefined;
+}
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && (e.name === "AbortError" || e.name === "TimeoutError");
+}
+
+function guardResponseLength(content: string, provider: string): string {
+  if (content.length > AI_MAX_RESPONSE_CHARS) {
+    throw new Error(`${provider} returned an oversized response; aborting.`);
+  }
+  return content;
 }
 
 /**
@@ -126,171 +165,192 @@ export async function executeAiCall(opts: AiCallOptions): Promise<string> {
   }
 
   const model = opts.model?.trim() || AI_PROVIDERS[provider].defaultModel;
+  if (!/^[A-Za-z0-9._:-]{1,100}$/.test(model)) {
+    throw new Error(`Invalid model identifier for provider "${provider}".`);
+  }
+  if (apiKey.length > 2000) {
+    throw new Error(`API key is invalid for provider "${provider}".`);
+  }
   const temp = opts.temperature ?? 0.15;
+  const signal = requestSignal(opts.timeoutMs ?? AI_REQUEST_TIMEOUT_MS);
 
-  switch (provider) {
-    case "openai": {
-      const base = (opts.baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
-      const res = await fetch(`${base}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          temperature: temp,
-          response_format: { type: "json_object" },
-          messages: [
-            {
-              role: "system",
-              content: opts.schema
-                ? `${opts.systemPrompt}\n\nRespond strictly with valid JSON conforming to:\n${opts.schema}`
-                : opts.systemPrompt,
-            },
-            { role: "user", content: opts.userPrompt },
-          ],
-        }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`OpenAI request failed (${res.status}): ${errText.slice(0, 300)}`);
-      }
-
-      const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-      const content = json.choices?.[0]?.message?.content;
-      if (!content) throw new Error("OpenAI returned an empty response.");
-      return content;
-    }
-
-    case "anthropic": {
-      const base = (opts.baseUrl || "https://api.anthropic.com/v1").replace(/\/$/, "");
-      const systemInstruction = opts.schema
-        ? `${opts.systemPrompt}\n\nCRITICAL: Respond ONLY with valid, RFC-8259 compliant JSON matching this schema:\n${opts.schema}\nDo NOT wrap with markdown, do not write explanations.`
-        : opts.systemPrompt;
-
-      const res = await fetch(`${base}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 4096,
-          temperature: temp,
-          system: systemInstruction,
-          messages: [{ role: "user", content: opts.userPrompt }],
-        }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Anthropic request failed (${res.status}): ${errText.slice(0, 300)}`);
-      }
-
-      const json = (await res.json()) as { content?: Array<{ type?: string; text?: string }> };
-      const content = json.content
-        ?.filter((c) => c.type === "text" && c.text)
-        .map((c) => c.text)
-        .join("");
-
-      if (!content) throw new Error("Anthropic returned an empty response.");
-      return content;
-    }
-
-    case "groq": {
-      const base = (opts.baseUrl || "https://api.groq.com/openai/v1").replace(/\/$/, "");
-      const res = await fetch(`${base}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          temperature: temp,
-          response_format: { type: "json_object" },
-          messages: [
-            {
-              role: "system",
-              content: opts.schema
-                ? `${opts.systemPrompt}\n\nRespond strictly with valid JSON conforming to:\n${opts.schema}`
-                : opts.systemPrompt,
-            },
-            { role: "user", content: opts.userPrompt },
-          ],
-        }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Groq request failed (${res.status}): ${errText.slice(0, 300)}`);
-      }
-
-      const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-      const content = json.choices?.[0]?.message?.content;
-      if (!content) throw new Error("Groq returned an empty response.");
-      return content;
-    }
-
-    case "gemini": {
-      const base = (opts.baseUrl || "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
-      const url = `${base}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-      const sysText = opts.schema
-        ? `${opts.systemPrompt}\n\nRespond with strictly valid JSON matching schema:\n${opts.schema}`
-        : opts.systemPrompt;
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: sysText }],
+  try {
+    switch (provider) {
+      case "openai": {
+        const maxTokens = opts.maxTokens ?? AI_DEFAULT_MAX_TOKENS;
+        const res = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+          method: "POST",
+          signal,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
           },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: opts.userPrompt }],
-            },
-          ],
-          generationConfig: {
+          body: JSON.stringify({
+            model,
             temperature: temp,
-            responseMimeType: "application/json",
-          },
-        }),
-      });
+            max_tokens: maxTokens,
+            response_format: { type: "json_object" },
+            messages: [
+              {
+                role: "system",
+                content: opts.schema
+                  ? `${opts.systemPrompt}\n\nRespond strictly with valid JSON conforming to:\n${opts.schema}`
+                  : opts.systemPrompt,
+              },
+              { role: "user", content: opts.userPrompt },
+            ],
+          }),
+        });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Google Gemini request failed (${res.status}): ${errText.slice(0, 300)}`);
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`OpenAI request failed (${res.status}): ${errText.slice(0, 300)}`);
+        }
+
+        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const content = json.choices?.[0]?.message?.content;
+        if (!content) throw new Error("OpenAI returned an empty response.");
+        return guardResponseLength(content, "OpenAI");
       }
 
-      const json = (await res.json()) as {
-        candidates?: Array<{
-          content?: {
-            parts?: Array<{ text?: string }>;
-          };
-        }>;
-      };
+      case "anthropic": {
+        const maxTokens = opts.maxTokens ?? AI_ANTHROPIC_DEFAULT_MAX_TOKENS;
+        const systemInstruction = opts.schema
+          ? `${opts.systemPrompt}\n\nCRITICAL: Respond ONLY with valid, RFC-8259 compliant JSON matching this schema:\n${opts.schema}\nDo NOT wrap with markdown, do not write explanations.`
+          : opts.systemPrompt;
 
-      const candidate = json.candidates?.[0];
-      const part = candidate?.content?.parts?.[0];
-      const content = part?.text;
+        const res = await fetch(`${ANTHROPIC_BASE_URL}/messages`, {
+          method: "POST",
+          signal,
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: maxTokens,
+            temperature: temp,
+            system: systemInstruction,
+            messages: [{ role: "user", content: opts.userPrompt }],
+          }),
+        });
 
-      if (!content) throw new Error("Google Gemini returned an empty response.");
-      return content;
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Anthropic request failed (${res.status}): ${errText.slice(0, 300)}`);
+        }
+
+        const json = (await res.json()) as { content?: Array<{ type?: string; text?: string }> };
+        const content = json.content
+          ?.filter((c) => c.type === "text" && c.text)
+          .map((c) => c.text)
+          .join("");
+
+        if (!content) throw new Error("Anthropic returned an empty response.");
+        return guardResponseLength(content, "Anthropic");
+      }
+
+      case "groq": {
+        const maxTokens = opts.maxTokens ?? AI_DEFAULT_MAX_TOKENS;
+        const res = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
+          method: "POST",
+          signal,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            temperature: temp,
+            max_tokens: maxTokens,
+            response_format: { type: "json_object" },
+            messages: [
+              {
+                role: "system",
+                content: opts.schema
+                  ? `${opts.systemPrompt}\n\nRespond strictly with valid JSON conforming to:\n${opts.schema}`
+                  : opts.systemPrompt,
+              },
+              { role: "user", content: opts.userPrompt },
+            ],
+          }),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Groq request failed (${res.status}): ${errText.slice(0, 300)}`);
+        }
+
+        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+        const content = json.choices?.[0]?.message?.content;
+        if (!content) throw new Error("Groq returned an empty response.");
+        return guardResponseLength(content, "Groq");
+      }
+
+      case "gemini": {
+        const maxTokens = opts.maxTokens ?? AI_DEFAULT_MAX_TOKENS;
+        const url = `${GEMINI_BASE_URL}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+        const sysText = opts.schema
+          ? `${opts.systemPrompt}\n\nRespond with strictly valid JSON matching schema:\n${opts.schema}`
+          : opts.systemPrompt;
+
+        const res = await fetch(url, {
+          method: "POST",
+          signal,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: sysText }],
+            },
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: opts.userPrompt }],
+              },
+            ],
+            generationConfig: {
+              temperature: temp,
+              maxOutputTokens: maxTokens,
+              responseMimeType: "application/json",
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Google Gemini request failed (${res.status}): ${errText.slice(0, 300)}`);
+        }
+
+        const json = (await res.json()) as {
+          candidates?: Array<{
+            content?: {
+              parts?: Array<{ text?: string }>;
+            };
+          }>;
+        };
+
+        const candidate = json.candidates?.[0];
+        const part = candidate?.content?.parts?.[0];
+        const content = part?.text;
+
+        if (!content) throw new Error("Google Gemini returned an empty response.");
+        return guardResponseLength(content, "Google Gemini");
+      }
+
+      default: {
+        const exhaustiveCheck: never = provider;
+        throw new Error(`Unsupported AI provider: ${String(exhaustiveCheck)}`);
+      }
     }
-
-    default: {
-      const exhaustiveCheck: never = provider;
-      throw new Error(`Unsupported AI provider: ${String(exhaustiveCheck)}`);
+  } catch (e) {
+    if (isAbortError(e)) {
+      throw new Error(`AI request to "${provider}" timed out. Please try again.`);
     }
+    throw e;
   }
 }
 

@@ -27,6 +27,7 @@ import {
   ProgressBar,
   Badge,
 } from "../../src/ui/components";
+import { GenerateLoader } from "../../src/ui/DocGraphics";
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
 import {
   FieldRenderer,
@@ -780,16 +781,15 @@ export default function NewDocumentScreen() {
   const generatingCard = (
     <Card accentTop style={styles.fieldsCard}>
       <View style={styles.genInner}>
-        <ActivityIndicator size="large" color={theme.accent} style={{ marginBottom: 8 }} />
-        <Heading level={3} style={styles.genTitle}>
-          {generatingWithAi ? "Synthesizing document with AI…" : "Generating your document…"}
-        </Heading>
+        <GenerateLoader
+          title={generatingWithAi ? "Synthesizing document with AI…" : "Generating your document…"}
+          sub={
+            generatingWithAi
+              ? "Reading your entered preliminary info · Drafting remaining sections from your real data · Applying safety guardrails"
+              : "Building structure · Embedding your inputs · Generating baseline clauses"
+          }
+        />
         <ProgressBar indeterminate height={6} />
-        <Text style={styles.genSub}>
-          {generatingWithAi
-            ? "Reading your entered preliminary info · Drafting remaining sections from your real data · Applying safety guardrails"
-            : "Building structure · Embedding your inputs · Generating baseline clauses"}
-        </Text>
       </View>
     </Card>
   );

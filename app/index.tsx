@@ -3,6 +3,8 @@ import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWind
 import { Redirect, useRouter } from "expo-router";
 import { useAppUser } from "../src/auth/clerk";
 import { Button, Card, Heading, theme } from "../src/ui/primitives";
+import { GradientText } from "../src/ui/GradientText";
+import { DocMark, ExportChips, PageStack, Reveal } from "../src/ui/DocGraphics";
 import { Icon } from "../src/ui/components";
 import { CATEGORIES, definitionsByCategory } from "../src/engine/definitions/catalog";
 import { CATEGORY_VISUALS } from "../src/ui/categories";
@@ -33,26 +35,28 @@ export default function LandingPage() {
           
           {/* Left Column */}
           <View style={[styles.heroTextCol, isMobile ? { width: "100%" } : { width: "52%", paddingRight: 48 }]}>
-            <Text style={styles.heroEyebrow}>DOCUMENTATION SYSTEM / 01</Text>
-            
-            <Text style={[styles.heroHeadline, isMobile ? styles.heroHeadlineMobile : isTablet ? styles.heroHeadlineTablet : styles.heroHeadlineDesktop]}>
-              Engineering specifications, architectures, and technical documentation.
-            </Text>
+            <Text style={styles.heroEyebrow}>CYBERSECURITY DOCUMENTATION / 01</Text>
+
+            <GradientText style={[styles.heroHeadline, isMobile ? styles.heroHeadlineMobile : isTablet ? styles.heroHeadlineTablet : styles.heroHeadlineDesktop]}>
+              Cybersecurity documents, generated precisely.
+            </GradientText>
 
             <Text style={styles.heroBody}>
-              Draftoryn is professional documentation software designed for technical precision.
-              Construct verified engineering specifications, system architectures, incident playbooks,
-              API contracts, and security agreements with structured schemas.
+              Draftoryn is professional cybersecurity document software. Answer guided
+              questions and generate penetration testing agreements, statements of work,
+              authorization letters, rules of engagement, assessment reports,
+              incident-response documents, vulnerability disclosure and bug bounty
+              documents — then review, edit, and export.
             </Text>
 
             <View style={[styles.heroActionRow, isMobile && { flexDirection: "column", width: "100%", gap: 10 }]}>
               <Button
-                label="Create Workspace →"
+                label="Create a Document →"
                 onPress={() => router.push("/(auth)/signup")}
                 style={isMobile ? { width: "100%" } : styles.ctaPrimary}
               />
               <Button
-                label="Browse Specifications"
+                label="Explore Documents"
                 variant="secondary"
                 onPress={() => router.push("/catalog")}
                 style={isMobile ? { width: "100%" } : undefined}
@@ -60,54 +64,59 @@ export default function LandingPage() {
             </View>
           </View>
 
-          {/* Right Column: Real Draftoryn Product UI Framed Artifact */}
+          {/* Right Column: Fictional Demo Document Artifact */}
           <View style={[styles.heroUiCol, isMobile ? { width: "100%", marginTop: 32 } : { width: "48%" }]}>
             <View style={styles.productFrame}>
               <View style={styles.frameTitlebar}>
                 <View style={styles.frameStatusDot} />
-                <Text style={styles.frameSpecId}>SPEC-ENG-AUTH-001 // EDITOR</Text>
+                <Text style={styles.frameSpecId}>DEMO DOCUMENT // FICTIONAL SPECIMEN</Text>
                 <View style={{ flex: 1 }} />
-                <Text style={styles.frameMetaTag}>SPECIFICATION</Text>
+                <Text style={styles.frameMetaTag}>DRAFT</Text>
               </View>
               
               <View style={styles.frameEditor}>
                 <View style={styles.frameDocHeader}>
-                  <Text style={styles.frameDocKicker}>LEGAL & OPERATIONAL FRAMEWORK</Text>
-                  <Text style={styles.frameDocTitle}>Penetration Testing Authorization</Text>
+                  <Text style={styles.frameDocKicker}>PENETRATION TESTING AGREEMENT — DEMO</Text>
+                  <Text style={styles.frameDocTitle}>Authorization & Rules of Engagement</Text>
                 </View>
 
-                {/* Real Parameter Ingestion Block */}
+                {/* Guided-Input Block (obvious placeholders, no real facts) */}
                 <View style={styles.frameParamBlock}>
                   <View style={styles.frameParamRow}>
-                    <Text style={styles.frameParamKey}>TARGET CIDR</Text>
-                    <Text style={styles.frameParamVal}>198.51.100.0/24 (Production API Enclave)</Text>
+                    <Text style={styles.frameParamKey}>CLIENT</Text>
+                    <Text style={styles.frameParamVal}>[CLIENT]</Text>
                   </View>
                   <View style={styles.frameParamDivider} />
                   <View style={styles.frameParamRow}>
-                    <Text style={styles.frameParamKey}>SAFE HARBOR</Text>
-                    <Text style={styles.frameParamVal}>18 U.S.C. § 1030 Explicit Authorization Active</Text>
+                    <Text style={styles.frameParamKey}>SCOPE</Text>
+                    <Text style={styles.frameParamVal}>[SCOPE]</Text>
                   </View>
                   <View style={styles.frameParamDivider} />
                   <View style={styles.frameParamRow}>
                     <Text style={styles.frameParamKey}>TEST WINDOW</Text>
-                    <Text style={styles.frameParamVal}>02:00–06:00 UTC (Off-peak Production)</Text>
+                    <Text style={styles.frameParamVal}>[TEST WINDOW]</Text>
+                  </View>
+                  <View style={styles.frameParamDivider} />
+                  <View style={styles.frameParamRow}>
+                    <Text style={styles.frameParamKey}>AUTHORIZATION</Text>
+                    <Text style={styles.frameParamVal}>[AUTHORIZATION DETAILS]</Text>
                   </View>
                 </View>
 
                 {/* Section Outline Specimen */}
                 <View style={styles.frameSectionOutline}>
-                  <Text style={styles.frameOutlineHeading}>COMPILED SECTIONS</Text>
+                  <Text style={styles.frameOutlineHeading}>GENERATED SECTIONS (DEMO)</Text>
                   <View style={styles.frameSectionItem}>
                     <Text style={styles.frameSectionNum}>01</Text>
-                    <Text style={styles.frameSectionName}>Delegation of Authority & Safe Harbor</Text>
+                    <Text style={styles.frameSectionName}>Authorization & Scope</Text>
                   </View>
                   <View style={styles.frameSectionItem}>
                     <Text style={styles.frameSectionNum}>02</Text>
-                    <Text style={styles.frameSectionName}>Scope Boundaries & Out-of-Scope Production Exclusions</Text>
+                    <Text style={styles.frameSectionName}>Rules of Engagement</Text>
                   </View>
                   <View style={styles.frameSectionItem}>
                     <Text style={styles.frameSectionNum}>03</Text>
-                    <Text style={styles.frameSectionName}>Emergency Escalation Protocol & PGP Keys</Text>
+                    <Text style={styles.frameSectionName}>Reporting & Next Steps</Text>
                   </View>
                 </View>
               </View>
@@ -119,71 +128,83 @@ export default function LandingPage() {
       {/* ========================================================================= */}
       {/* 03. LARGE PRODUCT COMPOSITION (Architectural Product Surface)             */}
       {/* ========================================================================= */}
+      <Reveal>
       <View style={styles.compositionSection}>
         <View style={styles.maxContainer}>
           <View style={styles.compositionHeader}>
-            <Text style={styles.sectionEyebrow}>SYSTEM ARCHITECTURE</Text>
+            <Text style={styles.sectionEyebrow}>HOW IT WORKS</Text>
             <Heading level={2} style={styles.sectionHeading}>
-              Structured data model. Not unstructured conversational output.
+              Structured cybersecurity data in. Precise security documents out.
             </Heading>
             <Text style={styles.sectionLead}>
-              Every Draftoryn document compiles from typed parameters into verified relational schemas.
-              Each section is discrete, editable, and traceable.
+              Every Draftoryn document compiles from your answers into a verified, structured
+              draft. Each section is discrete, editable, and traceable.
             </Text>
           </View>
 
           <View style={[styles.compositionGrid, isMobile && { flexDirection: "column" }]}>
             <View style={[styles.compositionCard, isMobile ? { width: "100%" } : { flex: 1 }]}>
-              <Text style={styles.compCardStep}>01 / MODEL</Text>
-              <Text style={styles.compCardTitle}>Typed Parameter Definitions</Text>
+              <DocMark size={40} />
+              <Text style={styles.compCardStep}>01 / CHOOSE</Text>
+              <Text style={styles.compCardTitle}>Pick Your Security Document</Text>
               <Text style={styles.compCardBody}>
-                Assessors, targets, exclusions, schedules, and communication channels are captured as discrete typed variables.
+                Penetration testing agreements, SOWs, authorization letters, rules of
+                engagement, assessment reports, and disclosure documents.
               </Text>
             </View>
             <View style={[styles.compositionCard, isMobile ? { width: "100%" } : { flex: 1 }]}>
-              <Text style={styles.compCardStep}>02 / ENGINE</Text>
-              <Text style={styles.compCardTitle}>Deterministic Assembly</Text>
+              <DocMark size={40} />
+              <Text style={styles.compCardStep}>02 / ANSWER</Text>
+              <Text style={styles.compCardTitle}>Guided Questions</Text>
               <Text style={styles.compCardBody}>
-                Document sections assemble deterministically according to standardized technical specifications and compliance rules.
+                Client, scope, schedule, and authorization captured as discrete answers —
+                no blank-page drafting, no prompt engineering.
               </Text>
             </View>
             <View style={[styles.compositionCard, isMobile ? { width: "100%" } : { flex: 1 }]}>
-              <Text style={styles.compCardStep}>03 / PERSISTENCE</Text>
-              <Text style={styles.compCardTitle}>Relational Persistence</Text>
+              <DocMark size={40} />
+              <Text style={styles.compCardStep}>03 / EXPORT</Text>
+              <Text style={styles.compCardTitle}>Review & Deliver</Text>
               <Text style={styles.compCardBody}>
-                Document records, revision versions, deliverable exports, and client authorizations are permanently stored in authoritative relational tables.
+                AI drafts from your answers, you review and edit every section, then
+                export PDF, DOCX, Markdown, or structured formats.
               </Text>
             </View>
           </View>
         </View>
       </View>
+      </Reveal>
 
       {/* ========================================================================= */}
       {/* 04. DOCUMENT STORY (Editorial Typographic Breakout)                      */}
       {/* ========================================================================= */}
+      <Reveal>
       <View style={styles.storySection}>
         <View style={styles.maxContainer}>
           <Text style={styles.storyEyebrow}>CORE EDITORIAL PHILOSOPHY</Text>
           <Text style={styles.storyQuote}>
-            "A technical document is not an essay. It is an operational contract."
+            "A security document is not an essay. It is an operational agreement."
           </Text>
           <Text style={styles.storyBody}>
-            When an unauthorized asset is compromised or an incident response playbook fails under pressure,
-            vague conversational AI output is a liability. Draftoryn guarantees unambiguous boundary definitions,
-            legally vetted Safe Harbor language, and standardized technical findings.
+            When an authorization letter is vague or an assessment report buries its
+            findings, everyone pays for it later. Draftoryn produces unambiguous
+            scope definitions, explicit authorization language, and standardized
+            security findings — generated precisely from your answers.
           </Text>
         </View>
       </View>
+      </Reveal>
 
       {/* ========================================================================= */}
       {/* 05. DOCUMENT CATALOG (Numbered Publication Index)                        */}
       {/* ========================================================================= */}
+      <Reveal>
       <View style={styles.catalogSection}>
         <View style={styles.maxContainer}>
           <View style={styles.catalogSectionHeader}>
-            <Text style={styles.sectionEyebrow}>PUBLICATION INDEX</Text>
+            <Text style={styles.sectionEyebrow}>DOCUMENT INDEX</Text>
             <Heading level={2} style={styles.sectionHeading}>
-              30 Canonical Specifications Across 6 Disciplines
+              30 Security Documents Across 6 Disciplines
             </Heading>
           </View>
 
@@ -227,119 +248,160 @@ export default function LandingPage() {
           </View>
         </View>
       </View>
+      </Reveal>
 
       {/* ========================================================================= */}
       {/* 06. WORKFLOW (Precision 3-Stage Pipeline)                                 */}
       {/* ========================================================================= */}
+      <Reveal>
       <View style={styles.workflowSection}>
         <View style={styles.maxContainer}>
           <Text style={styles.sectionEyebrow}>OPERATIONAL WORKFLOW</Text>
           <Heading level={2} style={styles.sectionHeading}>
-            From parameter specification to publication-grade deliverable.
+            From guided answers to precise security deliverable.
           </Heading>
 
           <View style={[styles.workflowGrid, isMobile && { flexDirection: "column" }]}>
             <View style={[styles.workflowStep, isMobile ? { width: "100%" } : { flex: 1 }]}>
-              <Text style={styles.workflowStepNum}>PHASE 01</Text>
-              <Text style={styles.workflowStepTitle}>Scope Ingestion</Text>
+              <Text style={styles.workflowStepNum}>STEP 01</Text>
+              <Text style={styles.workflowStepTitle}>Choose Document</Text>
               <Text style={styles.workflowStepBody}>
-                Input testing targets, client identity, authorized assessors, and operational constraints through structured fields.
+                Pick the security document you need — authorization, SOW, rules of
+                engagement, assessment report, disclosure, and more.
               </Text>
             </View>
             <View style={[styles.workflowStep, isMobile ? { width: "100%" } : { flex: 1 }]}>
-              <Text style={styles.workflowStepNum}>PHASE 02</Text>
-              <Text style={styles.workflowStepTitle}>Section Compilation</Text>
+              <Text style={styles.workflowStepNum}>STEP 02</Text>
+              <Text style={styles.workflowStepTitle}>Answer Questions</Text>
               <Text style={styles.workflowStepBody}>
-                Draftoryn compiles technical clauses, containment matrices, and trust boundaries into an authoritative document snapshot.
+                Guided questions capture client, scope, schedule, and authorization —
+                your answers become the document's ground truth.
               </Text>
             </View>
             <View style={[styles.workflowStep, isMobile ? { width: "100%" } : { flex: 1 }]}>
-              <Text style={styles.workflowStepNum}>PHASE 03</Text>
-              <Text style={styles.workflowStepTitle}>Relational Export</Text>
+              <Text style={styles.workflowStepNum}>STEP 03</Text>
+              <Text style={styles.workflowStepTitle}>AI Generates Draft</Text>
               <Text style={styles.workflowStepBody}>
-                Export deliverable packages in PDF, Markdown, DOCX, or HTML with complete transactional audit logging.
+                AI drafts every section using only the real data you entered — never
+                inventing facts, always marking gaps explicitly.
+              </Text>
+            </View>
+            <View style={[styles.workflowStep, isMobile ? { width: "100%" } : { flex: 1 }]}>
+              <Text style={styles.workflowStepNum}>STEP 04</Text>
+              <Text style={styles.workflowStepTitle}>Review & Edit</Text>
+              <Text style={styles.workflowStepBody}>
+                Review each section in the editor, refine wording, and approve the
+                final content before it leaves your hands.
+              </Text>
+            </View>
+            <View style={[styles.workflowStep, isMobile ? { width: "100%" } : { flex: 1 }]}>
+              <Text style={styles.workflowStepNum}>STEP 05</Text>
+              <Text style={styles.workflowStepTitle}>Export</Text>
+              <Text style={styles.workflowStepBody}>
+                Download precise PDF, DOCX, Markdown, or structured packages — with
+                optional password protection.
               </Text>
             </View>
           </View>
         </View>
       </View>
+      </Reveal>
 
       {/* ========================================================================= */}
       {/* 07. PROFESSIONAL OUTPUT (Warm White Document Artifact Preview)            */}
       {/* ========================================================================= */}
+      <Reveal>
       <View style={styles.outputSection}>
         <View style={styles.maxContainer}>
           <Text style={styles.sectionEyebrow}>PHYSICAL DELIVERABLE AESTHETIC</Text>
           <Heading level={2} style={styles.sectionHeading}>
-            High-contrast, professional technical artifacts.
+            High-contrast, professional security artifacts.
           </Heading>
           <Text style={styles.sectionLead}>
-            Deliverables follow international technical publishing standards. Warm off-white surfaces,
-            dense technical typography, and clear section hierarchies.
+            Deliverables follow professional technical publishing standards. Warm off-white surfaces,
+            dense technical typography, and clear section hierarchies. (Fictional demo content.)
           </Text>
+          <View style={{ marginTop: 24 }}>
+            <ExportChips />
+          </View>
 
-          {/* The Physical Document Artifact */}
+          {/* The Physical Document Artifact (fictional demo) */}
           <View style={styles.paperSheet}>
             <View style={styles.paperHeader}>
               <View>
-                <Text style={styles.paperOrg}>APEX CYBER LABS // DEFENSE OPERATIONS</Text>
-                <Text style={styles.paperDocId}>SPECIFICATION REF: SPEC-ROE-2026</Text>
+                <Text style={styles.paperOrg}>[CLIENT ORGANIZATION] // SECURITY REVIEW</Text>
+                <Text style={styles.paperDocId}>DEMO REFERENCE: SPEC-DEMO-001 (FICTIONAL)</Text>
               </View>
-              <Text style={styles.paperClassification}>CONFIDENTIAL // AUTHORIZED ACCESS ONLY</Text>
+              <Text style={styles.paperClassification}>DEMO // FICTIONAL CONTENT</Text>
             </View>
             <View style={styles.paperRule} />
-            
-            <Text style={styles.paperTitle}>Rules of Engagement Specification</Text>
-            <Text style={styles.paperMeta}>Effective Date: September 2026 • Framework: PTES / NIST SP 800-115</Text>
-            
-            <Text style={styles.paperSectionHead}>1.0 EXECUTIVE AUTHORIZATION & SAFE HARBOR</Text>
+
+            <Text style={styles.paperTitle}>Rules of Engagement (Demo)</Text>
+            <Text style={styles.paperMeta}>Effective Date: [DATE] • Scope: [SCOPE]</Text>
+
+            <Text style={styles.paperSectionHead}>1.0 AUTHORIZATION (DEMO)</Text>
             <Text style={styles.paperParagraph}>
-              Testing personnel operating under this engagement are formally authorized by the target organization
-              to conduct active penetration testing within the verified parameters defined in Schedule A. All actions
-              performed in adherence to this agreement are certified as non-malicious and authorized.
+              Testing personnel operate under authorization granted by [CLIENT] for the
+              scope defined in [SCOPE]. Actions performed within [TEST WINDOW] and in
+              adherence to this agreement are recorded in [AUTHORIZATION DETAILS].
             </Text>
 
-            <Text style={styles.paperSectionHead}>2.0 AUTHORIZED ASSETS & CIDR RESTRICTIONS</Text>
+            <Text style={styles.paperSectionHead}>2.0 SCOPE & RESTRICTIONS (DEMO)</Text>
             <Text style={styles.paperParagraph}>
-              Primary API Endpoint: 198.51.100.10/32 [IN SCOPE] • Production Database: 198.51.100.50/32 [STRICTLY EXCLUDED].
-              Zero automated brute-forcing or denial-of-service testing is permitted against production billing gateways.
+              In-scope systems: [SCOPE]. Out-of-scope systems are strictly excluded.
+              Disruptive testing against [SCOPE] billing or production gateways is not
+              permitted without written authorization.
             </Text>
           </View>
         </View>
       </View>
+      </Reveal>
 
       {/* ========================================================================= */}
       {/* 08. BROADER PRODUCT VISION                                                */}
       {/* ========================================================================= */}
+      <Reveal>
       <View style={styles.visionSection}>
-        <View style={styles.maxContainer}>
-          <Text style={styles.visionEyebrow}>THE STANDARD FOR TECHNICAL SPECIFICATIONS</Text>
-          <Text style={styles.visionText}>
-            Draftoryn is not another AI text generator wrapped in SaaS decoration. It is an editorial
-            engineering workstation designed to produce authoritative, durable technical agreements.
-          </Text>
+        <View style={[styles.maxContainer, !isMobile && { flexDirection: "row", alignItems: "center", gap: 48 }]}>
+          <View style={isMobile ? { width: "100%" } : { flex: 1 }}>
+            <Text style={styles.visionEyebrow}>THE STANDARD FOR SECURITY DOCUMENTATION</Text>
+            <Text style={styles.visionText}>
+              Draftoryn is not another generic AI text generator. It is a precision
+              workstation for cybersecurity documents — agreements, authorizations,
+              assessments, and disclosures generated from your answers, never from
+              thin air.
+            </Text>
+          </View>
+          {!isMobile && (
+            <View style={{ paddingRight: 12 }}>
+              <PageStack />
+            </View>
+          )}
         </View>
       </View>
+      </Reveal>
 
       {/* ========================================================================= */}
       {/* 09. FINAL CTA                                                             */}
       {/* ========================================================================= */}
+      <Reveal>
       <View style={styles.finalCtaSection}>
         <View style={styles.finalCtaContainer}>
           <Text style={styles.finalEyebrow}>START DRAFTING TODAY</Text>
           <Heading level={2} style={styles.finalTitle}>
-            Ready to generate authoritative documentation?
+            Ready to generate precise security documents?
           </Heading>
           <Text style={styles.finalLead}>
-            Create your workspace and start authoring engineering specifications.
+            Choose a document, answer guided questions, and export a precise draft.
           </Text>
           <Button
-            label="Initialize Workspace Now →"
+            label="Create a Document →"
             onPress={() => router.push("/(auth)/signup")}
             style={styles.ctaPrimary}
           />
         </View>
       </View>
+      </Reveal>
 
       {/* Footer */}
       <View style={styles.footer}>

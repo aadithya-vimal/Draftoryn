@@ -10,6 +10,12 @@ function escapeXml(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
+/** Metadata keys become element names — restrict to safe tag characters. */
+function safeTag(key: string): string | null {
+  if (/^[A-Za-z_][A-Za-z0-9_.-]{0,63}$/.test(key)) return key;
+  return null;
+}
+
 function blockToXml(b: ContentBlock, i: number): string {
   const tag = `block n="${i}" type="${b.type}"`;
   switch (b.type) {
@@ -47,7 +53,12 @@ export function toXml(doc: GeneratedDocument): string {
     .map(sectionToXml)
     .join("\n");
   const meta = Object.entries(obj.metadata)
-    .map(([k, v]) => `    <${k}>${escapeXml(String(v))}</${k}>`)
+    .map(([k, v]) => {
+      const tag = safeTag(k);
+      if (!tag) return "";
+      return `    <${tag}>${escapeXml(String(v))}</${tag}>`;
+    })
+    .filter(Boolean)
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
  <draftoryn_document type="${escapeXml(obj.document_type)}" category="${escapeXml(obj.category)}" generated_by="${escapeXml(obj.generated_by)}">

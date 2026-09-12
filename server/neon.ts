@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import type { DocumentRecord, DocumentSummary } from "../src/repository/types";
 import { getDefinition } from "../src/engine/definitions/catalog";
+import { conflict, notFound } from "./security";
 
 export interface DbUser {
   id: string;
@@ -81,10 +82,53 @@ function toSummary(rec: DocumentRecord): DocumentSummary {
   };
 }
 
-async function withRls<T>(ownerId: string, fn: (sql: (query: string, params?: unknown[]) => Promise<unknown[]>) => Promise<T>): Promise<T> {
+async function withDb<T>(fn: (sql: (query: string, params?: unknown[]) => Promise<unknown[]>) => Promise<T>): Promise<T> {
+// NOTE: Tenant isolation is enforced EXCLUSIVELY by explicit owner-scoped
+// predicates (WHERE owner_id = $actor) in every query below. There are no
+// database RLS policies in this schema, so this helper intentionally performs
+// no session-variable tricks — it only supplies the query client.
   const sql = client();
-  await sql("SELECT set_config('app.user_id', $1, true)", [ownerId]);
   return fn(sql);
+}
+
+/** Unpredictable record IDs (crypto randomness where available). */
+function newId(prefix: string, length = 10): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = new Uint8Array(length);
+  const cryptoObj = (globalThis as unknown as { crypto?: { getRandomValues?: (a: Uint8Array) => void } }).crypto;
+  if (cryptoObj?.getRandomValues) {
+    cryptoObj.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  let suffix = "";
+  for (const b of bytes) suffix += alphabet[(b as number) % alphabet.length];
+  return `${prefix}_${suffix}`;
+}
+
+/**
+ * Asserts the actor may write the given document id.
+ * Returns "create" for new ids and "update" for actor-owned ids.
+ * Throws 404 for ids owned by someone else (no existence oracle).
+ */
+export async function assertDocumentWritable(actorId: string, id: string): Promise<"create" | "update"> {
+  const sql = client();
+  const rows = (await sql("SELECT owner_id FROM documents WHERE id = $1", [id])) as Array<{
+    owner_id: string;
+  }>;
+  const row = rows[0];
+  if (!row) return "create";
+  if (row.owner_id !== actorId) throw notFound("Document not found");
+  return "update";
+}
+
+/** Throws 404 unless the actor owns the document (no existence oracle). */
+export async function assertDocumentOwned(actorId: string, id: string): Promise<void> {
+  const sql = client();
+  const rows = (await sql("SELECT 1 AS ok FROM documents WHERE id = $1 AND owner_id = $2", [id, actorId])) as Array<{
+    ok: number;
+  }>;
+  if (!rows[0]) throw notFound("Document not found");
 }
 
 // ---------------------------------------------------------------------------
@@ -95,7 +139,7 @@ export async function getOrCreateUser(
   userId: string,
   profile?: { email?: string; name?: string; avatarUrl?: string },
 ): Promise<{ user: DbUser; workspace: DbWorkspace; settings: DbUserSettings }> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     // 1. Check or insert user
     const userRows = (await sql(
       `SELECT id, email, name, avatar_url, role, onboarding_completed, onboarding_step, onboarding_data, created_at, updated_at
@@ -194,7 +238,7 @@ export async function getOrCreateUser(
         updatedAt: w.updated_at,
       };
     } else {
-      const wsId = "ws_" + Math.random().toString(36).slice(2, 10);
+      const wsId = newId("ws", 8);
       const wsName = (user.name ? user.name + "'s Workspace" : "Primary Security Workspace");
       const wsSlug = "default";
       await sql(
@@ -271,7 +315,7 @@ export async function getOrCreateUser(
 }
 
 export async function getUser(userId: string): Promise<DbUser | null> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     const rows = (await sql(
       `SELECT id, email, name, avatar_url, role, onboarding_completed, onboarding_step, onboarding_data, created_at, updated_at
        FROM users WHERE id = $1`,
@@ -319,7 +363,7 @@ export async function updateUserOnboarding(
     defaultExportFormat?: string;
   },
 ): Promise<{ user: DbUser; workspace?: DbWorkspace; settings?: DbUserSettings }> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     // Ensure user exists first
     await getOrCreateUser(userId);
 
@@ -532,7 +576,7 @@ export async function updateUserOnboarding(
 // ---------------------------------------------------------------------------
 
 export async function getUserSettings(userId: string): Promise<DbUserSettings> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     const rows = (await sql(
       `SELECT user_id, default_export_format, compact_lists, theme_mode, session_timeout_minutes, tester_profile, client_profile, ai_settings, updated_at
        FROM user_settings WHERE user_id = $1`,
@@ -592,7 +636,7 @@ export async function putUserSettings(
     aiSettings?: Record<string, unknown>;
   },
 ): Promise<DbUserSettings> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     // Ensure user row exists
     await getOrCreateUser(userId);
 
@@ -658,7 +702,7 @@ export async function putUserSettings(
 // ---------------------------------------------------------------------------
 
 export async function getWorkspaces(userId: string): Promise<DbWorkspace[]> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     await getOrCreateUser(userId);
     const rows = (await sql(
       `SELECT id, owner_id, name, slug, is_default, settings, created_at, updated_at
@@ -694,16 +738,23 @@ export async function createWorkspace(
   slug?: string,
   settings?: Record<string, unknown>,
 ): Promise<DbWorkspace> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     await getOrCreateUser(userId);
-    const id = "ws_" + Math.random().toString(36).slice(2, 10);
+    const id = newId("ws", 8);
     const generatedSlug = (slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-")).replace(/^-|-$/g, "") || "ws";
-    
-    await sql(
-      `INSERT INTO workspaces (id, owner_id, name, slug, is_default, settings, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, false, $5::jsonb, now(), now())`,
-      [id, userId, name, generatedSlug, JSON.stringify(settings || {})],
-    );
+
+    try {
+      await sql(
+        `INSERT INTO workspaces (id, owner_id, name, slug, is_default, settings, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, false, $5::jsonb, now(), now())`,
+        [id, userId, name, generatedSlug, JSON.stringify(settings || {})],
+      );
+    } catch (e) {
+      if (e instanceof Error && /duplicate key|unique constraint|23505/i.test(e.message)) {
+        throw conflict("A workspace with that identifier already exists.");
+      }
+      throw e;
+    }
 
     return {
       id,
@@ -723,7 +774,7 @@ export async function updateWorkspace(
   workspaceId: string,
   updates: { name?: string; slug?: string; settings?: Record<string, unknown> },
 ): Promise<DbWorkspace> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     let existing = (await sql(
       `SELECT id, owner_id, name, slug, is_default, settings, created_at, updated_at
        FROM workspaces WHERE owner_id = $1 AND (id = $2 OR slug = $2)`,
@@ -803,7 +854,7 @@ export async function setDefaultWorkspace(
   userId: string,
   workspaceId: string,
 ): Promise<DbWorkspace> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     await sql(
       `UPDATE workspaces SET is_default = false, updated_at = now() WHERE owner_id = $1`,
       [userId],
@@ -848,7 +899,7 @@ export async function deleteWorkspace(
   userId: string,
   workspaceId: string,
 ): Promise<{ success: boolean; activeWorkspaceId: string }> {
-  return withRls(userId, async (sql) => {
+  return withDb(async (sql) => {
     const all = (await sql(
       `SELECT id, is_default FROM workspaces WHERE owner_id = $1 ORDER BY is_default DESC, created_at ASC`,
       [userId],
@@ -862,6 +913,7 @@ export async function deleteWorkspace(
       throw new Error("Cannot delete your only workspace. Create another workspace first.");
     }
 
+    const isDeletingDefault = all.some((w) => w.id === workspaceId && w.is_default);
     // 1. Permanently delete all documents associated with this workspace
     // (This also cascades to document_versions and document_exports)
     await sql(`DELETE FROM documents WHERE owner_id = $1 AND workspace_id = $2`, [userId, workspaceId]);
@@ -895,13 +947,14 @@ export async function deleteWorkspace(
 // 4. Documents CRUD & Scoping
 // ---------------------------------------------------------------------------
 
-export async function listDocuments(ownerId: string, workspaceId?: string): Promise<DocumentSummary[]> {
-  return withRls(ownerId, async (sql) => {
+export async function listDocuments(ownerId: string, workspaceId?: string, limit = 200): Promise<DocumentSummary[]> {
+  return withDb(async (sql) => {
     const { workspace } = await getOrCreateUser(ownerId);
     let resolvedWsId = workspaceId;
     if (resolvedWsId === "default" || resolvedWsId === "primary") {
       resolvedWsId = workspace.id;
     }
+    const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 200) : 200;
 
     let query = "SELECT data, workspace_id, category FROM documents WHERE owner_id = $1";
     const params: unknown[] = [ownerId];
@@ -910,7 +963,8 @@ export async function listDocuments(ownerId: string, workspaceId?: string): Prom
       query += " AND (workspace_id = $2 OR (workspace_id IS NULL AND $2 = $3))";
       params.push(resolvedWsId, workspace.id);
     }
-    query += " ORDER BY updated_at DESC";
+    query += ` ORDER BY updated_at DESC LIMIT $${params.length + 1}`;
+    params.push(safeLimit);
 
     const rows = (await sql(query, params)) as Array<{
       data: DocumentRecord;
@@ -928,7 +982,7 @@ export async function listDocuments(ownerId: string, workspaceId?: string): Prom
 }
 
 export async function getDocument(ownerId: string, id: string): Promise<DocumentRecord | null> {
-  return withRls(ownerId, async (sql) => {
+  return withDb(async (sql) => {
     const rows = (await sql(
       "SELECT data, workspace_id FROM documents WHERE owner_id = $1 AND id = $2",
       [ownerId, id],
@@ -941,7 +995,10 @@ export async function getDocument(ownerId: string, id: string): Promise<Document
 }
 
 export async function putDocument(ownerId: string, record: DocumentRecord, workspaceId?: string): Promise<void> {
-  return withRls(ownerId, async (sql) => {
+  // Ownership precheck closes the upsert-takeover hole: without it, anyone
+  // could overwrite (and steal) a document by reusing a known id.
+  await assertDocumentWritable(ownerId, record.id);
+  return withDb(async (sql) => {
     const { user, workspace } = await getOrCreateUser(ownerId);
     let targetWorkspaceId = workspaceId || record.workspaceId || workspace.id;
     if (targetWorkspaceId === "default" || targetWorkspaceId === "primary") {
@@ -1011,7 +1068,7 @@ export async function putDocument(ownerId: string, record: DocumentRecord, works
 }
 
 export async function deleteDocument(ownerId: string, id: string): Promise<void> {
-  return withRls(ownerId, async (sql) => {
+  return withDb(async (sql) => {
     await sql("DELETE FROM documents WHERE owner_id = $1 AND id = $2", [ownerId, id]);
   });
 }
@@ -1021,7 +1078,7 @@ export async function deleteDocument(ownerId: string, id: string): Promise<void>
 // ---------------------------------------------------------------------------
 
 export async function listDocumentVersions(ownerId: string, documentId: string): Promise<DbDocumentVersion[]> {
-  return withRls(ownerId, async (sql) => {
+  return withDb(async (sql) => {
     const rows = (await sql(
       `SELECT id, document_id, owner_id, version_number, title, data, created_at
        FROM document_versions
@@ -1051,8 +1108,10 @@ export async function listDocumentVersions(ownerId: string, documentId: string):
 }
 
 export async function logDocumentExport(ownerId: string, documentId: string, format: string): Promise<DbDocumentExport> {
-  return withRls(ownerId, async (sql) => {
-    const exportId = "exp_" + Math.random().toString(36).slice(2, 11);
+  // Only the owning tenant may append export audit rows for a document.
+  await assertDocumentOwned(ownerId, documentId);
+  return withDb(async (sql) => {
+    const exportId = newId("exp", 9);
     await sql(
       `INSERT INTO document_exports (id, document_id, owner_id, format, created_at)
        VALUES ($1, $2, $3, $4, now())`,
@@ -1070,7 +1129,7 @@ export async function logDocumentExport(ownerId: string, documentId: string, for
 }
 
 export async function listDocumentExports(ownerId: string, documentId: string): Promise<DbDocumentExport[]> {
-  return withRls(ownerId, async (sql) => {
+  return withDb(async (sql) => {
     const rows = (await sql(
       `SELECT id, document_id, owner_id, format, created_at
        FROM document_exports

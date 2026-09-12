@@ -22,5 +22,5 @@ if (existsSync(envPath)) {
 const PORT = Number(process.env.PORT) || 8787;
 serve({ fetch: app.fetch, port: PORT }, () => {
   // eslint-disable-next-line no-console
-  console.log(Draftoryn server listening on http://localhost: + PORT);
+  console.log(`Draftoryn server listening on http://localhost:${PORT}`);
 });

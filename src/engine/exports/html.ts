@@ -1,11 +1,21 @@
 import type { ContentBlock, GeneratedDocument, Section } from "../types";
 import { visibleSections } from "./markdown";
 
+const TONE_CLASS: Record<string, string> = {
+  info: "callout-info",
+  warning: "callout-warning",
+  missing: "callout-missing",
+  assumption: "callout-assumption",
+  neutral: "callout-info",
+};
+
 function blockToHtml(b: ContentBlock, i: number): string {
   const id = `b${i}`;
   switch (b.type) {
-    case "heading":
-      return `<h${b.level ?? 2}>${escape(b.text ?? "")}</h${b.level ?? 2}>`;
+    case "heading": {
+      const level = Math.min(Math.max(Math.floor(b.level ?? 2), 1), 6);
+      return `<h${level}>${escape(b.text ?? "")}</h${level}>`;
+    }
     case "paragraph":
       return `<p>${escape(b.text ?? "")}</p>`;
     case "list":
@@ -20,19 +30,28 @@ function blockToHtml(b: ContentBlock, i: number): string {
       return `<table>${head}${rows}</table>`;
     }
     case "callout":
-      return `<div class="callout callout-${b.tone ?? "info"}"><strong>${String(b.tone ?? "NOTE").toUpperCase()}</strong> ${escape(b.text ?? "")}</div>`;
+      return `<div class="callout ${TONE_CLASS[b.tone ?? "info"] ?? "callout-info"}"><strong>${String(b.tone ?? "NOTE").toUpperCase().replace(/[^A-Z]/g, "") || "NOTE"}</strong> ${escape(b.text ?? "")}</div>`;
     case "divider":
       return `<hr/>`;
   }
 }
 
 function escape(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeAttr(s: string): string {
+  return escape(s).replace(/[^a-zA-Z0-9 _-]/g, "");
 }
 
 function sectionToHtml(s: Section): string {
   const blocks = s.blocks.map((b, i) => blockToHtml(b, i)).join("\n");
-  return `<section class="doc-section" data-kind="${s.kind}">\n<h2>${escape(s.title)}</h2>\n${blocks}\n</section>`;
+  return `<section class="doc-section" data-kind="${escapeAttr(s.kind)}">\n<h2>${escape(s.title)}</h2>\n${blocks}\n</section>`;
 }
 
 const CSS = `

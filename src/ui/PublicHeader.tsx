@@ -5,7 +5,7 @@ import { Button, theme, useTheme } from "./primitives";
 import { Icon } from "./components";
 
 interface PublicHeaderProps {
-  activeNav?: "specifications" | "catalog" | "workflow" | "architecture" | null;
+  activeNav?: "documents" | "catalog" | "workflow" | "how-it-works" | null;
 }
 
 export function PublicHeader({ activeNav }: PublicHeaderProps) {
@@ -36,18 +36,18 @@ export function PublicHeader({ activeNav }: PublicHeaderProps) {
         {!isMobile && (
           <View style={styles.headerNav}>
             <Pressable
-              style={[styles.navItem, activeNav === "specifications" && styles.navItemActive]}
+              style={[styles.navItem, activeNav === "documents" && styles.navItemActive]}
               onPress={() => router.push("/specifications")}
             >
               <Text
                 style={[
                   styles.headerNavLink,
-                  activeNav === "specifications" && styles.headerNavLinkActive,
+                  activeNav === "documents" && styles.headerNavLinkActive,
                 ]}
               >
-                SPECIFICATIONS
+                DOCUMENTS
               </Text>
-              {activeNav === "specifications" && <View style={styles.navDot} />}
+              {activeNav === "documents" && <View style={styles.navDot} />}
             </Pressable>
 
             <Pressable
@@ -81,18 +81,18 @@ export function PublicHeader({ activeNav }: PublicHeaderProps) {
             </Pressable>
 
             <Pressable
-              style={[styles.navItem, activeNav === "architecture" && styles.navItemActive]}
+              style={[styles.navItem, activeNav === "how-it-works" && styles.navItemActive]}
               onPress={() => router.push("/architecture")}
             >
               <Text
                 style={[
                   styles.headerNavLink,
-                  activeNav === "architecture" && styles.headerNavLinkActive,
+                  activeNav === "how-it-works" && styles.headerNavLinkActive,
                 ]}
               >
-                ARCHITECTURE
+                HOW IT WORKS
               </Text>
-              {activeNav === "architecture" && <View style={styles.navDot} />}
+              {activeNav === "how-it-works" && <View style={styles.navDot} />}
             </Pressable>
           </View>
         )}

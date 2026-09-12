@@ -77,6 +77,101 @@ export default function Root({ children }: { children: React.ReactNode }) {
             background-color: var(--color-bg, #090A0C);
             color: var(--color-text, #F5F3EE);
           }
+          /* ---- Draftoryn restrained document-motion system (web only) ---- */
+          .dryn-gradient {
+            background: linear-gradient(92deg, #2F6BFF 5%, #7AA8FF 38%, #B9CDFF 50%, #7AA8FF 62%, #2F6BFF 95%);
+            background-size: 220% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-fill-color: transparent;
+            animation: dryn-gradient-pan 9s ease-in-out infinite;
+          }
+          @keyframes dryn-gradient-pan {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+          }
+          .dryn-reveal {
+            opacity: 0;
+            transform: translateY(14px);
+            transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+          }
+          .dryn-reveal.dryn-visible {
+            opacity: 1;
+            transform: none;
+          }
+          .dryn-caret {
+            display: inline-block;
+            width: 2px;
+            align-self: stretch;
+            background: var(--color-accent, #2F6BFF);
+            animation: dryn-caret-blink 1.1s steps(2, start) infinite;
+          }
+          @keyframes dryn-caret-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+          }
+          .dryn-flow-dash {
+            stroke-dasharray: 5 6;
+            animation: dryn-dash-drift 2.6s linear infinite;
+          }
+          @keyframes dryn-dash-drift {
+            to { stroke-dashoffset: -22; }
+          }
+          .dryn-flow-line {
+            height: 2px;
+            flex: 1;
+            min-width: 24px;
+            background-image: linear-gradient(90deg, var(--color-accent, #2F6BFF) 55%, transparent 45%);
+            background-size: 11px 2px;
+            background-repeat: repeat-x;
+            opacity: 0.7;
+            animation: dryn-flow-slide 1.1s linear infinite;
+          }
+          @keyframes dryn-flow-slide {
+            to { background-position: 11px 0; }
+          }
+          .dryn-typing-line {
+            transform-origin: left center;
+            animation: dryn-line-in 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+          }
+          @keyframes dryn-line-in {
+            from { opacity: 0; transform: scaleX(0.6); }
+            to { opacity: 1; transform: scaleX(1); }
+          }
+          .dryn-pulse-dot {
+            animation: dryn-pulse 2.2s ease-in-out infinite;
+          }
+          @keyframes dryn-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+          }
+          .dryn-page-float {
+            animation: dryn-page-float 7s ease-in-out infinite;
+          }
+          @keyframes dryn-page-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-7px); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .dryn-gradient,
+            .dryn-caret,
+            .dryn-flow-dash,
+            .dryn-flow-line,
+            .dryn-typing-line,
+            .dryn-pulse-dot,
+            .dryn-page-float {
+              animation: none !important;
+            }
+            .dryn-reveal {
+              opacity: 1;
+              transform: none;
+              transition: none;
+            }
+            .dryn-typing-line {
+              opacity: 1;
+            }
+          }
         `}} />
         <script dangerouslySetInnerHTML={{ __html: `
           try {

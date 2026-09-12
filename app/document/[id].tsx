@@ -71,6 +71,7 @@ import {
 import { CATEGORY_VISUALS } from "../../src/ui/categories";
 import { FieldRenderer } from "../../src/ui/FieldRenderer";
 import { SectionEditorModal } from "../../src/ui/SectionEditor";
+import { GenerateLoader } from "../../src/ui/DocGraphics";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -865,9 +866,10 @@ export default function DocumentEditor() {
       <View>
         {exportingFormat ? (
           <View style={styles.exportProgressBox}>
-            <ActivityIndicator size="large" color={theme.accent} style={{ marginBottom: 12 }} />
-            <Text style={styles.exportProgressTitle}>Generating {exportingFormat.toUpperCase()}…</Text>
-            <Text style={styles.exportProgressSub}>Formatting typography, layout rules, and domain blocks</Text>
+            <GenerateLoader
+              title={`Generating ${exportingFormat.toUpperCase()}…`}
+              sub="Formatting typography, layout rules, and domain blocks"
+            />
           </View>
         ) : (
           <>

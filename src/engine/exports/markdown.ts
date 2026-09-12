@@ -4,24 +4,37 @@ export function visibleSections(doc: GeneratedDocument): Section[] {
   return doc.sections.filter((s) => !s.hidden);
 }
 
+/**
+ * Keeps exported Markdown inert when rendered as HTML elsewhere:
+ * - breaks `<` that could open a tag/script (`<[A-Za-z/!]`),
+ * - neutralizes dangerous link schemes (`javascript:`, `data:text/html`, …).
+ * Lone `<` (e.g. math) and legitimate text are untouched.
+ */
+export function safeMdText(s: string): string {
+  return s
+    .replace(/<(?=[A-Za-z/!])/g, "&lt;")
+    .replace(/\]\(\s*(javascript|vbscript|file|data\s*:\s*text\/html)\s*:/gi, "]($1&#58;");
+}
+
 function blockToMarkdown(b: ContentBlock): string {
   switch (b.type) {
     case "heading":
-      return `${"#".repeat(Math.min(b.level ?? 2, 6))} ${b.text ?? ""}`;
+      return `${"#".repeat(Math.min(Math.max(Math.floor(b.level ?? 2), 1), 6))} ${safeMdText(b.text ?? "")}`;
     case "paragraph":
-      return b.text ?? "";
+      return safeMdText(b.text ?? "");
     case "list":
-      return (b.items ?? []).map((i) => `- ${i}`).join("\n");
+      return (b.items ?? []).map((i) => `- ${safeMdText(i)}`).join("\n");
     case "table": {
       const t = b.table;
       if (!t) return "";
-      const head = `| ${t.headers.join(" | ")} |`;
+      const cell = (c: string) => safeMdText(c).replace(/\|/g, "\\|");
+      const head = `| ${t.headers.map(cell).join(" | ")} |`;
       const sep = `| ${t.headers.map(() => "---").join(" | ")} |`;
-      const rows = t.rows.map((r) => `| ${r.join(" | ")} |`).join("\n");
+      const rows = t.rows.map((r) => `| ${r.map(cell).join(" | ")} |`).join("\n");
       return [head, sep, rows].join("\n");
     }
     case "callout":
-      return `> **${b.tone?.toUpperCase() ?? "NOTE"}:** ${b.text ?? ""}`;
+      return `> **${(b.tone ?? "note").toUpperCase().replace(/[^A-Z]/g, "") || "NOTE"}:** ${safeMdText(b.text ?? "")}`;
     case "divider":
       return "---";
   }
@@ -29,7 +42,7 @@ function blockToMarkdown(b: ContentBlock): string {
 
 export function sectionToMarkdown(s: Section): string {
   const lines: string[] = [];
-  if (s.title) lines.push(`## ${s.title}`);
+  if (s.title) lines.push(`## ${safeMdText(s.title)}`);
   for (const b of s.blocks) {
     const md = blockToMarkdown(b);
     if (md) lines.push(md);
@@ -39,8 +52,10 @@ export function sectionToMarkdown(s: Section): string {
 
 export function toMarkdown(doc: GeneratedDocument): string {
   const parts: string[] = [];
-  parts.push(`# ${doc.title}`);
-  const meta = Object.entries(doc.metadata).filter(([, v]) => v).map(([k, v]) => `- ${k}: ${v}`);
+  parts.push(`# ${safeMdText(doc.title)}`);
+  const meta = Object.entries(doc.metadata)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `- ${safeMdText(k)}: ${safeMdText(v)}`);
   if (meta.length) parts.push(meta.join("\n"));
   for (const s of visibleSections(doc)) {
     const md = sectionToMarkdown(s);

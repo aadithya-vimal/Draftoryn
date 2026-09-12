@@ -6,8 +6,12 @@ const PRODUCTION_API_URL = "https://draftoryn-api.aadithyavimal-work.workers.dev
 
 function resolveApiBase(): string {
   const envBase = process.env.EXPO_PUBLIC_API_BASE;
-  if (typeof window !== "undefined" && window.location && window.location.hostname) {
-    const host = window.location.hostname;
+  const browserWindow =
+    typeof globalThis !== "undefined"
+      ? (globalThis as unknown as { window?: { location?: { hostname?: string } } }).window
+      : undefined;
+  if (browserWindow && browserWindow.location && browserWindow.location.hostname) {
+    const host = browserWindow.location.hostname;
     const isLocal = host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0";
     if (!isLocal) {
       if (!envBase || envBase.includes("localhost") || envBase.includes("127.0.0.1")) {

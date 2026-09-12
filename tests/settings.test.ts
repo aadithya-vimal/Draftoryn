@@ -11,6 +11,9 @@ describe("user settings & autofill", () => {
     compactLists: true,
     themeMode: "dark",
     sessionTimeoutMinutes: 15,
+    aiSettings: {
+      defaultProvider: "openai",
+    },
     testerProfile: {
       providerName: "Aegis Red Team Labs",
       providerContactName: "Alex Vance",

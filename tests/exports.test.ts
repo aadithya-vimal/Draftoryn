@@ -69,7 +69,7 @@ describe("exports", () => {
       policyWaived: "ISO 27001 Annex A.9 Access Control",
     });
     // Add custom edited callout block
-    doc.sections[1].blocks.push({
+    doc.sections[1]!.blocks.push({
       type: "callout",
       tone: "missing",
       text: "so ytea lol",

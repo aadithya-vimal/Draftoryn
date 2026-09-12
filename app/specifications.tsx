@@ -13,7 +13,7 @@ export default function SpecificationsPage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
-      <PublicHeader activeNav="specifications" />
+      <PublicHeader activeNav="documents" />
 
       {/* Hero Section */}
       <View style={styles.hero}>

@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import { useRouter } from "expo-router";
 import { PublicHeader } from "../src/ui/PublicHeader";
 import { Button, Card, Heading, theme } from "../src/ui/primitives";
+import { FlowSteps } from "../src/ui/DocGraphics";
 
 export default function ArchitecturePage() {
   const router = useRouter();
@@ -11,19 +12,24 @@ export default function ArchitecturePage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
-      <PublicHeader activeNav="architecture" />
+      <PublicHeader activeNav="how-it-works" />
 
       {/* Hero Section */}
       <View style={styles.hero}>
         <View style={styles.maxContainer}>
-          <Text style={styles.eyebrow}>SYSTEMS BLUEPRINT // 04</Text>
+          <Text style={styles.eyebrow}>HOW IT WORKS // 04</Text>
           <Heading level={1} style={isMobile ? styles.h1Mobile : styles.h1}>
-            Systems Architecture
+            From guided answers to precise security documents
           </Heading>
           <Text style={styles.heroLead}>
-            Draftoryn is architected around relational persistence, cryptographic data isolation,
-            and pure programmatic document compilation.
+            Choose a cybersecurity document, answer guided questions, let AI draft
+            from your answers, review every section, and export. The infrastructure
+            below keeps each step isolated, validated, and secure.
           </Text>
+
+          <View style={{ marginTop: 28, marginBottom: 28 }}>
+            <FlowSteps />
+          </View>
 
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>

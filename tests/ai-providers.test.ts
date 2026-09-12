@@ -78,7 +78,7 @@ describe("AI Providers Engine", () => {
 
       expect(res).toBe('{"success": true}');
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [url, init] = mockFetch.mock.calls[0];
+      const [url, init] = mockFetch.mock.calls[0] ?? [];
       expect(url).toBe("https://api.openai.com/v1/chat/completions");
       expect(init.headers.Authorization).toBe("Bearer sk-mock-key");
       const parsedBody = JSON.parse(init.body);
@@ -105,7 +105,7 @@ describe("AI Providers Engine", () => {
       });
 
       expect(res).toBe('{"claude": "verified"}');
-      const [url, init] = mockFetch.mock.calls[0];
+      const [url, init] = mockFetch.mock.calls[0] ?? [];
       expect(url).toBe("https://api.anthropic.com/v1/messages");
       expect(init.headers["x-api-key"]).toBe("sk-ant-mock");
       expect(init.headers["anthropic-version"]).toBe("2023-06-01");
@@ -131,7 +131,7 @@ describe("AI Providers Engine", () => {
       });
 
       expect(res).toBe('{"groq": "fast"}');
-      const [url, init] = mockFetch.mock.calls[0];
+      const [url, init] = mockFetch.mock.calls[0] ?? [];
       expect(url).toBe("https://api.groq.com/openai/v1/chat/completions");
       expect(init.headers.Authorization).toBe("Bearer gsk-mock");
       const parsedBody = JSON.parse(init.body);
@@ -155,7 +155,7 @@ describe("AI Providers Engine", () => {
       });
 
       expect(res).toBe('{"gemini": "multimodal"}');
-      const [url, init] = mockFetch.mock.calls[0];
+      const [url, init] = mockFetch.mock.calls[0] ?? [];
       expect(url).toContain("generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent");
       expect(url).toContain("key=AIzaSy-mock");
       const parsedBody = JSON.parse(init.body);
