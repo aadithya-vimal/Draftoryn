@@ -141,8 +141,12 @@ export function SectionEditorModal({
             </View>
           )}
 
-          {/* Scrollable Content Body */}
-          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
+          {/* Scrollable Content Body — indicator hidden, scroll retained */}
+          <ScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
             {draftBlocks.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateText}>This section has no content blocks yet.</Text>
@@ -275,7 +279,7 @@ export function SectionEditorModal({
                   {/* Table Block */}
                   {b.type === "table" && b.table && (
                     <View style={styles.tableBlockWrapper}>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.tableScroll}>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tableScroll}>
                         <View style={styles.tableGrid}>
                           {/* Headers */}
                           <View style={styles.tableHeaderRow}>

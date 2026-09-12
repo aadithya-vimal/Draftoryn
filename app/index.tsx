@@ -352,7 +352,14 @@ export default function LandingPage() {
             />
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
-          <Text style={styles.footerText}>TECHNICAL DOCUMENTATION PLATFORM</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <Pressable onPress={() => router.push("/terms")}>
+              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push("/privacy")}>
+              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </ScrollView>

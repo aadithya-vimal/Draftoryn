@@ -214,6 +214,21 @@ export default function NewDocumentScreen() {
   const completedStepsCount = stepsMeta.filter((s) => s.isComplete).length;
   const currentStepMeta = stepsMeta[Math.min(step, totalSteps - 1)];
 
+  // ---- AI readiness: ALL required preliminary info must be entered first ---
+  // AI only ever drafts from the real user-entered `source` — never from
+  // fabricated context. Gate AI generation behind complete required input.
+  const missingRequiredAll: FieldDef[] = def
+    ? def.fields.filter((f) => f.required === true && isEmptyValue(source[f.id]))
+    : [];
+  const firstIncompleteStep = (() => {
+    if (!def || missingRequiredAll.length === 0) return -1;
+    const firstMissingId = missingRequiredAll[0]!.id;
+    return steps.findIndex((group) => group.some((f) => f.id === firstMissingId));
+  })();
+  const aiReady =
+    missingRequiredAll.length === 0 &&
+    (totalAllRequired > 0 ? true : totalAllFilled > 0);
+
   if (!user.isLoaded) {
     return (
       <Screen title="Document">
@@ -348,10 +363,30 @@ export default function NewDocumentScreen() {
       return;
     }
 
-    if (!validateStep(currentStepFields)) return;
+    if (!validateStep(currentStepFields)) {
+      return;
+    }
+
+    // Enforce the full preliminary-info flow: every required field across ALL
+    // steps must be completed before generation, so AI drafts the rest of the
+    // application from REAL user-entered data (the current `source` snapshot).
+    if (def) {
+      const missingAll = def.fields.filter((f) => f.required === true && isEmptyValue(source[f.id]));
+      if (missingAll.length > 0) {
+        const names = missingAll.slice(0, 3).map((f) => `"${f.label}"`).join(", ");
+        const more = missingAll.length > 3 ? ` and ${missingAll.length - 3} more` : "";
+        setError(
+          `Please enter all preliminary info first — still missing required ${missingAll.length === 1 ? "field" : "fields"}: ${names}${more}. AI will then fill out the rest using exactly what you entered.`,
+        );
+        if (firstIncompleteStep >= 0 && firstIncompleteStep !== step) {
+          setStep(firstIncompleteStep);
+        }
+        return;
+      }
+    }
 
     if (useAi) {
-      // Require user context before triggering real AI inference
+      // Require real user context before triggering real AI inference
       const filledCount = def ? def.fields.filter((f) => !isEmptyValue(source[f.id])).length : 0;
       if (filledCount === 0) {
         setError("Please enter your organization or engagement context before populating with AI.");
@@ -647,6 +682,24 @@ export default function NewDocumentScreen() {
       <FieldRenderer fields={currentStepFields} source={source} onChange={change} />
       {error ? <ErrorText message={error} /> : null}
 
+      {isLastStep ? (
+        <View style={styles.aiFlowBanner}>
+          <Text style={styles.aiFlowTitle}>HOW AI GENERATION WORKS</Text>
+          <Text style={styles.aiFlowBody}>
+            1. Enter all preliminary info (every required field across all steps).{"\n"}
+            2. AI then fills out the rest of the application using ONLY the real data you entered — it never invents your organization, scope, or dates.
+          </Text>
+          {!aiReady ? (
+            <Text style={styles.aiFlowMissing}>
+              Still missing {missingRequiredAll.length} required {missingRequiredAll.length === 1 ? "field" : "fields"}
+              {missingRequiredAll.length > 0 ? ` — e.g. "${missingRequiredAll[0]!.label}"` : ""}. Complete {firstIncompleteStep >= 0 ? `step ${firstIncompleteStep + 1}` : "the earlier steps"} to unlock AI.
+            </Text>
+          ) : (
+            <Text style={styles.aiFlowReady}>All required info entered — AI is ready to draft from your data.</Text>
+          )}
+        </View>
+      ) : null}
+
       <View style={styles.formNavRow}>
         <Button
           label="Back"
@@ -678,7 +731,7 @@ export default function NewDocumentScreen() {
                     }`
               }
               variant="secondary"
-              disabled={busy}
+              disabled={busy || !aiReady}
               onPress={() => onGenerate(true)}
             />
           </View>
@@ -705,8 +758,10 @@ export default function NewDocumentScreen() {
         <SectionLabel>What happens next</SectionLabel>
       </View>
       <Text style={styles.bodyText}>
-        After the last step, we assemble your draft, run validation, and open it
-        for review. You can regenerate any section afterwards.
+        Enter all preliminary info first. On the final step, AI drafts the
+        remaining sections using only the real data you entered — then we
+        assemble your draft, run validation, and open it for review. You can
+        regenerate any section afterwards.
       </Text>
       <SectionLabel style={styles.helpHeader}>Parameter Summary</SectionLabel>
       {summary.length === 0 ? (
@@ -732,8 +787,8 @@ export default function NewDocumentScreen() {
         <ProgressBar indeterminate height={6} />
         <Text style={styles.genSub}>
           {generatingWithAi
-            ? "Analyzing context · Generating technical sections · Applying safety guardrails"
-            : "Building structure · Embedding inputs · Generating baseline clauses"}
+            ? "Reading your entered preliminary info · Drafting remaining sections from your real data · Applying safety guardrails"
+            : "Building structure · Embedding your inputs · Generating baseline clauses"}
         </Text>
       </View>
     </Card>
@@ -745,7 +800,7 @@ export default function NewDocumentScreen() {
         {desktopTopBar}
         <View style={styles.webRow}>
           <View style={styles.webLeft}>{overviewCard}</View>
-          <ScrollView style={styles.webCenter} contentContainerStyle={styles.webCenterInner}>
+          <ScrollView style={styles.webCenter} contentContainerStyle={styles.webCenterInner} showsVerticalScrollIndicator={false}>
             {busy ? generatingCard : fieldsCard}
           </ScrollView>
           <View style={styles.webRight}>{helpCard}</View>
@@ -757,7 +812,7 @@ export default function NewDocumentScreen() {
   return (
     <View style={styles.mobileShell}>
       {mobileTopBar}
-      <ScrollView style={styles.mobileScroll} contentContainerStyle={styles.mobileInner}>
+      <ScrollView style={styles.mobileScroll} contentContainerStyle={styles.mobileInner} showsVerticalScrollIndicator={false}>
         {busy ? generatingCard : fieldsCard}
         <View style={{ height: 16 }} />
         {overviewCard}
@@ -821,6 +876,40 @@ const styles = StyleSheet.create({
     fontFamily: theme.font.sansMedium,
     fontSize: 12.5,
     color: theme.accentForeground,
+  },
+  aiFlowBanner: {
+    backgroundColor: "rgba(217, 154, 36, 0.08)",
+    borderRadius: theme.radiusSm,
+    borderWidth: 1,
+    borderColor: "rgba(217, 154, 36, 0.35)",
+    padding: 12,
+    marginTop: 16,
+  },
+  aiFlowTitle: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: theme.warn,
+    marginBottom: 6,
+  },
+  aiFlowBody: {
+    fontFamily: theme.font.sans,
+    fontSize: 13,
+    lineHeight: 19,
+    color: theme.text,
+  },
+  aiFlowMissing: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12.5,
+    color: theme.warn,
+    marginTop: 8,
+    lineHeight: 18,
+  },
+  aiFlowReady: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12.5,
+    color: theme.ok,
+    marginTop: 8,
   },
   webShell: { flex: 1, backgroundColor: theme.bg, padding: 24, paddingTop: 20 },
   webRow: { flexDirection: "row", gap: 20, maxWidth: 1120, width: "100%", alignSelf: "center" },

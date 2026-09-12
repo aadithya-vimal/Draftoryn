@@ -81,6 +81,8 @@ export default function RootLayout() {
               <Stack.Screen name="(app)" options={{ title: "Draftoryn" }} />
               <Stack.Screen name="document" options={{ title: "Draftoryn" }} />
               <Stack.Screen name="index" options={{ title: "Draftoryn" }} />
+              <Stack.Screen name="terms" options={{ title: "Draftoryn — Terms of Use" }} />
+              <Stack.Screen name="privacy" options={{ title: "Draftoryn — Privacy Policy" }} />
             </Stack>
           </SessionTimeoutProvider>
         </WorkspaceProvider>

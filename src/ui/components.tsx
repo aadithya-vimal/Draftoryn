@@ -148,7 +148,7 @@ export function Dialog({
           <ScrollView
             style={styles.dialogScroll}
             contentContainerStyle={styles.dialogScrollContent}
-            showsVerticalScrollIndicator
+            showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
             {children}

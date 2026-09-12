@@ -68,9 +68,26 @@ export async function runGeneration(
     return generateDocument(def, source);
   }
 
-  // Explicit AI requested: Require user context first
+  // Explicit AI requested: Require ALL preliminary info first.
+  // AI drafts the rest of the application from the REAL user-entered source —
+  // refuse to synthesize from an incomplete context.
+  const isEmptyValue = (v: unknown): boolean => {
+    if (v === undefined || v === null) return true;
+    if (typeof v === "string") return v.trim() === "";
+    if (Array.isArray(v)) return v.length === 0;
+    if (typeof v === "object") return Object.keys(v as Record<string, unknown>).length === 0;
+    return false;
+  };
+  const missingRequired = def.fields.filter((f) => f.required === true && isEmptyValue(source[f.id]));
+  if (missingRequired.length > 0) {
+    const names = missingRequired.slice(0, 3).map((f) => `"${f.label}"`).join(", ");
+    throw new Error(
+      `AI synthesis requires all preliminary info first. Still missing ${missingRequired.length} required ${missingRequired.length === 1 ? "field" : "fields"}: ${names}. Please complete them — AI will then fill out the rest using exactly what you entered.`,
+    );
+  }
+
   const filledEntries = Object.entries(source).filter(
-    ([_, v]) => v !== undefined && v !== null && String(v).trim() !== "" && (Array.isArray(v) ? v.length > 0 : true),
+    ([_, v]) => !isEmptyValue(v),
   );
 
   if (filledEntries.length === 0) {
@@ -116,7 +133,7 @@ async function generateAiDocument(
   model: string,
 ): Promise<GeneratedDocument | null> {
   const req = buildDocumentPrompt(def);
-  const userPrompt = `${req.user}\n\nUser context:\n${JSON.stringify(source, null, 2)}`;
+  const userPrompt = `${req.user}\n\nPreliminary info entered by the user (GROUND TRUTH — use these exact values for every matching fact, never invent alternatives, use [MISSING] placeholders for anything absent):\n${JSON.stringify(source, null, 2)}`;
 
   const raw = await executeAiCall({
     provider,
@@ -180,7 +197,7 @@ async function generateAiSection(
   aiModel: string,
 ): Promise<Section | null> {
   const req = buildSectionPrompt(def, secDef, modelData);
-  const userPrompt = `${req.user}\n\nSource input:\n${JSON.stringify(source, null, 2)}`;
+  const userPrompt = `${req.user}\n\nPreliminary info entered by the user (GROUND TRUTH — reuse these exact values, never invent alternatives):\n${JSON.stringify(source, null, 2)}`;
 
   const raw = await executeAiCall({
     provider,

@@ -229,6 +229,7 @@ export default function DocumentEditor() {
   const [showSource, setShowSource] = useState(false);
   const [exportErr, setExportErr] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
+  const [exportAcknowledged, setExportAcknowledged] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -381,13 +382,23 @@ export default function DocumentEditor() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
+  const navigateToLibrary = useCallback(() => {
+    // The editor is often opened via router.replace (no history to go back to),
+    // so always navigate explicitly to the documents library.
+    try {
+      router.replace("/(app)/library");
+    } catch {
+      router.push("/(app)/library");
+    }
+  }, []);
+
   const handleGoBack = useCallback(() => {
     if (isDirty) {
       setShowLeaveConfirm(true);
     } else {
-      router.back();
+      navigateToLibrary();
     }
-  }, [isDirty]);
+  }, [isDirty, navigateToLibrary]);
 
   const saveVersion = useCallback(() => {
     if (!record || !model) return;
@@ -428,6 +439,10 @@ export default function DocumentEditor() {
   const doExport = useCallback(
     async (format: ExportFormat) => {
       if (!def || !model) return;
+      if (!exportAcknowledged) {
+        setExportErr("Please tick the acknowledgement below confirming you will review the document before relying on it.");
+        return;
+      }
       const gen: GeneratedDocument = {
         definitionId: def.id,
         title: titleRef.current,
@@ -449,7 +464,7 @@ export default function DocumentEditor() {
         setExportingFormat(null);
       }
     },
-    [def, model],
+    [def, model, exportAcknowledged, user],
   );
 
   // ---- Derived -----------------------------------------------------------
@@ -473,7 +488,7 @@ export default function DocumentEditor() {
             <Heading level={3}>Document not found</Heading>
             <Text style={styles.muted}>This document may have been deleted or is not available to you.</Text>
             <View style={styles.inlineActions}>
-              <Button label="Back" onPress={() => router.back()} />
+              <Button label="Back to documents" onPress={navigateToLibrary} />
             </View>
           </Card>
         </Screen>
@@ -494,7 +509,7 @@ export default function DocumentEditor() {
         <Card>
           <Heading level={3}>Document not found</Heading>
           <View style={styles.inlineActions}>
-            <Button label="Back" onPress={() => router.back()} />
+            <Button label="Back to documents" onPress={navigateToLibrary} />
           </View>
         </Card>
       </Screen>
@@ -629,7 +644,7 @@ export default function DocumentEditor() {
       ref={scrollViewRef}
       onScroll={handleScroll}
       scrollEventThrottle={16}
-      showsVerticalScrollIndicator
+      showsVerticalScrollIndicator={false}
     >
       <View style={styles.page}>
         <View style={styles.docTitleContainer}>
@@ -784,6 +799,112 @@ export default function DocumentEditor() {
     </View>
   );
 
+  // ---- Export dialog (shared desktop + mobile) ---------------------------
+  // Explicit pre-export notice: AI can make mistakes, review thoroughly,
+  // Draftoryn output is a drafting aid only — not legal advice or legal
+  // tender — and Draftoryn accepts no liability for reliance on it.
+  const renderExportDialog = () => (
+    <Dialog open={exportOpen} onClose={() => !exportingFormat && setExportOpen(false)} title="Export document">
+      <View>
+        {exportingFormat ? (
+          <View style={styles.exportProgressBox}>
+            <ActivityIndicator size="large" color={theme.accent} style={{ marginBottom: 12 }} />
+            <Text style={styles.exportProgressTitle}>Generating {exportingFormat.toUpperCase()}…</Text>
+            <Text style={styles.exportProgressSub}>Formatting typography, layout rules, and domain blocks</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.exportDisclaimer}>
+              <View style={styles.exportDisclaimerHeader}>
+                <Icon name="AlertTriangle" size={15} color={theme.warn} />
+                <Text style={styles.exportDisclaimerTitle}>AI CAN MAKE MISTAKES — REVIEW BEFORE YOU RELY ON THIS</Text>
+              </View>
+              <Text style={styles.exportDisclaimerBody}>
+                AI-generated content can be incomplete, outdated, or incorrect. Review this document
+                thoroughly before using it as an official, operational, or legitimizing record.
+                Draftoryn outputs are drafting aids only: they are not legal advice, create no
+                attorney-client relationship, and are not legal tender. Draftoryn accepts no
+                liability for any reliance on exported content — you are solely responsible for
+                verification, approval, and use.
+              </Text>
+              <View style={styles.exportDisclaimerLinks}>
+                <TouchableOpacity onPress={() => router.push("/terms")}>
+                  <Text style={styles.exportDisclaimerLink}>Terms →</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push("/privacy")}>
+                  <Text style={styles.exportDisclaimerLink}>Privacy →</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={styles.exportAckRow}
+                onPress={() => {
+                  setExportErr("");
+                  setExportAcknowledged((v) => !v);
+                }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: exportAcknowledged }}
+                accessibilityLabel="Acknowledge export responsibility"
+              >
+                <View style={[styles.exportAckBox, exportAcknowledged && styles.exportAckBoxChecked]}>
+                  {exportAcknowledged ? <Icon name="Check" size={13} color="#FFFFFF" /> : null}
+                </View>
+                <Text style={styles.exportAckText}>
+                  I understand AI can make mistakes and I accept full responsibility for reviewing
+                  this document before any official or legal use.
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.quickExportBanner, !exportAcknowledged && styles.exportDisabled]}
+              onPress={() => doExport(userSettings.defaultExportFormat || "pdf")}
+              disabled={!!exportingFormat}
+            >
+              <View style={styles.quickExportTextCol}>
+                <View style={styles.quickExportBadgeRow}>
+                  <Text style={styles.quickExportLabel}>DEFAULT EXPORT FORMAT</Text>
+                  <Badge tone="accent">{(userSettings.defaultExportFormat || "pdf").toUpperCase()}</Badge>
+                </View>
+                <Text style={styles.quickExportTitle}>Export as {(userSettings.defaultExportFormat || "pdf").toUpperCase()}</Text>
+              </View>
+              <View style={styles.quickExportBtn}>
+                <Icon name="Download" size={16} color={theme.accentForeground} />
+                <Text style={styles.quickExportBtnText}>Download</Text>
+              </View>
+            </TouchableOpacity>
+
+            {EXPORT_GROUPS.map((g) => (
+              <View key={g.label} style={styles.exportGroup}>
+                <Text style={styles.exportGroupLabel}>{g.label}</Text>
+                {g.items.map((it) => {
+                  const isDefault = it.format.toLowerCase() === (userSettings.defaultExportFormat || "pdf").toLowerCase();
+                  return (
+                    <TouchableOpacity
+                      key={it.format}
+                      style={[styles.exportRow, isDefault && styles.exportRowDefault, !exportAcknowledged && styles.exportDisabled]}
+                      onPress={() => doExport(it.format)}
+                      disabled={!!exportingFormat}
+                    >
+                      <View style={styles.exportRowText}>
+                        <View style={styles.exportRowTitleWrap}>
+                          <Text style={styles.exportRowTitle}>{it.title}</Text>
+                          {isDefault ? <Badge tone="accent">Default</Badge> : null}
+                        </View>
+                        <Text style={styles.muted}>{it.description}</Text>
+                      </View>
+                      <Icon name="Download" size={18} color={theme.accent} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+          </>
+        )}
+        {exportErr ? <ErrorText message={exportErr} /> : null}
+      </View>
+    </Dialog>
+  );
+
   // ---- Top bar -----------------------------------------------------------
   const renderTopBar = () => (
     <View style={styles.topbar}>
@@ -897,7 +1018,7 @@ export default function DocumentEditor() {
         <View style={styles.columns}>
           <View style={styles.leftCol}>
             <Card style={styles.leftCard}>
-              <ScrollView style={styles.sideScroll} contentContainerStyle={styles.sideScrollContent} showsVerticalScrollIndicator>
+              <ScrollView style={styles.sideScroll} contentContainerStyle={styles.sideScrollContent} showsVerticalScrollIndicator={false}>
                 {renderNavigator()}
               </ScrollView>
             </Card>
@@ -907,7 +1028,7 @@ export default function DocumentEditor() {
           </View>
           <View style={styles.rightCol}>
             <Card style={styles.rightCard}>
-              <ScrollView style={styles.sideScroll} contentContainerStyle={styles.sideScrollContent} showsVerticalScrollIndicator>
+              <ScrollView style={styles.sideScroll} contentContainerStyle={styles.sideScrollContent} showsVerticalScrollIndicator={false}>
                 {renderContext()}
               </ScrollView>
             </Card>
@@ -961,7 +1082,7 @@ export default function DocumentEditor() {
               </TouchableOpacity>
             </View>
           </View>
-          <ScrollView style={styles.sheetScroll}>
+          <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
             <FieldRenderer
               fields={def?.fields ?? []}
               source={source}
@@ -982,7 +1103,7 @@ export default function DocumentEditor() {
 
         {/* Add section sheet */}
         <Sheet open={addOpen} onClose={() => setAddOpen(false)} title="Add section">
-          <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent} showsVerticalScrollIndicator>
+          <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetScrollContent} showsVerticalScrollIndicator={false}>
             {available.map((a) => (
               <TouchableOpacity
                 key={a.id}
@@ -1001,7 +1122,7 @@ export default function DocumentEditor() {
 
         {/* Versions sheet */}
         <Sheet open={versionsOpen} onClose={() => setVersionsOpen(false)} title="Version history">
-          <ScrollView style={styles.sheetScroll}>
+          <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
             {record?.versions
               .slice()
               .reverse()
@@ -1026,63 +1147,8 @@ export default function DocumentEditor() {
           </ScrollView>
         </Sheet>
 
-        {/* Export dialog */}
-        <Dialog open={exportOpen} onClose={() => !exportingFormat && setExportOpen(false)} title="Export document">
-          <View>
-            {exportingFormat ? (
-              <View style={styles.exportProgressBox}>
-                <ActivityIndicator size="large" color={theme.accent} style={{ marginBottom: 12 }} />
-                <Text style={styles.exportProgressTitle}>Generating {exportingFormat.toUpperCase()}…</Text>
-                <Text style={styles.exportProgressSub}>Formatting typography, layout rules, and domain blocks</Text>
-              </View>
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={styles.quickExportBanner}
-                  onPress={() => doExport(userSettings.defaultExportFormat || "pdf")}
-                >
-                  <View style={styles.quickExportTextCol}>
-                    <View style={styles.quickExportBadgeRow}>
-                      <Text style={styles.quickExportLabel}>DEFAULT EXPORT FORMAT</Text>
-                      <Badge tone="accent">{(userSettings.defaultExportFormat || "pdf").toUpperCase()}</Badge>
-                    </View>
-                    <Text style={styles.quickExportTitle}>Export as {(userSettings.defaultExportFormat || "pdf").toUpperCase()}</Text>
-                  </View>
-                  <View style={styles.quickExportBtn}>
-                    <Icon name="Download" size={16} color={theme.accentForeground} />
-                    <Text style={styles.quickExportBtnText}>Download</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {EXPORT_GROUPS.map((g) => (
-                  <View key={g.label} style={styles.exportGroup}>
-                    <Text style={styles.exportGroupLabel}>{g.label}</Text>
-                    {g.items.map((it) => {
-                      const isDefault = it.format.toLowerCase() === (userSettings.defaultExportFormat || "pdf").toLowerCase();
-                      return (
-                        <TouchableOpacity
-                          key={it.format}
-                          style={[styles.exportRow, isDefault && styles.exportRowDefault]}
-                          onPress={() => doExport(it.format)}
-                        >
-                          <View style={styles.exportRowText}>
-                            <View style={styles.exportRowTitleWrap}>
-                              <Text style={styles.exportRowTitle}>{it.title}</Text>
-                              {isDefault ? <Badge tone="accent">Default</Badge> : null}
-                            </View>
-                            <Text style={styles.muted}>{it.description}</Text>
-                          </View>
-                          <Icon name="Download" size={18} color={theme.accent} />
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                ))}
-              </>
-            )}
-            {exportErr ? <ErrorText message={exportErr} /> : null}
-          </View>
-        </Dialog>
+        {/* Export dialog (shared, with pre-export AI + liability notice) */}
+        {renderExportDialog()}
 
         {/* Section editor modal – desktop */}
         <SectionEditorModal
@@ -1141,7 +1207,7 @@ export default function DocumentEditor() {
                 onPress={async () => {
                   await executeSave();
                   setShowLeaveConfirm(false);
-                  router.back();
+                  navigateToLibrary();
                 }}
               />
               <Button
@@ -1150,7 +1216,7 @@ export default function DocumentEditor() {
                 onPress={() => {
                   setShowLeaveConfirm(false);
                   setIsDirty(false);
-                  router.back();
+                  navigateToLibrary();
                 }}
               />
               <Button
@@ -1256,7 +1322,7 @@ export default function DocumentEditor() {
 
       {/* Mobile Sections sheet */}
       <Sheet open={mobileSectionsOpen} onClose={() => setMobileSectionsOpen(false)} title="Sections & outline">
-        <ScrollView style={styles.sheetScroll}>
+        <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
           {renderNavigator(() => setMobileSectionsOpen(false))}
           {available.length > 0 ? (
             <View style={styles.addWrap}>
@@ -1341,6 +1407,57 @@ export default function DocumentEditor() {
         }}
       />
 
+      {/* Source sheet (mobile) */}
+      <Sheet open={showSource} onClose={() => setShowSource(false)} title="Edit source">
+        <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
+          <FieldRenderer
+            fields={def?.fields ?? []}
+            source={source}
+            onChange={(fid, v) => updateSource(fid, v)}
+          />
+        </ScrollView>
+        <View style={styles.sheetActions}>
+          <Button
+            label="Apply Changes"
+            onPress={() => {
+              setShowSource(false);
+              void executeSave();
+            }}
+          />
+          <Button label="Close" variant="ghost" onPress={() => setShowSource(false)} />
+        </View>
+      </Sheet>
+
+      {/* Versions sheet (mobile) */}
+      <Sheet open={versionsOpen} onClose={() => setVersionsOpen(false)} title="Version history">
+        <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
+          {record?.versions
+            .slice()
+            .reverse()
+            .map((v) => (
+              <View key={v.id} style={styles.versionItem}>
+                <View style={styles.versionHead}>
+                  <Text style={styles.versionTitle}>{v.title}</Text>
+                  <Badge tone="neutral">v{v.versionNumber}</Badge>
+                </View>
+                <Text style={styles.muted}>
+                  {new Date(v.createdAt).toLocaleString()}
+                  {v.note ? ` · ${v.note}` : ""}
+                </Text>
+                <Button
+                  label="Restore"
+                  variant="secondary"
+                  onPress={() => restoreVersion(v)}
+                  style={styles.versionRestore}
+                />
+              </View>
+            ))}
+        </ScrollView>
+      </Sheet>
+
+      {/* Export dialog (mobile, shared with desktop notice) */}
+      {renderExportDialog()}
+
       {/* Progress will be lost confirmation modal */}
       <Dialog open={showLeaveConfirm} onClose={() => setShowLeaveConfirm(false)}>
         <View style={{ alignItems: "center", paddingVertical: 12 }}>
@@ -1379,7 +1496,7 @@ export default function DocumentEditor() {
               onPress={async () => {
                 await executeSave();
                 setShowLeaveConfirm(false);
-                router.back();
+                navigateToLibrary();
               }}
             />
             <Button
@@ -1388,7 +1505,7 @@ export default function DocumentEditor() {
               onPress={() => {
                 setShowLeaveConfirm(false);
                 setIsDirty(false);
-                router.back();
+                navigateToLibrary();
               }}
             />
             <Button
@@ -1467,6 +1584,82 @@ const styles = StyleSheet.create({
     borderRadius: theme.radiusSm,
     padding: 14,
     marginBottom: 18,
+  },
+  exportDisabled: {
+    opacity: 0.55,
+  },
+  exportDisclaimer: {
+    backgroundColor: "rgba(217, 154, 36, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(217, 154, 36, 0.4)",
+    borderRadius: theme.radiusSm,
+    padding: 12,
+    marginBottom: 16,
+  },
+  exportDisclaimerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  exportDisclaimerTitle: {
+    fontFamily: theme.font.monoMedium,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: theme.warn,
+    flex: 1,
+    flexWrap: "wrap",
+  },
+  exportDisclaimerBody: {
+    fontFamily: theme.font.sans,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: theme.text,
+  },
+  exportDisclaimerLinks: {
+    flexDirection: "row",
+    gap: 14,
+    marginTop: 8,
+  },
+  exportDisclaimerLink: {
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12.5,
+    color: theme.accent,
+    textDecorationLine: "underline",
+  },
+  exportAckRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 6,
+    backgroundColor: theme.surface2,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  exportAckBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: theme.border,
+    backgroundColor: theme.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  exportAckBoxChecked: {
+    backgroundColor: theme.ok,
+    borderColor: theme.ok,
+  },
+  exportAckText: {
+    flex: 1,
+    fontFamily: theme.font.sansMedium,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: theme.text,
   },
   quickExportTextCol: {
     flex: 1,
