@@ -19,19 +19,55 @@ export function GradientText({
 }) {
   if (Platform.OS === "web") {
     const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle;
-    const { fontFamily, fontSize, lineHeight, letterSpacing, fontWeight, textAlign, marginBottom } = flat;
+    const {
+      fontFamily,
+      fontSize,
+      lineHeight,
+      letterSpacing,
+      fontWeight,
+      textAlign,
+      marginBottom,
+      marginTop,
+    } = flat;
+
+    const computedLineHeight =
+      typeof lineHeight === "number"
+        ? `${lineHeight}px`
+        : (lineHeight ?? "1.1");
+
+    const computedFontSize =
+      typeof fontSize === "number"
+        ? `${fontSize}px`
+        : fontSize;
+
+    const computedLetterSpacing =
+      typeof letterSpacing === "number"
+        ? `${letterSpacing}px`
+        : letterSpacing;
+
+    const computedMarginBottom =
+      typeof marginBottom === "number"
+        ? `${marginBottom}px`
+        : marginBottom;
+
+    const computedMarginTop =
+      typeof marginTop === "number"
+        ? `${marginTop}px`
+        : marginTop;
+
     return createElement(
       "span",
       {
         className: "dryn-gradient",
         style: {
-          fontFamily,
-          fontSize,
-          lineHeight,
-          letterSpacing,
-          fontWeight,
-          textAlign,
-          marginBottom,
+          fontFamily: "'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          fontSize: computedFontSize,
+          lineHeight: computedLineHeight,
+          letterSpacing: computedLetterSpacing,
+          fontWeight: fontWeight ?? 700,
+          textAlign: textAlign ?? "inherit",
+          marginBottom: computedMarginBottom,
+          marginTop: computedMarginTop,
           display: "block",
         } as React.CSSProperties,
       },

@@ -523,17 +523,17 @@ const styles = StyleSheet.create({
   },
   heroHeadlineDesktop: {
     fontSize: 64,
-    lineHeight: 64,
+    lineHeight: 70,
     letterSpacing: -2.88, // -0.045em
   },
   heroHeadlineTablet: {
     fontSize: 52,
-    lineHeight: 52,
+    lineHeight: 58,
     letterSpacing: -2.3,
   },
   heroHeadlineMobile: {
-    fontSize: 40,
-    lineHeight: 40,
+    fontSize: 38,
+    lineHeight: 44,
     letterSpacing: -1.8,
   },
   heroBody: {

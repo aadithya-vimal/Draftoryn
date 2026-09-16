@@ -26,49 +26,12 @@ function MotionDiv({
 export function Reveal({
   children,
   style,
-  delayMs = 0,
 }: {
   children: React.ReactNode;
   style?: ViewStyle | ViewStyle[];
   delayMs?: number;
 }) {
-  const ref = useRef<unknown>(null);
-
-  useEffect(() => {
-    if (!isWeb) return;
-    const node = ref.current as unknown as { classList?: { add: (c: string) => void } } | null;
-    const classList = node?.classList;
-    if (!node || !classList) return;
-    if (typeof IntersectionObserver === "undefined") {
-      classList.add("dryn-visible");
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            classList.add("dryn-visible");
-            observer.disconnect();
-          }
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
-    );
-    observer.observe(node as unknown as Element);
-    return () => observer.disconnect();
-  }, []);
-
-  if (!isWeb) return <>{children}</>;
-  const flat = style ? ((Array.isArray(style) ? Object.assign({}, ...style) : style) as Record<string, unknown>) : {};
-  return createElement(
-    "div",
-    {
-      ref,
-      className: "dryn-reveal",
-      style: { width: "100%", transitionDelay: delayMs ? `${delayMs}ms` : undefined, ...flat },
-    },
-    children,
-  );
+  return <View style={[{ width: "100%" }, style]}>{children}</View>;
 }
 
 // ---------------------------------------------------------------------------
