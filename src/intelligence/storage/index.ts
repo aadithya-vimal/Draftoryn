@@ -135,3 +135,51 @@ export function defaultStorageProvider(env?: Record<string, string | undefined>)
   const r2 = new R2StorageProvider(env);
   return r2.configured() ? r2 : new LocalStorageProvider();
 }
+
+export type SqlFn = (query: string, params?: unknown[]) => Promise<unknown[]>;
+
+/**
+ * Durable fallback when R2 is unconfigured: owner-scoped BYTEA side table.
+ * Respects the same per-file caps as the upload path (callers enforce).
+ */
+export class NeonBlobProvider implements StorageProvider {
+  readonly id = "neon";
+  constructor(private readonly sql: SqlFn) {}
+
+  async put(ownerId: string, analysisId: string, filename: string, bytes: Uint8Array, mediaType: string, checksum: string): Promise<StoredObject> {
+    const storageKey = scopedKey(ownerId, analysisId, checksum, filename);
+    const existing = (await this.sql(`SELECT owner_id FROM artifact_blobs WHERE storage_key = $1`, [storageKey])) as Array<{ owner_id: string }>;
+    if (existing[0] && existing[0].owner_id !== ownerId) {
+      throw new Error("Storage key collision across tenants.");
+    }
+    await this.sql(
+      `INSERT INTO artifact_blobs (storage_key, owner_id, bytes, media_type, size_bytes)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (storage_key) DO UPDATE SET bytes = $3, media_type = $4, size_bytes = $5`,
+      [storageKey, ownerId, bytes, mediaType, bytes.length],
+    );
+    return { storageKey, size: bytes.length, checksum, mediaType };
+  }
+
+  async get(storageKey: string, ownerId: string): Promise<Uint8Array | null> {
+    const rows = (await this.sql(`SELECT bytes FROM artifact_blobs WHERE storage_key = $1 AND owner_id = $2`, [storageKey, ownerId])) as Array<{ bytes: unknown }>;
+    const raw = rows[0]?.bytes;
+    if (!raw) return null;
+    if (raw instanceof Uint8Array) return raw.slice();
+    // node-postgres style Buffer or hex-encoded "\\x..." string.
+    if (typeof raw === "object" && raw !== null && typeof (raw as { length?: unknown }).length === "number") {
+      return Uint8Array.from(raw as ArrayLike<number>).slice();
+    }
+    if (typeof raw === "string" && raw.startsWith("\\x")) {
+      const hex = raw.slice(2);
+      const out = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+      return out;
+    }
+    return null;
+  }
+
+  async remove(storageKey: string, ownerId: string): Promise<void> {
+    await this.sql(`DELETE FROM artifact_blobs WHERE storage_key = $1 AND owner_id = $2`, [storageKey, ownerId]);
+  }
+}

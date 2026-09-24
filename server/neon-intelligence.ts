@@ -29,6 +29,11 @@ export function resetIntelligenceClient(): void {
   _sql = null;
 }
 
+/** Shared query client for sibling server modules (storage fallback). */
+export function intelSql(): (query: string, params?: unknown[]) => Promise<unknown[]> {
+  return client();
+}
+
 async function ownedAnalysisId(ownerId: string, analysisId: string): Promise<boolean> {
   const sql = client();
   const rows = (await sql("SELECT id FROM analysis_projects WHERE owner_id = $1 AND id = $2", [ownerId, analysisId])) as Array<{ id: string }>;

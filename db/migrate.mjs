@@ -85,6 +85,7 @@ async function run() {
     "intelligence_reports",
     "intelligence_jobs",
     "intelligence_job_events",
+    "artifact_blobs",
   ];
 
   const rows = await sql`

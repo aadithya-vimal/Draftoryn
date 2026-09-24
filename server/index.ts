@@ -58,7 +58,8 @@ import {
   sniffBytes,
 } from "../src/intelligence/ingestion/identify";
 import { sanitizeFilename } from "../src/intelligence/utils";
-import { defaultStorageProvider } from "../src/intelligence/storage/index";
+import { defaultStorageProvider, NeonBlobProvider, R2StorageProvider } from "../src/intelligence/storage/index";
+import { intelSql } from "./neon-intelligence";
 import { buildReport } from "../src/intelligence/reporting/synthesize";
 import type { ConfirmedFinding } from "../src/intelligence/schemas/index";
 import {
@@ -577,7 +578,24 @@ const uploadLimiter = new RateLimiter(60_000, 30);
 
 let _storage: ReturnType<typeof defaultStorageProvider> | null = null;
 function storage(): ReturnType<typeof defaultStorageProvider> {
-  if (!_storage) _storage = defaultStorageProvider();
+  if (_storage) return _storage;
+  // Durability chain: R2 (configured) → Neon BYTEA (DATABASE_URL) → memory.
+  // Memory is per-isolate best-effort; Neon/R2 survive restarts and refresh.
+  const r2 = new R2StorageProvider();
+  if (r2.configured()) {
+    _storage = r2;
+    return _storage;
+  }
+  if (process.env.DATABASE_URL) {
+    try {
+      const sql = intelSql();
+      _storage = new NeonBlobProvider(sql);
+      return _storage;
+    } catch {
+      // Fall through to memory when the database is unreachable.
+    }
+  }
+  _storage = defaultStorageProvider();
   return _storage;
 }
 

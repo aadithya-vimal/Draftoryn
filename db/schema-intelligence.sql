@@ -189,3 +189,15 @@ CREATE TABLE IF NOT EXISTS intelligence_job_events (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_job_events_job ON intelligence_job_events (job_id, created_at ASC);
+
+-- Durable small-blob fallback when R2 is unconfigured. Owner-scoped BYTEA
+-- side table (NOT a JSONB document field); 10 MB per-file cap applies.
+CREATE TABLE IF NOT EXISTS artifact_blobs (
+  storage_key TEXT PRIMARY KEY,
+  owner_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  bytes       BYTEA NOT NULL,
+  media_type  TEXT NOT NULL DEFAULT 'application/octet-stream',
+  size_bytes  INTEGER NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_blobs_owner ON artifact_blobs (owner_id);

@@ -22,9 +22,11 @@ Uploads are HIGH-SENSITIVITY DATA (credentials, tokens, PII, infra detail).
 
 ## Storage
 
-- `StorageProvider` abstraction: `LocalStorageProvider` (dev) and
-  `R2StorageProvider` (S3-compatible SigV4 over fetch; keys server-side
-  only). Neon holds metadata/references, never blobs.
+- `StorageProvider` abstraction with a durability chain: R2 when
+  `R2_*` env is configured → Neon `artifact_blobs` BYTEA side table when
+  `DATABASE_URL` is set → in-memory (per-isolate best-effort) otherwise.
+  Neon holds metadata/references plus the BYTEA fallback — never blobs
+  inside JSONB document fields, never public buckets.
 - Deleting an analysis removes blobs (best-effort) then cascades rows.
 
 ## AI & secrets
