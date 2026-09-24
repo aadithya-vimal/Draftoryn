@@ -35,14 +35,17 @@ import {
   createJobRow,
   deleteAnalysis,
   getAnalysis,
+  getArtifactRow,
   getCandidateRow,
   getJobRow,
   insertArtifactRow,
+  insertEvidenceRow,
   listAnalyses,
   listArtifactRows,
   listCandidateRows,
   listConfirmedRows,
   listConflictRows,
+  listEvidenceDetail,
   listEvidenceRows,
   listReports,
   saveAnalysisGraph,
@@ -61,6 +64,8 @@ import { sanitizeFilename } from "../src/intelligence/utils";
 import { defaultStorageProvider, NeonBlobProvider, R2StorageProvider } from "../src/intelligence/storage/index";
 import { intelSql } from "./neon-intelligence";
 import { buildReport } from "../src/intelligence/reporting/synthesize";
+import { describeImage, supportsVision } from "../src/intelligence/ai/vision";
+import { assistFinding, draftExecutiveSummary } from "../src/intelligence/ai/assist";
 import type { ConfirmedFinding } from "../src/intelligence/schemas/index";
 import {
   MAX_GENERATE_JSON_BYTES,
@@ -997,6 +1002,7 @@ app.post("/api/analyses/:id/reports", async (c) => {
         assessmentName: typeof engagement["assessmentName"] === "string" ? engagement["assessmentName"] : undefined,
         scope: Array.isArray(engagement["scope"]) ? (engagement["scope"] as string[]) : undefined,
         methodology: Array.isArray(engagement["methodology"]) ? (engagement["methodology"] as string[]) : undefined,
+        executiveNotes: typeof engagement["executiveNotes"] === "string" ? (engagement["executiveNotes"] as string).slice(0, 8000) : undefined,
       },
       body.view ?? "full",
       analysis.report_type,
@@ -1035,6 +1041,152 @@ app.get("/api/jobs/:jobId", async (c) => {
     return c.json(job);
   } catch (e) {
     return sendError(c, e, "GET /api/jobs/:jobId");
+  }
+});
+
+const aiCredsSchema = z
+  .object({
+    provider: z.enum(["openai", "anthropic", "groq", "gemini"]).optional(),
+    model: z.string().regex(/^[A-Za-z0-9._:-]{1,100}$/).optional(),
+    apiKey: z.string().max(2000).optional(),
+  })
+  .strict();
+
+function resolveAiCreds(body: { provider?: string; model?: string; apiKey?: string }): {
+  provider: "openai" | "anthropic" | "groq" | "gemini";
+  model: string;
+  apiKey: string;
+} {
+  const provider = (body.provider ?? "openai") as "openai" | "anthropic" | "groq" | "gemini";
+  const { apiKey } = resolveProviderKey(provider, body.apiKey);
+  if (!apiKey) {
+    throw new Error(`No API key for "${provider}". Supply one or configure it server-side.`);
+  }
+  return { provider, model: (body.model ?? "").trim(), apiKey };
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 8192) {
+    bin += String.fromCharCode(...bytes.slice(i, i + 8192));
+  }
+  return (globalThis as unknown as { btoa: (s: string) => string }).btoa(bin);
+}
+
+app.post("/api/analyses/:id/artifacts/:aid/describe", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    checkUserRateLimit(analysisLimiter, "vision", auth.userId);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const aid = parseIdParam(c.req.param("aid"), "artifact id");
+    const body = parseBody(aiCredsSchema, await readJsonBody(c), "AI credentials");
+    const creds = resolveAiCreds(body);
+    if (!supportsVision(creds.provider)) {
+      return c.json({ error: `Vision is not supported for provider "${creds.provider}".` }, 400);
+    }
+
+    const artifact = await getArtifactRow(auth.userId, id, aid);
+    if (!artifact || !artifact["storage_key"]) return c.json({ error: "Artifact not found" }, 404);
+    const mediaType = String(artifact["media_type"] ?? "");
+    const bytes = await storage().get(String(artifact["storage_key"]), auth.userId);
+    if (!bytes) return c.json({ error: "Artifact bytes unavailable." }, 404);
+    const sniffed = sniffBytes(bytes.slice(0, 64));
+    const isImage = mediaType.startsWith("image/") || !!sniffed?.mediaType.startsWith("image/");
+    if (!isImage) return c.json({ error: "AI Describe applies to image evidence only." }, 400);
+    if (bytes.length > 5 * 1024 * 1024) return c.json({ error: "Image exceeds the 5 MB vision limit." }, 413);
+
+    const model = creds.model || (creds.provider === "anthropic" ? "claude-3-5-sonnet-20241022" : creds.provider === "gemini" ? "gemini-1.5-flash" : "gpt-4o-mini");
+    const vision = await describeImage({
+      provider: creds.provider,
+      model,
+      apiKey: creds.apiKey,
+      imageBase64: bytesToBase64(bytes),
+      mediaType: mediaType.startsWith("image/") ? mediaType : "image/png",
+      evidenceId: String(artifact["id"]),
+      filename: String(artifact["filename"] ?? "image"),
+    });
+    const saved = await insertEvidenceRow(auth.userId, id, {
+      artifactId: String(artifact["id"]),
+      location: "image#ai-vision",
+      type: "screenshot",
+      title: `AI vision description: ${String(artifact["filename"] ?? "image")}`,
+      content: `AI-OBSERVED (verify before citing): ${vision.description}\nVisible text: ${vision.visibleText || "(none transcribed)"}`,
+      confidence: vision.confidence,
+      level: "L2_derived",
+    });
+    return c.json({ ...vision, evidenceId: saved.id });
+  } catch (e) {
+    return sendError(c, e, "POST /api/analyses/:id/artifacts/:aid/describe");
+  }
+});
+
+app.post("/api/analyses/:id/findings/:fid/assist", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    checkUserRateLimit(analysisLimiter, "assist", auth.userId);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const fid = parseIdParam(c.req.param("fid"), "finding id");
+    const body = parseBody(aiCredsSchema, await readJsonBody(c), "AI credentials");
+    const creds = resolveAiCreds(body);
+
+    const row = await getCandidateRow(auth.userId, id, fid);
+    if (!row) return c.json({ error: "Finding not found" }, 404);
+    const evidenceIds = JSON.parse(String(row["evidence_ids"] ?? "[]")) as string[];
+    const detail = await listEvidenceDetail(auth.userId, id, evidenceIds);
+    const graph = {
+      analysisId: id,
+      candidates: [
+        {
+          id: String(row["id"]),
+          title: String(row["title"] ?? ""),
+          severity: row["severity"],
+          severityBasis: String(row["severity_basis"] ?? ""),
+          affectedAssets: JSON.parse(String(row["affected_assets"] ?? "[]")) as string[],
+          evidenceIds,
+        },
+      ],
+      evidence: detail.map((e) => ({ id: e.id, content: e.content })),
+    };
+    const draft = await assistFinding(graph as never, fid, {
+      provider: creds.provider,
+      model: creds.model || "gpt-4o-mini",
+      apiKey: creds.apiKey,
+    });
+    // Drafts are returned for human approval — never saved or confirmed here.
+    return c.json({ draft });
+  } catch (e) {
+    return sendError(c, e, "POST /api/analyses/:id/findings/:fid/assist");
+  }
+});
+
+app.post("/api/analyses/:id/summary-draft", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    checkUserRateLimit(analysisLimiter, "summary", auth.userId);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const analysis = await getAnalysis(auth.userId, id);
+    if (!analysis) return c.json({ error: "Analysis not found" }, 404);
+    const body = parseBody(aiCredsSchema, await readJsonBody(c), "AI credentials");
+    const creds = resolveAiCreds(body);
+
+    const artifacts = await listArtifactRows(auth.userId, id);
+    const candidates = (await listCandidateRows(auth.userId, id)) as Array<Record<string, unknown>>;
+    const conflicts = await listConflictRows(auth.userId, id);
+    const graph = {
+      analysisId: id,
+      artifacts: artifacts.map((a) => ({ classification: { label: a.artifact_type } })),
+      assets: [],
+      candidates: candidates.map((r) => ({ id: String(r["id"]), severity: String(r["severity"]), title: String(r["title"]) })),
+      conflicts: conflicts.map((r) => ({ resolution: String((r as Record<string, unknown>)["resolution"]) })),
+    };
+    const summary = await draftExecutiveSummary(graph as never, {
+      provider: creds.provider,
+      model: creds.model || "gpt-4o-mini",
+      apiKey: creds.apiKey,
+    });
+    return c.json({ summary });
+  } catch (e) {
+    return sendError(c, e, "POST /api/analyses/:id/summary-draft");
   }
 });
 

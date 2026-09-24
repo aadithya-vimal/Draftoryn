@@ -153,3 +153,43 @@ export async function generateReport(
 ): Promise<{ id: string; version: number; report: Record<string, unknown> }> {
   return clientHttp(`/api/analyses/${enc(analysisId)}/reports`, { method: "POST", body: JSON.stringify(input) }, user);
 }
+
+export interface AiCreds {
+  provider?: string;
+  model?: string;
+  apiKey?: string;
+}
+
+export async function describeArtifact(
+  user: AppUser,
+  analysisId: string,
+  artifactId: string,
+  creds: AiCreds,
+): Promise<{ description: string; visibleText: string; confidence: string; evidenceId: string }> {
+  return clientHttp(
+    `/api/analyses/${enc(analysisId)}/artifacts/${enc(artifactId)}/describe`,
+    { method: "POST", body: JSON.stringify(creds) },
+    user,
+  );
+}
+
+export async function assistFindingRemote(
+  user: AppUser,
+  analysisId: string,
+  findingId: string,
+  creds: AiCreds,
+): Promise<{ draft: Record<string, unknown> }> {
+  return clientHttp(
+    `/api/analyses/${enc(analysisId)}/findings/${enc(findingId)}/assist`,
+    { method: "POST", body: JSON.stringify(creds) },
+    user,
+  );
+}
+
+export async function summaryDraftRemote(
+  user: AppUser,
+  analysisId: string,
+  creds: AiCreds,
+): Promise<{ summary: string }> {
+  return clientHttp(`/api/analyses/${enc(analysisId)}/summary-draft`, { method: "POST", body: JSON.stringify(creds) }, user);
+}

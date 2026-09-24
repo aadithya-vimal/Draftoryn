@@ -116,6 +116,24 @@ vi.mock("../server/neon-intelligence", () => ({
     }
   }),
   getJobRow: vi.fn(async (ownerId: string, jobId: string) => store.jobs.get(`${ownerId}:${jobId}`) ?? null),
+  getArtifactRow: vi.fn(async (ownerId: string, analysisId: string, aid: string) =>
+    (store.artifacts.get(`${ownerId}:${analysisId}`) ?? []).find((a) => a["id"] === aid) ?? null,
+  ),
+  insertEvidenceRow: vi.fn(async () => ({ id: nid("ev") })),
+  listEvidenceDetail: vi.fn(async () => [{ id: "ev_1", title: "t", content: "c", location: "l" }]),
+}));
+
+vi.mock("../src/intelligence/ai/assist", () => ({
+  assistFinding: vi.fn(async () => ({
+    title: "Draft", severity: "high", description: "d", impact: "i",
+    evidenceIds: ["ev_1"], reproduction: [], remediation: ["fix"],
+    references: [], confidence: "high", verificationState: "needs-review",
+  })),
+  draftExecutiveSummary: vi.fn(async () => "Draft executive summary."),
+}));
+vi.mock("../src/intelligence/ai/vision", () => ({
+  supportsVision: (p: string) => p !== "groq",
+  describeImage: vi.fn(async () => ({ description: "A login form.", visibleText: "Sign in", confidence: "high" })),
 }));
 
 import { verifyToken } from "@clerk/backend";
@@ -213,6 +231,41 @@ describe("intelligence API", () => {
     expect(rep.status).toBe(200);
     const repBody = (await rep.json()) as { version: number };
     expect(repBody.version).toBe(1);
+  });
+
+  it("describes image evidence and assists findings without auto-confirming", async () => {
+    const created = (await (await api("/api/analyses", { method: "POST", body: { name: "Vision" } })).json()) as { id: string };
+    // Non-image artifacts are rejected for vision.
+    const txt = await api(`/api/analyses/${created.id}/artifacts`, { method: "POST", body: { filename: "n.txt", mediaType: "text/plain", content: "hello" } });
+    const txtId = ((await txt.json()) as { id: string }).id;
+    const notImg = await api(`/api/analyses/${created.id}/artifacts/${txtId}/describe`, { method: "POST", body: { provider: "openai", apiKey: "k" } });
+    expect(notImg.status).toBe(400);
+
+    // Image artifact → vision draft + saved evidence row.
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]).toString("base64");
+    const img = await api(`/api/analyses/${created.id}/artifacts`, { method: "POST", body: { filename: "shot.png", mediaType: "image/png", content: png, encoding: "base64" } });
+    expect(img.status).toBe(200);
+    const imgId = ((await img.json()) as { id: string }).id;
+    const desc = await api(`/api/analyses/${created.id}/artifacts/${imgId}/describe`, { method: "POST", body: { provider: "openai", apiKey: "k" } });
+    expect(desc.status).toBe(200);
+    expect(((await desc.json()) as { description: string }).description).toContain("login");
+
+    // groq has no vision support → clean 400.
+    const groq = await api(`/api/analyses/${created.id}/artifacts/${imgId}/describe`, { method: "POST", body: { provider: "groq", apiKey: "k" } });
+    expect(groq.status).toBe(400);
+
+    // Assist returns a draft for human approval (scenario: zap finding).
+    const zap = await api(`/api/analyses/${created.id}/artifacts`, { method: "POST", body: { filename: "z.json", mediaType: "application/json", content: JSON.stringify({ site: [{ "@name": "https://h.example.com", alerts: [{ alert: "IDOR", riskdesc: "High", url: "https://h.example.com/u/1" }] }] }) } });
+    expect(zap.status).toBe(200);
+    await api(`/api/analyses/${created.id}/run`, { method: "POST" });
+    const findings = (await (await api(`/api/analyses/${created.id}/findings`)).json()) as { candidates: Array<{ id: string }> };
+    const assist = await api(`/api/analyses/${created.id}/findings/${findings.candidates[0]!.id}/assist`, { method: "POST", body: { provider: "openai", apiKey: "k" } });
+    expect(assist.status).toBe(200);
+    expect(((await assist.json()) as { draft: { evidenceIds: string[] } }).draft.evidenceIds).toEqual(["ev_1"]);
+
+    const sum = await api(`/api/analyses/${created.id}/summary-draft`, { method: "POST", body: { provider: "openai", apiKey: "k" } });
+    expect(sum.status).toBe(200);
+    expect(((await sum.json()) as { summary: string }).summary).toContain("Draft");
   });
 
   it("fails closed with safe errors when running without artifacts", async () => {

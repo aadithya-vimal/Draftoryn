@@ -14,7 +14,10 @@ import type { ExportFormat } from "../../src/engine/types";
 import {
   createAnalysis,
   deleteAnalysis,
+  describeArtifact,
   findingAction,
+  assistFindingRemote,
+  summaryDraftRemote,
   generateReport,
   getJob,
   listAnalyses,
@@ -87,9 +90,16 @@ export default function AnalyzePage() {
   // Report-builder state
   const [client, setClient] = useState("");
   const [assessmentName, setAssessmentName] = useState("");
+  const [execNotes, setExecNotes] = useState("");
   const [view, setView] = useState("full");
   const [reportDoc, setReportDoc] = useState<Record<string, unknown> | null>(null);
   const [qualityFailures, setQualityFailures] = useState<string[]>([]);
+
+  // Session-only AI credentials (never stored).
+  const [aiProvider, setAiProvider] = useState("openai");
+  const [aiModel, setAiModel] = useState("");
+  const [aiKey, setAiKey] = useState("");
+  const [visionResult, setVisionResult] = useState<Record<string, string> | null>(null);
 
   // Paste-upload state (native + large files)
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -317,7 +327,7 @@ export default function AnalyzePage() {
     try {
       const res = await generateReport(user, selectedId, {
         view,
-        engagement: { client: client.trim() || undefined, assessmentName: assessmentName.trim() || undefined },
+        engagement: { client: client.trim() || undefined, assessmentName: assessmentName.trim() || undefined, executiveNotes: execNotes.trim() || undefined },
       });
       const doc = res.report as Record<string, unknown>;
       setReportDoc(doc);
@@ -383,6 +393,56 @@ export default function AnalyzePage() {
     }
   };
 
+  const aiCreds = () => ({
+    provider: aiProvider || undefined,
+    model: aiModel.trim() || undefined,
+    apiKey: aiKey.trim() || undefined,
+  });
+
+  const handleDescribe = async (artifactId: string) => {
+    if (!selectedId) return;
+    setBusy(true);
+    setVisionResult(null);
+    try {
+      const res = await describeArtifact(user, selectedId, artifactId, aiCreds());
+      setVisionResult({ description: res.description, visibleText: res.visibleText, confidence: res.confidence });
+      await reloadDetail();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI Describe failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAssist = async (fid: string) => {
+    if (!selectedId) return;
+    setBusy(true);
+    try {
+      const res = await assistFindingRemote(user, selectedId, fid, aiCreds());
+      const d = res.draft as Record<string, unknown>;
+      if (typeof d["impact"] === "string") setImpact(d["impact"]);
+      if (Array.isArray(d["remediation"])) setRemediation((d["remediation"] as string[]).join("\n"));
+      if (Array.isArray(d["reproduction"])) setRepro((d["reproduction"] as string[]).join("\n"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI Assist failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSummaryDraft = async () => {
+    if (!selectedId) return;
+    setBusy(true);
+    try {
+      const res = await summaryDraftRemote(user, selectedId, aiCreds());
+      setExecNotes(res.summary);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Summary draft failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const selected = analyses.find((a) => a.id === selectedId) ?? null;
 
   return (
@@ -395,6 +455,19 @@ export default function AnalyzePage() {
           then generates a client-ready report grounded only in your evidence.
         </Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <Card style={styles.card}>
+          <Text style={styles.cardTitle}>AI ASSIST — SESSION KEY ONLY (NEVER STORED)</Text>
+          <View style={styles.row}>
+            {(["openai", "anthropic", "gemini"] as const).map((p) => (
+              <Pressable key={p} onPress={() => setAiProvider(p)} style={[styles.viewChip, aiProvider === p && styles.viewChipActive]}>
+                <Text style={styles.viewChipText}>{p.toUpperCase()}</Text>
+              </Pressable>
+            ))}
+            <Input value={aiModel} onChangeText={setAiModel} placeholder="Model (optional)" style={styles.flex} />
+            <Input value={aiKey} onChangeText={setAiKey} placeholder="API key (or server key)" secure style={styles.flex} />
+          </View>
+        </Card>
 
         <View style={styles.columns}>
           <View style={styles.side}>
@@ -449,10 +522,22 @@ export default function AnalyzePage() {
                     {artifacts.map((a) => (
                       <View key={a.id} style={styles.artifactRow}>
                         <Text style={styles.artifactName}>{a.filename}</Text>
-                        <Badge tone={a.status === "parsed" ? "neutral" : "warn"}>{a.artifact_type} · {a.status}</Badge>
+                        <View style={styles.row}>
+                          <Badge tone={a.status === "parsed" ? "neutral" : "warn"}>{a.artifact_type} · {a.status}</Badge>
+                          {a.media_type.startsWith("image/") || a.artifact_type === "image" ? (
+                            <Button label="AI Describe" variant="secondary" onPress={() => handleDescribe(a.id)} />
+                          ) : null}
+                        </View>
                       </View>
                     ))}
                     {artifacts.length === 0 ? <Text style={styles.muted}>No artifacts yet.</Text> : null}
+                    {visionResult ? (
+                      <View style={styles.evBox}>
+                        <Text style={styles.qTitle}>AI VISION ({visionResult.confidence}) — VERIFY BEFORE CITING</Text>
+                        <Text style={styles.evLine}>{visionResult.description}</Text>
+                        {visionResult.visibleText ? <Text style={styles.evLine}>Text: {visionResult.visibleText}</Text> : null}
+                      </View>
+                    ) : null}
                   </View>
                 </Card>
 
@@ -533,6 +618,7 @@ export default function AnalyzePage() {
                           ) : null}
                           <View style={styles.actionRow}>
                             <Button label="Accept" variant="secondary" onPress={() => act(c.id, { action: "accept" })} />
+                            <Button label="AI Assist" variant="secondary" onPress={() => handleAssist(c.id)} />
                             <Button label="Confirm" onPress={() => handleConfirm(c.id)} />
                             <Button label="Reject" variant="secondary" onPress={() => act(c.id, { action: "reject" })} />
                             <Button label="Unverified" variant="secondary" onPress={() => act(c.id, { action: "unverified" })} />
@@ -571,6 +657,11 @@ export default function AnalyzePage() {
                     <View style={styles.row}>
                       <Input value={client} onChangeText={setClient} placeholder="Client / organization" style={styles.flex} />
                       <Input value={assessmentName} onChangeText={setAssessmentName} placeholder="Assessment name" style={styles.flex} />
+                    </View>
+                    <Text style={styles.label}>EXECUTIVE NOTES (analyst-approved; prepended to summary)</Text>
+                    <Input value={execNotes} onChangeText={setExecNotes} placeholder="Reviewed narrative…" multiline />
+                    <View style={styles.row}>
+                      <Button label="AI Draft Summary" variant="secondary" onPress={handleSummaryDraft} />
                     </View>
                     <View style={styles.row}>
                       {(["executive", "technical", "full"] as const).map((v) => (

@@ -32,6 +32,12 @@ const FINDING_OUTPUT_SCHEMA = JSON.stringify({
   },
 });
 
+export function getPrompt(name: string): TaskPrompt {
+  const p = PROMPTS[name];
+  if (!p) throw new Error(`Unknown AI task prompt: ${name}`);
+  return p;
+}
+
 export const PROMPTS: Record<string, TaskPrompt> = {
   finding_normalization: {
     task: "Normalize one finding candidate into a confirmed-finding draft using ONLY the supplied evidence.",

@@ -282,9 +282,44 @@ export async function listConfirmedRows(ownerId: string, analysisId: string): Pr
 
 export async function getCandidateRow(ownerId: string, analysisId: string, candidateId: string): Promise<Record<string, unknown> | null> {
   const sql = client();
-  if (!(await ownedAnalysisId(ownerId, analysisId))) return null;
   const rows = (await sql(`SELECT * FROM finding_candidates WHERE owner_id=$1 AND analysis_id=$2 AND id=$3`, [ownerId, analysisId, candidateId])) as Array<Record<string, unknown>>;
   return rows[0] ?? null;
+}
+
+export async function getArtifactRow(ownerId: string, analysisId: string, artifactId: string): Promise<Record<string, unknown> | null> {
+  const sql = client();
+  const rows = (await sql(`SELECT * FROM source_artifacts WHERE owner_id=$1 AND analysis_id=$2 AND id=$3`, [ownerId, analysisId, artifactId])) as Array<Record<string, unknown>>;
+  return rows[0] ?? null;
+}
+
+export async function insertEvidenceRow(
+  ownerId: string,
+  analysisId: string,
+  e: { artifactId: string; location: string; type: string; title: string; content: string; confidence: string; level: string },
+): Promise<{ id: string }> {
+  const sql = client();
+  if (!(await ownedAnalysisId(ownerId, analysisId))) throw new Error("Analysis not found.");
+  const id = newId("ev");
+  await sql(
+    `INSERT INTO evidence_items (id, analysis_id, owner_id, source_artifact_id, source_location, evidence_type, title, content, structured_data, confidence, sensitivity, redaction_state, evidence_level)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'{}',$9,'internal','original',$10)`,
+    [id, analysisId, ownerId, e.artifactId, e.location.slice(0, 500), e.type.slice(0, 40), e.title.slice(0, 300), e.content.slice(0, 20000), e.confidence.slice(0, 24), e.level.slice(0, 32)],
+  );
+  return { id };
+}
+
+/** Evidence with content for AI context selection (bounded, owner-scoped). */
+export async function listEvidenceDetail(ownerId: string, analysisId: string, ids: string[], maxChars = 3000): Promise<Array<{ id: string; title: string; content: string; location: string }>> {
+  const sql = client();
+  if (!(await ownedAnalysisId(ownerId, analysisId))) throw new Error("Analysis not found.");
+  if (ids.length === 0) return [];
+  const sliced = ids.slice(0, 50);
+  const placeholders = sliced.map((_, i) => `$${i + 3}`).join(",");
+  const rows = (await sql(
+    `SELECT id, title, content, source_location FROM evidence_items WHERE owner_id=$1 AND analysis_id=$2 AND id IN (${placeholders})`,
+    [ownerId, analysisId, ...sliced],
+  )) as Array<{ id: string; title: string; content: string; source_location: string }>;
+  return rows.map((r) => ({ id: r.id, title: r.title, content: String(r.content ?? "").slice(0, maxChars), location: r.source_location }));
 }
 
 export async function createJobRow(ownerId: string, analysisId: string | null, kind: string): Promise<{ id: string; status: string }> {

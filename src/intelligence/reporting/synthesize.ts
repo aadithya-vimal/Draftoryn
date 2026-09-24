@@ -16,6 +16,8 @@ export interface EngagementAnswers {
   objectives?: string;
   limitations?: string[];
   testingWindow?: string;
+  /** Analyst-approved narrative prepended to the executive summary. */
+  executiveNotes?: string;
 }
 
 export function severityDistribution(findings: ConfirmedFinding[]): Record<string, number> {
@@ -75,6 +77,7 @@ export function buildReport(
     title: "Executive Summary",
     optional: false,
     body: [
+      ...(answers.executiveNotes ? [answers.executiveNotes] : []),
       `${findings.length} finding(s) confirmed from ${graph.evidence.length} evidence records across ${graph.artifacts.length} artifact(s).`,
       `Severity distribution: ${Object.entries(dist).filter(([, n]) => n > 0).map(([s, n]) => `${s} ${n}`).join(", ") || "none"}.`,
       ...(answers.objectives ? [`Objective: ${answers.objectives}`] : []),
