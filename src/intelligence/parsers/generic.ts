@@ -25,7 +25,7 @@ function chunkText(text: string, loc: string, kind: RawEvidence["evidenceType"])
   return out;
 }
 
-function scopeStatements(text: string): RawEvidence[] {
+export function scopeStatements(text: string): RawEvidence[] {
   const lines = text.split("\n");
   const out: RawEvidence[] = [];
   lines.forEach((line, i) => {

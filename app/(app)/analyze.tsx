@@ -169,18 +169,40 @@ export default function AnalyzePage() {
     }
   };
 
-  const uploadText = async (filename: string, content: string) => {
+  const uploadText = async (filename: string, content: string, encoding: "text" | "base64" = "text", mediaType = "text/plain") => {
     if (!selectedId || !content) return;
     setBusy(true);
     setError(null);
     try {
-      await uploadArtifact(user, selectedId, { filename, mediaType: "text/plain", content });
+      await uploadArtifact(user, selectedId, { filename, mediaType, content, encoding });
       await reloadDetail();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed.");
     } finally {
       setBusy(false);
     }
+  };
+
+  const TEXT_EXT = ["txt", "md", "log", "csv", "json", "jsonl", "xml", "yaml", "yml", "nessus"];
+
+  const uploadBrowserFile = async (name: string, buf: ArrayBuffer) => {
+    const ext = name.toLowerCase().split(".").pop() ?? "";
+    if (TEXT_EXT.includes(ext)) {
+      await uploadText(name, new TextDecoder().decode(buf), "text", "text/plain");
+      return;
+    }
+    const bytes = new Uint8Array(buf);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 8192) {
+      bin += String.fromCharCode(...bytes.slice(i, i + 8192));
+    }
+    const btoaFn = (globalThis as unknown as { btoa?: (s: string) => string }).btoa;
+    if (!btoaFn) {
+      setError("Binary upload is not supported in this environment.");
+      return;
+    }
+    const media = ext === "pdf" ? "application/pdf" : ext === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "application/octet-stream";
+    await uploadText(name, btoaFn(bin), "base64", media);
   };
 
   const pickFilesWeb = () => {
@@ -200,8 +222,7 @@ export default function AnalyzePage() {
       const files = Array.from(el.files ?? []);
       void (async () => {
         for (const f of files.slice(0, 12)) {
-          const text = await f.text();
-          await uploadText(f.name, text);
+          await uploadBrowserFile(f.name, await f.arrayBuffer());
         }
       })();
     };
@@ -220,7 +241,7 @@ export default function AnalyzePage() {
       if (!files) return;
       void (async () => {
         for (const f of Array.from(files).slice(0, 12)) {
-          await uploadText(f.name, await f.text());
+          await uploadBrowserFile(f.name, await f.arrayBuffer());
         }
       })();
     };

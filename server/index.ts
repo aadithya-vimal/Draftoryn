@@ -51,7 +51,7 @@ import {
   updateCandidate,
   updateJobRow,
 } from "./neon-intelligence";
-import { analyzeArtifacts, sha256Hex } from "../src/intelligence/analysis/index";
+import { analyzeArtifacts, sha256HexBytes } from "../src/intelligence/analysis/index";
 import {
   MAX_FILE_BYTES,
   MAX_TEXT_CHARS,
@@ -594,9 +594,18 @@ const artifactUploadSchema = z
   .object({
     filename: z.string().min(1).max(255),
     mediaType: z.string().min(1).max(127),
-    content: z.string().max(MAX_TEXT_CHARS),
+    content: z.string().max(10 * 1024 * 1024),
+    encoding: z.enum(["text", "base64"]).optional(),
   })
   .strict();
+
+function decodeBase64Bytes(b64: string): Uint8Array {
+  if (!/^[A-Za-z0-9+/=\s]*$/.test(b64)) throw new Error("Invalid base64 content.");
+  const bin = (globalThis as unknown as { atob: (s: string) => string }).atob(b64.replace(/\s+/g, ""));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
 
 app.post("/api/analyses", async (c) => {
   try {
@@ -668,11 +677,16 @@ app.post("/api/analyses/:id/artifacts", async (c) => {
 
     const safeName = sanitizeFilename(body.filename);
     if (body.content.length === 0) return c.json({ error: "Empty artifact." }, 400);
-    const bytes = new TextEncoder().encode(body.content);
+    const encoding = body.encoding ?? "text";
+    const bytes = encoding === "base64" ? decodeBase64Bytes(body.content) : new TextEncoder().encode(body.content);
     if (bytes.length > MAX_FILE_BYTES) return c.json({ error: "Artifact exceeds the per-file size limit." }, 413);
-    const checksum = await sha256Hex(body.content);
+    if (encoding === "text" && body.content.length > MAX_TEXT_CHARS) {
+      return c.json({ error: "Text artifact exceeds the text size limit." }, 413);
+    }
+    const checksum = await sha256HexBytes(bytes);
     const sniffed = sniffBytes(bytes.slice(0, 64));
-    if (sniffed?.archive) return c.json({ error: "Archives are not accepted; submit extracted files." }, 415);
+    const isDocx = safeName.toLowerCase().endsWith(".docx");
+    if (sniffed?.archive && !isDocx) return c.json({ error: "Archives are not accepted; submit extracted files." }, 415);
 
     const stored = await storage().put(auth.userId, id, safeName, bytes, body.mediaType, checksum);
     const row = await insertArtifactRow(auth.userId, id, {
@@ -711,17 +725,20 @@ app.post("/api/analyses/:id/run", async (c) => {
       await updateJobRow(auth.userId, job.id, "parsing");
       const rows = await listArtifactRows(auth.userId, id);
       if (rows.length === 0) throw new Error("No artifacts uploaded for this analysis.");
-      const files: Array<{ filename: string; mediaType: string; text: string; size: number; checksum: string }> = [];
+      const files: Array<{ filename: string; mediaType: string; text: string; size: number; checksum: string; bytes?: Uint8Array }> = [];
       for (const r of rows) {
         if (!r.storage_key) continue;
         const bytes = await storage().get(r.storage_key, auth.userId);
         if (!bytes) continue;
+        const sniffed = sniffBytes(bytes.slice(0, 64));
+        const binary = !!sniffed?.binary;
         files.push({
           filename: r.filename,
           mediaType: r.media_type,
-          text: new TextDecoder().decode(bytes),
+          text: binary ? "" : new TextDecoder().decode(bytes),
           size: r.size_bytes,
           checksum: r.checksum,
+          bytes,
         });
       }
       await updateJobRow(auth.userId, job.id, "analyzing");

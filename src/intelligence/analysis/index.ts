@@ -16,6 +16,18 @@ export interface AnalysisFile {
   text: string;
   size: number;
   checksum: string;
+  /** Raw bytes for binary artifacts (docx/pdf/image); text may be "". */
+  bytes?: Uint8Array;
+}
+
+export async function sha256HexBytes(bytes: Uint8Array): Promise<string> {
+  if (globalThis.crypto?.subtle) {
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes as unknown as ArrayBuffer);
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 4096) s += String.fromCharCode(...bytes.slice(i, i + 4096));
+  return cyrb53(s) + cyrb53(s, 7) + cyrb53(s, 13) + cyrb53(s, 29);
 }
 
 export async function sha256Hex(text: string): Promise<string> {
@@ -67,7 +79,7 @@ export function analyzeArtifacts(
       graph.summary.duplicateFiles++;
       continue;
     }
-    const input: ParserInput = { filename: f.filename, mediaType: f.mediaType, text: f.text, size: f.size };
+    const input: ParserInput = { filename: f.filename, mediaType: f.mediaType, text: f.text, size: f.size, bytes: f.bytes };
     const { result, parserId, parserVersion } = parseArtifact(input);
     const failed = result.classification.label === "Unparseable artifact";
     const norm = normalizeArtifact(analysisId, f.filename, checksum, f.mediaType, f.size, result, parserId, parserVersion, now);

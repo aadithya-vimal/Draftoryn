@@ -8,11 +8,14 @@ import { nucleiParser } from "./nuclei";
 import { zapParser } from "./zap";
 import { burpParser } from "./burp";
 import { sarifParser } from "./sarif";
+import { docxParser } from "./docx";
+import { pdfParser } from "./pdf";
+import { imageParser } from "./image";
 import { genericParser } from "./generic";
 
 export type { Parser, ParserInput, ParseResult };
 
-const PARSERS: Parser[] = [nmapParser, nessusParser, burpParser, zapParser, nucleiParser, sarifParser, genericParser];
+const PARSERS: Parser[] = [nmapParser, nessusParser, burpParser, zapParser, nucleiParser, sarifParser, docxParser, pdfParser, imageParser, genericParser];
 
 export function listParsers(): Array<{ id: string; version: string }> {
   return PARSERS.map((p) => ({ id: p.id, version: p.version }));

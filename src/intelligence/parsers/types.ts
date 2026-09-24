@@ -9,6 +9,8 @@ export interface ParserInput {
   mediaType: string;
   text: string;
   size: number;
+  /** Raw bytes when available (required for docx/pdf/image; text may be ""). */
+  bytes?: Uint8Array;
 }
 
 export interface RawEvidence {

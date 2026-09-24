@@ -105,7 +105,7 @@ export async function listArtifacts(user: AppUser, analysisId: string): Promise<
 export async function uploadArtifact(
   user: AppUser,
   analysisId: string,
-  input: { filename: string; mediaType: string; content: string },
+  input: { filename: string; mediaType: string; content: string; encoding?: "text" | "base64" },
 ): Promise<{ id: string; duplicate: boolean; checksum: string }> {
   return clientHttp(`/api/analyses/${enc(analysisId)}/artifacts`, { method: "POST", body: JSON.stringify(input) }, user);
 }
