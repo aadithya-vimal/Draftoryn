@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<nmaprun scanner="nmap" args="nmap -sV -oX scan.xml 192.0.2.0/30" start="1720000000" version="7.94">
+<host><status state="up" reason="arp-response"/>
+<address addr="192.0.2.10" addrtype="ipv4"/>
+<hostnames><hostname name="api.example.com" type="PTR"/></hostnames>
+<ports>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack"/><service name="https" product="nginx" version="1.24.0" method="probed"/></port>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack"/><service name="ssh" product="OpenSSH" version="9.3" method="probed"/></port>
+<port protocol="tcp" portid="80"><state state="closed" reason="reset"/><service name="http" method="table"/></port>
+</ports>
+<os><osmatch name="Linux 5.X" accuracy="95"/></os>
+</host>
+<host><status state="up" reason="arp-response"/>
+<address addr="192.0.2.11" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="5432"><state state="open" reason="syn-ack"/><service name="postgresql" product="PostgreSQL DB" version="14.9" method="probed"/></port>
+</ports>
+</host>
+</nmaprun>

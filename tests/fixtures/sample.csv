@@ -1,0 +1,4 @@
+host,port,service,severity
+192.0.2.10,443,https,medium
+192.0.2.10,443,https,medium
+192.0.2.11,5432,postgresql,high

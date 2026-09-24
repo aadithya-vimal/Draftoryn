@@ -23,6 +23,7 @@
   },
   "include": [
     "src/engine/**/*.ts",
+    "src/intelligence/**/*.ts",
     "src/lib/**/*.ts",
     "src/repository/**/*.ts",
     "server/**/*.ts",

@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<issues burpVersion="2024.1" exportTime="2026-01-01">
+<issue><name>Cross-origin resource sharing: arbitrary origin trusted</name><severity>Medium</severity><confidence>Firm</confidence><host>api.example.com</host><path>/api/data</path><detail>Burp detail text.</detail></issue>
+</issues>
