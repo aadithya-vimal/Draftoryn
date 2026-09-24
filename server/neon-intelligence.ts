@@ -258,7 +258,7 @@ export async function listCandidateRows(ownerId: string, analysisId: string): Pr
   const sql = client();
   if (!(await ownedAnalysisId(ownerId, analysisId))) throw new Error("Analysis not found.");
   return (await sql(
-    `SELECT id, title, severity, severity_basis, confidence, evidence_level, status, duplicate_of, cwe, taxonomy_mappings FROM finding_candidates WHERE owner_id=$1 AND analysis_id=$2 ORDER BY severity DESC, id ASC`,
+    `SELECT id, title, severity, severity_basis, confidence, evidence_level, status, duplicate_of, cwe, taxonomy_mappings, evidence_ids, affected_assets, description FROM finding_candidates WHERE owner_id=$1 AND analysis_id=$2 ORDER BY severity DESC, id ASC`,
     [ownerId, analysisId],
   )) as unknown[];
 }

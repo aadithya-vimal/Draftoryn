@@ -15,6 +15,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/(app)/home", label: "Home", icon: "Home" },
+  { href: "/(app)/analyze", label: "Analyze", icon: "Search" },
   { href: "/(app)/discover", label: "Catalog", icon: "Compass" },
   { href: "/(app)/library", label: "Library", icon: "Folder" },
   { href: "/(app)/settings", label: "Settings", icon: "Settings" },
