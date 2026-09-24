@@ -47,6 +47,17 @@ async function run() {
     await sql(stmt);
   }
 
+  // 1b. Intelligence schema (document intelligence platform tables).
+  const intelFile = join(here, "schema-intelligence.sql");
+  if (existsSync(intelFile)) {
+    const intelContent = readFileSync(intelFile, "utf8");
+    const intelStatements = splitStatements(intelContent);
+    console.log("[db:migrate] Applying intelligence schema (" + intelStatements.length + " statements)...");
+    for (const stmt of intelStatements) {
+      await sql(stmt);
+    }
+  }
+
   // 2. Track migration
   await sql`
     INSERT INTO _migrations (id, name, applied_at)
@@ -63,6 +74,17 @@ async function run() {
     "documents",
     "document_versions",
     "document_exports",
+    "analysis_projects",
+    "source_artifacts",
+    "evidence_items",
+    "analysis_assets",
+    "analysis_observations",
+    "finding_candidates",
+    "confirmed_findings",
+    "analysis_conflicts",
+    "intelligence_reports",
+    "intelligence_jobs",
+    "intelligence_job_events",
   ];
 
   const rows = await sql`

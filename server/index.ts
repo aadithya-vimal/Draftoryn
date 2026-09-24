@@ -7,6 +7,7 @@ if (typeof globalThis.process === "undefined") {
 
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { z } from "zod";
 
 import { verifyToken } from "@clerk/backend";
 import { runGeneration, resolveProviderKey } from "./generate";
@@ -29,6 +30,37 @@ import {
   logDocumentExport,
   listDocumentExports,
 } from "./neon";
+import {
+  createAnalysis,
+  createJobRow,
+  deleteAnalysis,
+  getAnalysis,
+  getCandidateRow,
+  getJobRow,
+  insertArtifactRow,
+  listAnalyses,
+  listArtifactRows,
+  listCandidateRows,
+  listConfirmedRows,
+  listConflictRows,
+  listEvidenceRows,
+  listReports,
+  saveAnalysisGraph,
+  saveConfirmedFinding,
+  saveReport,
+  updateCandidate,
+  updateJobRow,
+} from "./neon-intelligence";
+import { analyzeArtifacts, sha256Hex } from "../src/intelligence/analysis/index";
+import {
+  MAX_FILE_BYTES,
+  MAX_TEXT_CHARS,
+  sniffBytes,
+} from "../src/intelligence/ingestion/identify";
+import { sanitizeFilename } from "../src/intelligence/utils";
+import { defaultStorageProvider } from "../src/intelligence/storage/index";
+import { buildReport } from "../src/intelligence/reporting/synthesize";
+import type { ConfirmedFinding } from "../src/intelligence/schemas/index";
 import {
   MAX_GENERATE_JSON_BYTES,
   RateLimiter,
@@ -534,6 +566,440 @@ app.get("/api/documents/:id/exports", async (c) => {
     return c.json(exportsList);
   } catch (e) {
     return sendError(c, e, "GET /api/documents/:id/exports");
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Document Intelligence Endpoints (analyses, artifacts, findings, reports)
+// ---------------------------------------------------------------------------
+const analysisLimiter = new RateLimiter(60_000, 20);
+const uploadLimiter = new RateLimiter(60_000, 30);
+
+let _storage: ReturnType<typeof defaultStorageProvider> | null = null;
+function storage(): ReturnType<typeof defaultStorageProvider> {
+  if (!_storage) _storage = defaultStorageProvider();
+  return _storage;
+}
+
+const analysisCreateSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    reportType: z.string().max(80).optional(),
+    workspaceId: z.string().max(120).optional(),
+    engagement: z.record(z.unknown()).optional(),
+  })
+  .strict();
+
+const artifactUploadSchema = z
+  .object({
+    filename: z.string().min(1).max(255),
+    mediaType: z.string().min(1).max(127),
+    content: z.string().max(MAX_TEXT_CHARS),
+  })
+  .strict();
+
+app.post("/api/analyses", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    checkUserRateLimit(writeLimiter, "analysis", auth.userId);
+    const body = parseBody(analysisCreateSchema, await readJsonBody(c), "analysis");
+    const row = await createAnalysis(auth.userId, {
+      name: body.name.trim(),
+      reportType: body.reportType,
+      workspaceId: body.workspaceId,
+      engagement: body.engagement as Record<string, unknown> | undefined,
+    });
+    return c.json(row);
+  } catch (e) {
+    return sendError(c, e, "POST /api/analyses");
+  }
+});
+
+app.get("/api/analyses", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    return c.json(await listAnalyses(auth.userId));
+  } catch (e) {
+    return sendError(c, e, "GET /api/analyses");
+  }
+});
+
+app.get("/api/analyses/:id", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const row = await getAnalysis(auth.userId, id);
+    if (!row) return c.json({ error: "Analysis not found" }, 404);
+    return c.json(row);
+  } catch (e) {
+    return sendError(c, e, "GET /api/analyses/:id");
+  }
+});
+
+app.delete("/api/analyses/:id", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const existing = await getAnalysis(auth.userId, id);
+    if (!existing) return c.json({ error: "Analysis not found" }, 404);
+    // Remove stored blobs (best-effort) before cascading row deletion.
+    for (const a of await listArtifactRows(auth.userId, id)) {
+      if (a.storage_key) {
+        try {
+          await storage().remove(a.storage_key, auth.userId);
+        } catch {
+          // Blob cleanup must not block analysis deletion.
+        }
+      }
+    }
+    await deleteAnalysis(auth.userId, id);
+    return c.json({ ok: true });
+  } catch (e) {
+    return sendError(c, e, "DELETE /api/analyses/:id");
+  }
+});
+
+app.post("/api/analyses/:id/artifacts", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    checkUserRateLimit(uploadLimiter, "artifact", auth.userId);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const body = parseBody(artifactUploadSchema, await readJsonBody(c, 4 * 1024 * 1024), "artifact");
+
+    const safeName = sanitizeFilename(body.filename);
+    if (body.content.length === 0) return c.json({ error: "Empty artifact." }, 400);
+    const bytes = new TextEncoder().encode(body.content);
+    if (bytes.length > MAX_FILE_BYTES) return c.json({ error: "Artifact exceeds the per-file size limit." }, 413);
+    const checksum = await sha256Hex(body.content);
+    const sniffed = sniffBytes(bytes.slice(0, 64));
+    if (sniffed?.archive) return c.json({ error: "Archives are not accepted; submit extracted files." }, 415);
+
+    const stored = await storage().put(auth.userId, id, safeName, bytes, body.mediaType, checksum);
+    const row = await insertArtifactRow(auth.userId, id, {
+      filename: safeName,
+      mediaType: sniffed && sniffed.binary && !body.mediaType.startsWith("text/") ? sniffed.mediaType : body.mediaType,
+      size: bytes.length,
+      checksum,
+      storageKey: stored.storageKey,
+    });
+    return c.json({ ...row, checksum, size: bytes.length });
+  } catch (e) {
+    return sendError(c, e, "POST /api/analyses/:id/artifacts");
+  }
+});
+
+app.get("/api/analyses/:id/artifacts", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    return c.json(await listArtifactRows(auth.userId, id));
+  } catch (e) {
+    return sendError(c, e, "GET /api/analyses/:id/artifacts");
+  }
+});
+
+app.post("/api/analyses/:id/run", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    checkUserRateLimit(analysisLimiter, "run", auth.userId);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const analysis = await getAnalysis(auth.userId, id);
+    if (!analysis) return c.json({ error: "Analysis not found" }, 404);
+
+    const job = await createJobRow(auth.userId, id, "analyze");
+    try {
+      await updateJobRow(auth.userId, job.id, "parsing");
+      const rows = await listArtifactRows(auth.userId, id);
+      if (rows.length === 0) throw new Error("No artifacts uploaded for this analysis.");
+      const files: Array<{ filename: string; mediaType: string; text: string; size: number; checksum: string }> = [];
+      for (const r of rows) {
+        if (!r.storage_key) continue;
+        const bytes = await storage().get(r.storage_key, auth.userId);
+        if (!bytes) continue;
+        files.push({
+          filename: r.filename,
+          mediaType: r.media_type,
+          text: new TextDecoder().decode(bytes),
+          size: r.size_bytes,
+          checksum: r.checksum,
+        });
+      }
+      await updateJobRow(auth.userId, job.id, "analyzing");
+      const graph = analyzeArtifacts(id, files, analysis.report_type);
+      await updateJobRow(auth.userId, job.id, "validating");
+      await saveAnalysisGraph(auth.userId, graph);
+      await updateJobRow(auth.userId, job.id, "completed");
+      return c.json({ jobId: job.id, summary: graph.summary });
+    } catch (runErr) {
+      await updateJobRow(auth.userId, job.id, "failed", runErr instanceof Error ? runErr.message : String(runErr));
+      throw runErr;
+    }
+  } catch (e) {
+    return sendError(c, e, "POST /api/analyses/:id/run");
+  }
+});
+
+app.get("/api/analyses/:id/evidence", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    return c.json(await listEvidenceRows(auth.userId, id));
+  } catch (e) {
+    return sendError(c, e, "GET /api/analyses/:id/evidence");
+  }
+});
+
+app.get("/api/analyses/:id/findings", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    return c.json({
+      candidates: await listCandidateRows(auth.userId, id),
+      confirmed: await listConfirmedRows(auth.userId, id),
+    });
+  } catch (e) {
+    return sendError(c, e, "GET /api/analyses/:id/findings");
+  }
+});
+
+app.get("/api/analyses/:id/conflicts", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    return c.json(await listConflictRows(auth.userId, id));
+  } catch (e) {
+    return sendError(c, e, "GET /api/analyses/:id/conflicts");
+  }
+});
+
+const findingActionSchema = z
+  .object({
+    action: z.enum(["accept", "reject", "unverified", "edit", "merge", "split", "confirm"]),
+    title: z.string().max(300).optional(),
+    description: z.string().max(10000).optional(),
+    severity: z.enum(["critical", "high", "medium", "low", "informational"]).optional(),
+    ids: z.array(z.string().max(80)).max(50).optional(),
+    primaryId: z.string().max(80).optional(),
+    parts: z.array(z.object({ title: z.string().max(300), evidenceIds: z.array(z.string().max(80)).max(500) })).max(20).optional(),
+    impact: z.string().max(5000).optional(),
+    remediation: z.array(z.string().max(2000)).max(50).optional(),
+    reproduction: z.array(z.string().max(2000)).max(50).optional(),
+    references: z.array(z.string().max(500)).max(50).optional(),
+    verificationState: z.enum(["confirmed", "unverified", "needs-review"]).optional(),
+  })
+  .strict();
+
+app.patch("/api/analyses/:id/findings/:fid", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    checkUserRateLimit(writeLimiter, "finding", auth.userId);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const fid = parseIdParam(c.req.param("fid"), "finding id");
+    const body = parseBody(findingActionSchema, await readJsonBody(c), "finding action");
+
+    switch (body.action) {
+      case "accept":
+        await updateCandidate(auth.userId, id, fid, { status: "accepted" });
+        break;
+      case "reject":
+        await updateCandidate(auth.userId, id, fid, { status: "rejected" });
+        break;
+      case "unverified":
+        await updateCandidate(auth.userId, id, fid, { status: "unverified" });
+        break;
+      case "edit":
+        await updateCandidate(auth.userId, id, fid, {
+          ...(body.title !== undefined ? { title: body.title } : {}),
+          ...(body.description !== undefined ? { description: body.description } : {}),
+          ...(body.severity !== undefined ? { severity: body.severity } : {}),
+        });
+        break;
+      case "merge": {
+        if (!body.ids || !body.primaryId) return c.json({ error: "Merge requires ids and primaryId." }, 400);
+        const primary = await getCandidateRow(auth.userId, id, body.primaryId);
+        if (!primary) return c.json({ error: "Finding not found" }, 404);
+        const primaryEvidence = new Set<string>(JSON.parse(String(primary["evidence_ids"] ?? "[]")) as string[]);
+        const primaryAssets = new Set<string>(JSON.parse(String(primary["affected_assets"] ?? "[]")) as string[]);
+        for (const otherId of body.ids) {
+          if (otherId === body.primaryId) continue;
+          const other = await getCandidateRow(auth.userId, id, otherId);
+          if (!other) continue;
+          for (const e of JSON.parse(String(other["evidence_ids"] ?? "[]")) as string[]) primaryEvidence.add(e);
+          for (const a of JSON.parse(String(other["affected_assets"] ?? "[]")) as string[]) primaryAssets.add(a);
+          await updateCandidate(auth.userId, id, otherId, { status: "merged", duplicateOf: body.primaryId });
+        }
+        // Source records preserved: union persisted on the primary.
+        await updateCandidate(auth.userId, id, body.primaryId, {
+          status: "accepted",
+          evidenceIds: [...primaryEvidence],
+          affectedAssets: [...primaryAssets],
+        });
+        break;
+      }
+      case "split": {
+        if (!body.parts || body.parts.length < 2) return c.json({ error: "Split requires at least two parts." }, 400);
+        await updateCandidate(auth.userId, id, fid, { status: "split" });
+        break;
+      }
+      case "confirm": {
+        if (!body.impact?.trim() || !body.remediation || body.remediation.length === 0) {
+          return c.json({ error: "Confirmation requires impact and at least one remediation step." }, 400);
+        }
+        const row = await getCandidateRow(auth.userId, id, fid);
+        if (!row) return c.json({ error: "Finding not found" }, 404);
+        const affected = JSON.parse(String(row["affected_assets"] ?? "[]")) as string[];
+        if (affected.length === 0) return c.json({ error: "Affected asset is required to confirm a finding." }, 400);
+        const evidence = JSON.parse(String(row["evidence_ids"] ?? "[]")) as string[];
+        const existing = await listConfirmedRows(auth.userId, id);
+        const reference = `F-${String(existing.length + 1).padStart(3, "0")}`;
+        const confirmed: ConfirmedFinding = {
+          id: fid.replace(/^fc_/, "f_"),
+          findingCandidateId: fid,
+          reference,
+          title: String(row["title"] ?? ""),
+          severity: (row["severity"] as ConfirmedFinding["severity"]) ?? "medium",
+          affectedAssets: affected,
+          description: String(row["description"] ?? ""),
+          impact: body.impact,
+          evidence,
+          reproduction: body.reproduction ?? [],
+          remediation: body.remediation,
+          references: body.references ?? [],
+          confidence: (row["confidence"] as ConfirmedFinding["confidence"]) ?? "medium",
+          verificationState: body.verificationState ?? "needs-review",
+          taxonomyMappings: JSON.parse(String((row["taxonomy_mappings"] as string) ?? "{}")) as ConfirmedFinding["taxonomyMappings"],
+        };
+        await saveConfirmedFinding(auth.userId, id, {
+          ...confirmed,
+          taxonomyMappings: confirmed.taxonomyMappings as unknown as Record<string, unknown>,
+        } as never);
+        await updateCandidate(auth.userId, id, fid, { status: "accepted" });
+        break;
+      }
+    }
+    return c.json({ ok: true });
+  } catch (e) {
+    return sendError(c, e, "PATCH /api/analyses/:id/findings/:fid");
+  }
+});
+
+const reportCreateSchema = z
+  .object({
+    view: z.enum(["executive", "technical", "full", "remediation", "retest"]).optional(),
+    engagement: z.record(z.unknown()).optional(),
+  })
+  .strict();
+
+app.post("/api/analyses/:id/reports", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    checkUserRateLimit(analysisLimiter, "report", auth.userId);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    const analysis = await getAnalysis(auth.userId, id);
+    if (!analysis) return c.json({ error: "Analysis not found" }, 404);
+    const body = parseBody(reportCreateSchema, await readJsonBody(c), "report request");
+
+    const confirmedRows = (await listConfirmedRows(auth.userId, id)) as Array<Record<string, unknown>>;
+    const evidenceRows = (await listEvidenceRows(auth.userId, id, 500)) as Array<Record<string, unknown>>;
+    const artifactRows = await listArtifactRows(auth.userId, id);
+    const findings: ConfirmedFinding[] = confirmedRows.map((r) => ({
+      id: String(r["id"]),
+      findingCandidateId: String(r["finding_candidate_id"]),
+      reference: String(r["reference"]),
+      title: String(r["title"]),
+      severity: r["severity"] as ConfirmedFinding["severity"],
+      affectedAssets: JSON.parse(String(r["affected_assets"] ?? "[]")) as string[],
+      description: String(r["description"] ?? ""),
+      impact: String(r["impact"] ?? ""),
+      evidence: JSON.parse(String(r["evidence"] ?? "[]")) as string[],
+      reproduction: JSON.parse(String(r["reproduction"] ?? "[]")) as string[],
+      remediation: JSON.parse(String(r["remediation"] ?? "[]")) as string[],
+      references: JSON.parse(String(r["refs"] ?? "[]")) as string[],
+      confidence: r["confidence"] as ConfirmedFinding["confidence"],
+      verificationState: r["verification_state"] as ConfirmedFinding["verificationState"],
+      taxonomyMappings: JSON.parse(String(r["taxonomy_mappings"] ?? "{}")) as ConfirmedFinding["taxonomyMappings"],
+    }));
+    const graph = {
+      analysisId: id,
+      createdAt: new Date().toISOString(),
+      artifacts: artifactRows.map((a) => ({
+        artifactId: a.id,
+        filename: a.filename,
+        artifactType: a.artifact_type,
+        parserId: a.parser,
+        parserVersion: "1.0.0",
+        classification: { label: a.artifact_type, confidence: 0.5, basis: "stored", reviewRecommended: true },
+        warnings: [],
+      })),
+      evidence: evidenceRows.map((e) => ({
+        id: String(e["id"]),
+        sourceArtifactId: String(e["source_artifact_id"]),
+        sourceLocation: String(e["source_location"] ?? ""),
+        evidenceType: e["evidence_type"],
+        title: String(e["title"] ?? ""),
+        content: "",
+        structuredData: {},
+        extractedAt: new Date().toISOString(),
+        confidence: e["confidence"],
+        sensitivity: "internal",
+        redactionState: "original",
+        evidenceLevel: e["evidence_level"],
+      })),
+      assets: [],
+      observations: [],
+      candidates: [],
+      conflicts: [],
+      completeness: [],
+      summary: { filesAnalyzed: 0, filesFailed: 0, duplicateFiles: 0, assetsIdentified: 0, observationsExtracted: 0, candidatesProposed: 0, duplicatesMerged: 0, conflictsOpen: 0, missingItems: 0, standardsMapped: [] },
+      fileChecksums: {},
+    };
+    const engagement = (body.engagement ?? {}) as Record<string, string | string[]>;
+    const report = buildReport(
+      graph as never,
+      findings,
+      {
+        client: typeof engagement["client"] === "string" ? engagement["client"] : undefined,
+        assessmentName: typeof engagement["assessmentName"] === "string" ? engagement["assessmentName"] : undefined,
+        scope: Array.isArray(engagement["scope"]) ? (engagement["scope"] as string[]) : undefined,
+        methodology: Array.isArray(engagement["methodology"]) ? (engagement["methodology"] as string[]) : undefined,
+      },
+      body.view ?? "full",
+      analysis.report_type,
+    );
+    const saved = await saveReport(auth.userId, id, {
+      id: report.id,
+      type: report.type,
+      status: report.status,
+      view: report.view,
+      data: report,
+      qualityScore: report.qualityScore,
+      qualityFailures: report.qualityFailures,
+    });
+    return c.json({ ...saved, report });
+  } catch (e) {
+    return sendError(c, e, "POST /api/analyses/:id/reports");
+  }
+});
+
+app.get("/api/analyses/:id/reports", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    const id = parseIdParam(c.req.param("id"), "analysis id");
+    return c.json(await listReports(auth.userId, id));
+  } catch (e) {
+    return sendError(c, e, "GET /api/analyses/:id/reports");
+  }
+});
+
+app.get("/api/jobs/:jobId", async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    const jobId = parseIdParam(c.req.param("jobId"), "job id");
+    const job = await getJobRow(auth.userId, jobId);
+    if (!job) return c.json({ error: "Job not found" }, 404);
+    return c.json(job);
+  } catch (e) {
+    return sendError(c, e, "GET /api/jobs/:jobId");
   }
 });
 
