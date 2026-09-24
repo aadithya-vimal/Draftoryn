@@ -1,8 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useAppUser } from "../../src/auth/clerk";
 import { Button, Card, EmptyState, Heading, Input, Spinner, theme } from "../../src/ui/primitives";
 import { Badge, SegmentedControl } from "../../src/ui/components";
+import { createDocumentRecord } from "../../src/data/documents";
+import { downloadResult } from "../../src/lib/download";
+import { exportIntelligenceReport } from "../../src/intelligence/exporting/index";
+import { reportToGeneratedDocument } from "../../src/intelligence/exporting/bridge";
+import { resolveLegacyDefinitionId } from "../../src/engine/catalog/index";
+import type { IntelligenceReport } from "../../src/intelligence/schemas/index";
+import type { ExportFormat } from "../../src/engine/types";
 import {
   createAnalysis,
   deleteAnalysis,
@@ -51,6 +59,7 @@ function parseJsonArray(v: unknown): string[] {
 
 export default function AnalyzePage() {
   const user = useAppUser();
+  const router = useRouter();
   const [analyses, setAnalyses] = useState<AnalysisProject[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -300,6 +309,59 @@ export default function AnalyzePage() {
     }
   };
 
+  const handleExport = async (format: ExportFormat) => {
+    if (!reportDoc) return;
+    setBusy(true);
+    try {
+      const result = await exportIntelligenceReport(reportDoc as unknown as IntelligenceReport, format);
+      await downloadResult(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Export failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveToLibrary = async () => {
+    if (!reportDoc || !user.userId) return;
+    setBusy(true);
+    try {
+      const report = reportDoc as unknown as IntelligenceReport;
+      const doc = reportToGeneratedDocument(report);
+      const now = new Date().toISOString();
+      const record = {
+        id: `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        definitionId: resolveLegacyDefinitionId(report.type),
+        ownerId: user.userId,
+        title: doc.title,
+        status: "ready" as const,
+        createdAt: now,
+        updatedAt: now,
+        currentVersionId: "v1",
+        source: { sourceAnalysisId: report.sourceAnalysisId, intelligenceReportId: report.id },
+        versions: [
+          {
+            id: "v1",
+            versionNumber: 1,
+            title: doc.title,
+            createdAt: now,
+            note: `Generated from analysis ${report.sourceAnalysisId}`,
+            source: {},
+            model: doc.model,
+            sections: doc.sections,
+            status: "ready" as const,
+          },
+        ],
+      };
+      await createDocumentRecord(user, record);
+      router.push("/(app)/library");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save to library failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const selected = analyses.find((a) => a.id === selectedId) ?? null;
 
   return (
@@ -507,6 +569,12 @@ export default function AnalyzePage() {
                     ) : null}
                     {reportDoc ? (
                       <View style={styles.reportBody}>
+                        <View style={styles.row}>
+                          {(["markdown", "html", "json", "xml", "yaml", "pdf"] as const).map((f) => (
+                            <Button key={f} label={f.toUpperCase()} variant="secondary" onPress={() => handleExport(f)} />
+                          ))}
+                          <Button label="Save to Library" onPress={handleSaveToLibrary} />
+                        </View>
                         {((reportDoc["sections"] as Array<{ id: string; title: string; body: string }>) ?? []).map((s) => (
                           <View key={s.id} style={styles.section}>
                             <Text style={styles.sectionTitle}>{s.title}</Text>

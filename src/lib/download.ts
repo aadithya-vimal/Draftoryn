@@ -12,7 +12,7 @@ function toBase64(bytes: Uint8Array): string {
   return (globalThis as unknown as { btoa?: (s: string) => string }).btoa?.(bin) ?? "";
 }
 
-async function saveResult(result: { filename: string; mimeType: string; data: Uint8Array | string }): Promise<void> {
+export async function downloadResult(result: { filename: string; mimeType: string; data: Uint8Array | string }): Promise<void> {
   const data = result.data;
 
   if (Platform.OS === "web") {
@@ -40,7 +40,7 @@ async function saveResult(result: { filename: string; mimeType: string; data: Ui
 
 export async function exportAndSave(doc: GeneratedDocument, format: ExportFormat): Promise<void> {
   const result = await exportDocument(doc, format);
-  await saveResult(result);
+  await downloadResult(result);
 }
 
 /**
@@ -54,5 +54,5 @@ export async function exportAndSaveProtected(
   password: string,
 ): Promise<void> {
   const result = await exportProtectedZip(doc, format, password);
-  await saveResult(result);
+  await downloadResult(result);
 }
