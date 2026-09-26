@@ -1,6 +1,7 @@
 import React, { createElement, useEffect, useRef } from "react";
 import { Platform, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { theme } from "./primitives";
+import { flattenWebStyle } from "./webstyle";
 
 const isWeb = Platform.OS === "web";
 
@@ -15,8 +16,7 @@ function MotionDiv({
   children?: React.ReactNode;
 }) {
   if (!isWeb) return <View style={style}>{children}</View>;
-  const flat = style ? ((Array.isArray(style) ? Object.assign({}, ...style) : style) as Record<string, unknown>) : undefined;
-  return createElement("div", { className: cls, style: flat }, children);
+  return createElement("div", { className: cls, style: flattenWebStyle(style as never) }, children);
 }
 
 // ---------------------------------------------------------------------------
