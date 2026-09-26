@@ -3,6 +3,8 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensio
 import { useRouter } from "expo-router";
 import { useAppUser } from "../src/auth/clerk";
 import { PublicHeader } from "../src/ui/PublicHeader";
+import { SeoHead } from "../src/ui/SeoHead";
+import { PUBLIC_PAGES } from "../src/ui/seo";
 import { Button, Card, Heading, Input, theme } from "../src/ui/primitives";
 import {
   CANONICAL_DOCUMENTS,
@@ -48,6 +50,7 @@ export default function CatalogPage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+      <SeoHead {...PUBLIC_PAGES.catalog!} />
       <PublicHeader activeNav="catalog" />
 
       <View style={styles.hero}>

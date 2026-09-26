@@ -9,6 +9,8 @@ import { Icon } from "../src/ui/components";
 import { CATEGORIES, definitionsByCategory } from "../src/engine/definitions/catalog";
 import { CATEGORY_VISUALS } from "../src/ui/categories";
 import { PublicHeader } from "../src/ui/PublicHeader";
+import { SeoHead } from "../src/ui/SeoHead";
+import { PUBLIC_PAGES, buildOrganizationJsonLd } from "../src/ui/seo";
 
 export default function LandingPage() {
   const { isLoaded, isSignedIn } = useAppUser();
@@ -25,6 +27,7 @@ export default function LandingPage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+      <SeoHead {...PUBLIC_PAGES.home!} jsonLd={buildOrganizationJsonLd()} />
       <PublicHeader activeNav={null} />
 
       {/* ========================================================================= */}

@@ -2,6 +2,8 @@ import React from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { PublicHeader } from "../src/ui/PublicHeader";
+import { SeoHead } from "../src/ui/SeoHead";
+import { PUBLIC_PAGES } from "../src/ui/seo";
 import { Button, Card, Heading, theme } from "../src/ui/primitives";
 import { CATEGORIES, definitionsByCategory } from "../src/engine/definitions/catalog";
 import { CATEGORY_VISUALS } from "../src/ui/categories";
@@ -13,6 +15,7 @@ export default function SpecificationsPage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+      <SeoHead {...PUBLIC_PAGES.specifications!} />
       <PublicHeader activeNav="documents" />
 
       {/* Hero Section */}

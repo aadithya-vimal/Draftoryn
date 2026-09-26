@@ -3,6 +3,8 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowD
 import { useRouter } from "expo-router";
 import { PublicHeader } from "../src/ui/PublicHeader";
 import { Heading, theme } from "../src/ui/primitives";
+import { SeoHead } from "../src/ui/SeoHead";
+import { PUBLIC_PAGES } from "../src/ui/seo";
 
 const SECTIONS: { heading: string; body: string }[] = [
   {
@@ -50,6 +52,7 @@ export default function TermsPage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <SeoHead {...PUBLIC_PAGES.terms!} />
       <PublicHeader activeNav={null} />
 
       <View style={styles.hero}>
