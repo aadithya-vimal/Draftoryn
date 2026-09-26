@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { Redirect, useRouter } from "expo-router";
+import { Link, Redirect, useRouter } from "expo-router";
 import { useAppUser } from "../src/auth/clerk";
 import { Button, Card, Heading, theme } from "../src/ui/primitives";
 import { GradientText } from "../src/ui/GradientText";
@@ -9,6 +9,8 @@ import { Icon } from "../src/ui/components";
 import { CATEGORIES, definitionsByCategory } from "../src/engine/definitions/catalog";
 import { CATEGORY_VISUALS } from "../src/ui/categories";
 import { PublicHeader } from "../src/ui/PublicHeader";
+import { SeoHead } from "../src/ui/SeoHead";
+import { PUBLIC_PAGES, buildOrganizationJsonLd } from "../src/ui/seo";
 
 export default function LandingPage() {
   const { isLoaded, isSignedIn } = useAppUser();
@@ -25,6 +27,7 @@ export default function LandingPage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+      <SeoHead {...PUBLIC_PAGES.home!} jsonLd={buildOrganizationJsonLd()} />
       <PublicHeader activeNav={null} />
 
       {/* ========================================================================= */}
@@ -415,12 +418,16 @@ export default function LandingPage() {
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Pressable onPress={() => router.push("/terms")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/privacy")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
-            </Pressable>
+            <Link href="/terms" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
+              </Pressable>
+            </Link>
+            <Link href="/privacy" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
+              </Pressable>
+            </Link>
           </View>
         </View>
       </View>

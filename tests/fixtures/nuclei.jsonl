@@ -1,0 +1,4 @@
+{"template-id":"http-missing-security-headers","host":"https://api.example.com","matched-at":"https://api.example.com/api/users","info":{"name":"Missing Security Headers","severity":"medium","reference":"https://example.com/refs/headers"}}
+{"template-id":"http-missing-security-headers","host":"https://api.example.com","matched-at":"https://api.example.com/api/users","info":{"name":"Missing Security Headers","severity":"medium"}}
+{"template-id":"authorization-bypass","host":"https://api.example.com","matched-at":"https://api.example.com/api/user/123","info":{"name":"BOLA candidate","severity":"high","classification":{"cwe-id":["CWE-639"]}}}
+not-json-line

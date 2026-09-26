@@ -1,7 +1,9 @@
 import React from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { PublicHeader } from "../src/ui/PublicHeader";
+import { SeoHead } from "../src/ui/SeoHead";
+import { PUBLIC_PAGES } from "../src/ui/seo";
 import { Button, Card, Heading, theme } from "../src/ui/primitives";
 import { FlowSteps } from "../src/ui/DocGraphics";
 
@@ -12,6 +14,7 @@ export default function ArchitecturePage() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+      <SeoHead {...PUBLIC_PAGES.architecture!} />
       <PublicHeader activeNav="how-it-works" />
 
       {/* Hero Section */}
@@ -187,12 +190,16 @@ export default function ArchitecturePage() {
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Pressable onPress={() => router.push("/terms")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/privacy")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
-            </Pressable>
+            <Link href="/terms" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
+              </Pressable>
+            </Link>
+            <Link href="/privacy" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
+              </Pressable>
+            </Link>
           </View>
         </View>
       </View>

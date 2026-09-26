@@ -1,12 +1,13 @@
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { dirname, extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL(".", import.meta.url).pathname.replace(/\/$/, "");
+const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = join(ROOT, "dist");
 const PORT = Number(process.env.PORT ?? 3000);
 
-const MIME: Record<string, string> = {
+const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
@@ -23,9 +24,11 @@ const MIME: Record<string, string> = {
   ".woff": "font/woff",
   ".ttf": "font/ttf",
   ".map": "application/json; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
 };
 
-async function tryFile(p: string): Promise<string | null> {
+async function tryFile(p) {
   try {
     const s = await stat(p);
     if (s.isFile()) return p;

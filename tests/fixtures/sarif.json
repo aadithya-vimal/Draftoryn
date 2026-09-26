@@ -1,0 +1,1 @@
+{"$schema":"https://json.schemastore.org/sarif-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"sanitized-scanner"}},"results":[{"ruleId":"SQL-INJ-001","level":"error","message":{"text":"Possible SQL injection sink."},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"src/db.ts"},"region":{"startLine":42}}}]}]}]}

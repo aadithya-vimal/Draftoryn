@@ -1,15 +1,21 @@
 import React, { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useAppUser } from "../src/auth/clerk";
 import { PublicHeader } from "../src/ui/PublicHeader";
+import { SeoHead } from "../src/ui/SeoHead";
+import { PUBLIC_PAGES } from "../src/ui/seo";
 import { Button, Card, Heading, Input, theme } from "../src/ui/primitives";
-import { CATEGORIES, DOCUMENT_DEFINITIONS, definitionsByCategory } from "../src/engine/definitions/catalog";
-import { CATEGORY_VISUALS } from "../src/ui/categories";
+import {
+  CANONICAL_DOCUMENTS,
+  FAMILY_LABELS,
+  resolveLegacyDefinitionId,
+  type DocumentFamily,
+} from "../src/engine/catalog/index";
 import { DraggableScrollView } from "../src/ui/DraggableScrollView";
-import type { DocumentCategory, DocumentDefinition } from "../src/engine/types";
 
 const ALL = "__all__" as const;
+const FAMILIES = Object.keys(FAMILY_LABELS) as DocumentFamily[];
 
 export default function CatalogPage() {
   const router = useRouter();
@@ -17,34 +23,36 @@ export default function CatalogPage() {
   const { width } = useWindowDimensions();
   const isMobile = width < 840;
 
-  const handleDraftClick = (defId: string) => {
+  const handleDraftClick = (canonicalId: string) => {
     if (!user.isSignedIn) {
       router.push("/(auth)/login");
       return;
     }
-    router.push(`/document/new?def=${defId}`);
+    // Canonical docs render through their legacy generation base (backward compat).
+    router.push(`/document/new?def=${resolveLegacyDefinitionId(canonicalId)}`);
   };
 
-  const [activeCategory, setActiveCategory] = useState<DocumentCategory | typeof ALL>(ALL);
+  const [activeFamily, setActiveFamily] = useState<DocumentFamily | typeof ALL>(ALL);
   const [query, setQuery] = useState("");
 
-  const filtered = useMemo<DocumentDefinition[]>(() => {
+  const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const inCategory = activeCategory === ALL ? DOCUMENT_DEFINITIONS : definitionsByCategory(activeCategory);
-    if (!q) return inCategory;
-    return inCategory.filter(
+    const inFamily = activeFamily === ALL ? CANONICAL_DOCUMENTS : CANONICAL_DOCUMENTS.filter((d) => d.family === activeFamily);
+    if (!q) return inFamily;
+    return inFamily.filter(
       (d) =>
         d.name.toLowerCase().includes(q) ||
         d.description.toLowerCase().includes(q) ||
-        d.id.toLowerCase().includes(q)
+        d.canonicalId.toLowerCase().includes(q) ||
+        d.variants.some((v) => v.label.toLowerCase().includes(q))
     );
-  }, [activeCategory, query]);
+  }, [activeFamily, query]);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+      <SeoHead {...PUBLIC_PAGES.catalog!} />
       <PublicHeader activeNav="catalog" />
 
-      {/* Hero Section */}
       <View style={styles.hero}>
         <View style={styles.maxContainer}>
           <Text style={styles.eyebrow}>CANONICAL DIRECTORY // 02</Text>
@@ -52,39 +60,37 @@ export default function CatalogPage() {
             Document Catalog
           </Heading>
           <Text style={styles.heroLead}>
-            Search and inspect all {DOCUMENT_DEFINITIONS.length} canonical specifications across software engineering, architecture, and security. Filter by operational discipline,
-            review section schema counts, and launch directly into document creation.
+            {CANONICAL_DOCUMENTS.length} canonical documents across {FAMILIES.length} families.
+            Each opens variants and modules — one model for generation and intelligence reporting.
           </Text>
 
-          {/* Search Input */}
           <Input
             value={query}
             onChangeText={setQuery}
-            placeholder="Search specifications by title, acronym, or keywords (e.g., RoE, Pentest, Forensics, BIA)..."
+            placeholder="Search canonical documents, families, or variants (e.g., Pentest, Retest, Forensics)..."
             style={styles.searchInput}
           />
 
-          {/* Category Filter Chips */}
           <DraggableScrollView contentContainerStyle={styles.chipsRow}>
             <Pressable
-              style={[styles.chip, activeCategory === ALL && styles.chipActive]}
-              onPress={() => setActiveCategory(ALL)}
+              style={[styles.chip, activeFamily === ALL && styles.chipActive]}
+              onPress={() => setActiveFamily(ALL)}
             >
-              <Text style={[styles.chipText, activeCategory === ALL && styles.chipTextActive]}>
-                All Specifications ({DOCUMENT_DEFINITIONS.length})
+              <Text style={[styles.chipText, activeFamily === ALL && styles.chipTextActive]}>
+                All Families ({CANONICAL_DOCUMENTS.length})
               </Text>
             </Pressable>
-            {CATEGORIES.map((c) => {
-              const count = definitionsByCategory(c).length;
-              const isSelected = activeCategory === c;
+            {FAMILIES.map((f) => {
+              const count = CANONICAL_DOCUMENTS.filter((d) => d.family === f).length;
+              const isSelected = activeFamily === f;
               return (
                 <Pressable
-                  key={c}
+                  key={f}
                   style={[styles.chip, isSelected && styles.chipActive]}
-                  onPress={() => setActiveCategory(c)}
+                  onPress={() => setActiveFamily(f)}
                 >
                   <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
-                    {CATEGORY_VISUALS[c].label} ({count})
+                    {FAMILY_LABELS[f].toUpperCase()} ({count})
                   </Text>
                 </Pressable>
               );
@@ -93,64 +99,66 @@ export default function CatalogPage() {
         </View>
       </View>
 
-      {/* Catalog Results Grid */}
       <View style={styles.gridSection}>
         <View style={styles.maxContainer}>
           <View style={styles.resultsHeader}>
             <Text style={styles.resultsCount}>
-              SHOWING {filtered.length} SPECIFICATIONS
+              SHOWING {filtered.length} CANONICAL DOCUMENTS
             </Text>
-            {activeCategory !== ALL && (
-              <Pressable onPress={() => setActiveCategory(ALL)}>
-                <Text style={styles.clearFilterText}>Clear discipline filter ✕</Text>
+            {activeFamily !== ALL && (
+              <Pressable onPress={() => setActiveFamily(ALL)}>
+                <Text style={styles.clearFilterText}>Clear family filter ✕</Text>
               </Pressable>
             )}
           </View>
 
           {filtered.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No matching specifications found</Text>
+              <Text style={styles.emptyTitle}>No matching documents found</Text>
               <Text style={styles.emptySub}>
-                Try searching for terms like "Incident", "Pentest", "Agreement", or "Risk".
+                Try searching for terms like "Pentest", "Retest", "Forensics", or "Disclosure".
               </Text>
-              <Button label="Reset filters" variant="secondary" onPress={() => { setQuery(""); setActiveCategory(ALL); }} />
+              <Button label="Reset filters" variant="secondary" onPress={() => { setQuery(""); setActiveFamily(ALL); }} />
             </View>
           ) : (
             <View style={styles.catalogGrid}>
-              {filtered.map((def) => {
-                const catVisual = CATEGORY_VISUALS[def.category];
-                return (
-                  <Card key={def.id} style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <View style={styles.catPill}>
-                        <Text style={styles.catPillText}>{catVisual.label.toUpperCase()}</Text>
-                      </View>
-                      <Text style={styles.sectionBadge}>{def.sections.length} SECTIONS</Text>
+              {filtered.map((doc) => (
+                <Card key={doc.canonicalId} style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.catPill}>
+                      <Text style={styles.catPillText}>{FAMILY_LABELS[doc.family].toUpperCase()}</Text>
                     </View>
+                    <Text style={styles.sectionBadge}>{doc.modules.length} MODULES</Text>
+                  </View>
 
-                    <Text style={styles.cardTitle}>{def.name}</Text>
-                    <Text style={styles.cardDesc}>{def.description}</Text>
+                  <Text style={styles.cardTitle}>{doc.name}</Text>
+                  <Text style={styles.cardDesc}>{doc.description}</Text>
 
-                    <View style={styles.metaRow}>
-                      <Text style={styles.metaFormats}>EXPORTS: PDF · DOCX · MD · JSON · XML</Text>
-                    </View>
+                  <Text style={styles.variantLine}>
+                    VARIANTS: {doc.variants.map((v) => v.label).join(" · ")}
+                  </Text>
+                  {doc.standardsMappings.length > 0 ? (
+                    <Text style={styles.mappedLine}>Mapped to: {doc.standardsMappings.slice(0, 3).join(" · ")}</Text>
+                  ) : null}
 
-                    <View style={styles.cardActionRow}>
-                      <Button
-                        label={user.isSignedIn ? "Draft Specification →" : "Sign in to Draft →"}
-                        onPress={() => handleDraftClick(def.id)}
-                        style={{ width: "100%" }}
-                      />
-                    </View>
-                  </Card>
-                );
-              })}
+                  <View style={styles.metaRow}>
+                    <Text style={styles.metaFormats}>EXPORTS: PDF · DOCX · MD · JSON · XML · YAML · HTML</Text>
+                  </View>
+
+                  <View style={styles.cardActionRow}>
+                    <Button
+                      label={user.isSignedIn ? "Draft Document →" : "Sign in to Draft →"}
+                      onPress={() => handleDraftClick(doc.canonicalId)}
+                      style={{ width: "100%" }}
+                    />
+                  </View>
+                </Card>
+              ))}
             </View>
           )}
         </View>
       </View>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.footerInner}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
@@ -162,12 +170,16 @@ export default function CatalogPage() {
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Pressable onPress={() => router.push("/terms")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/privacy")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
-            </Pressable>
+            <Link href="/terms" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
+              </Pressable>
+            </Link>
+            <Link href="/privacy" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
+              </Pressable>
+            </Link>
           </View>
         </View>
       </View>
@@ -302,8 +314,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.textSecondary,
     lineHeight: 19,
-    marginBottom: 16,
+    marginBottom: 12,
     flex: 1,
+  },
+  variantLine: {
+    fontFamily: theme.font.mono,
+    fontSize: 10,
+    letterSpacing: 0.4,
+    color: theme.textSecondary,
+    marginBottom: 6,
+  },
+  mappedLine: {
+    fontFamily: theme.font.mono,
+    fontSize: 10,
+    color: theme.muted,
+    marginBottom: 6,
   },
   metaRow: {
     borderTopWidth: 1,

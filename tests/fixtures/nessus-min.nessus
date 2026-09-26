@@ -1,0 +1,10 @@
+<NessusClientData_v2>
+<Report name="sanitized-scan">
+<ReportHost name="192.0.2.10">
+<ReportItem port="443" severity="2" pluginID="51192" pluginName="SSL Certificate Cannot Be Trusted"><cve>CVE-2020-0000</cve><cvss3_vector>CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N</cvss3_vector><synopsis>Self-signed certificate in chain.</synopsis></ReportItem>
+<ReportItem port="443" severity="2" pluginID="51192" pluginName="SSL Certificate Cannot Be Trusted"><cve>CVE-2020-0000</cve><synopsis>Duplicate record for dedup test.</synopsis></ReportItem>
+<ReportItem port="22" severity="1" pluginID="10267" pluginName="SSH Server Type and Version Information"><synopsis>Banner disclosure.</synopsis></ReportItem>
+<ReportItem port="0" severity="0" pluginID="19506" pluginName="Nessus Scan Information"><synopsis>Informational only.</synopsis></ReportItem>
+</ReportHost>
+</Report>
+</NessusClientData_v2>
