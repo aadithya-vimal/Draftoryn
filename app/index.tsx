@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { Redirect, useRouter } from "expo-router";
+import { Link, Redirect, useRouter } from "expo-router";
 import { useAppUser } from "../src/auth/clerk";
 import { Button, Card, Heading, theme } from "../src/ui/primitives";
 import { GradientText } from "../src/ui/GradientText";
@@ -418,12 +418,16 @@ export default function LandingPage() {
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Pressable onPress={() => router.push("/terms")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/privacy")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
-            </Pressable>
+            <Link href="/terms" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
+              </Pressable>
+            </Link>
+            <Link href="/privacy" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
+              </Pressable>
+            </Link>
           </View>
         </View>
       </View>

@@ -796,16 +796,14 @@ export default function NewDocumentScreen() {
 
   if (isDesktop) {
     return (
-      <View style={styles.webShell}>
+      <ScrollView style={styles.webShellScroll} contentContainerStyle={styles.webShell} showsVerticalScrollIndicator={false}>
         {desktopTopBar}
         <View style={styles.webRow}>
           <View style={styles.webLeft}>{overviewCard}</View>
-          <ScrollView style={styles.webCenter} contentContainerStyle={styles.webCenterInner} showsVerticalScrollIndicator={false}>
-            {busy ? generatingCard : fieldsCard}
-          </ScrollView>
+          <View style={styles.webCenter}>{busy ? generatingCard : fieldsCard}</View>
           <View style={styles.webRight}>{helpCard}</View>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -911,10 +909,11 @@ const styles = StyleSheet.create({
     color: theme.ok,
     marginTop: 8,
   },
-  webShell: { flex: 1, backgroundColor: theme.bg, padding: 24, paddingTop: 20 },
-  webRow: { flexDirection: "row", gap: 20, maxWidth: 1120, width: "100%", alignSelf: "center" },
+  webShellScroll: { flex: 1, backgroundColor: theme.bg },
+  webShell: { backgroundColor: theme.bg, padding: 24, paddingTop: 20, paddingBottom: 48 },
+  webRow: { flexDirection: "row", gap: 20, maxWidth: 1120, width: "100%", alignSelf: "center", alignItems: "flex-start" },
   webLeft: { width: 300, flexShrink: 0 },
-  webCenter: { flex: 1 },
+  webCenter: { flex: 1, minWidth: 0 },
   webCenterInner: { paddingBottom: 32 },
   webRight: { width: 280, flexShrink: 0 },
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
-import { useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { PublicHeader } from "../src/ui/PublicHeader";
 import { Heading, theme } from "../src/ui/primitives";
 import { SeoHead } from "../src/ui/SeoHead";
@@ -46,7 +46,6 @@ const SECTIONS: { heading: string; body: string }[] = [
 ];
 
 export default function PrivacyPage() {
-  const router = useRouter();
   const { width } = useWindowDimensions();
   const isMobile = width < 840;
 
@@ -79,12 +78,16 @@ export default function PrivacyPage() {
           ))}
 
           <View style={styles.crossLinks}>
-            <TouchableOpacity onPress={() => router.push("/terms")}>
-              <Text style={styles.crossLink}>Terms of Use →</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/")}>
-              <Text style={styles.crossLink}>Back to home →</Text>
-            </TouchableOpacity>
+            <Link href="/terms" asChild>
+              <TouchableOpacity>
+                <Text style={styles.crossLink}>Terms of Use →</Text>
+              </TouchableOpacity>
+            </Link>
+            <Link href="/" asChild>
+              <TouchableOpacity>
+                <Text style={styles.crossLink}>Back to home →</Text>
+              </TouchableOpacity>
+            </Link>
           </View>
         </View>
       </View>
@@ -101,12 +104,16 @@ export default function PrivacyPage() {
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <TouchableOpacity onPress={() => router.push("/terms")}>
-              <Text style={[styles.footerText, styles.footerLink]}>TERMS</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/privacy")}>
-              <Text style={[styles.footerText, styles.footerLink]}>PRIVACY</Text>
-            </TouchableOpacity>
+            <Link href="/terms" asChild>
+              <TouchableOpacity>
+                <Text style={[styles.footerText, styles.footerLink]}>TERMS</Text>
+              </TouchableOpacity>
+            </Link>
+            <Link href="/privacy" asChild>
+              <TouchableOpacity>
+                <Text style={[styles.footerText, styles.footerLink]}>PRIVACY</Text>
+              </TouchableOpacity>
+            </Link>
           </View>
         </View>
       </View>

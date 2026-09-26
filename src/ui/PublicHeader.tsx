@@ -1,6 +1,6 @@
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { Button, theme, useTheme } from "./primitives";
 import { Icon } from "./components";
 
@@ -18,82 +18,99 @@ export function PublicHeader({ activeNav }: PublicHeaderProps) {
     <View style={styles.header}>
       <View style={styles.headerInner}>
         {/* Left: Brand mark with wordmark */}
-        <Pressable
-          style={styles.headerLeft}
-          onPress={() => router.push("/")}
-          accessibilityRole="link"
-          accessibilityLabel="Draftoryn Home"
-        >
-          <Image
-            source={require("../../assets/icon.png")}
-            style={styles.headerLogoImg}
-            resizeMode="contain"
-          />
-          <Text style={styles.wordmark}>Draftoryn</Text>
-        </Pressable>
+        <Link href="/" asChild>
+          <Pressable
+            style={styles.headerLeft}
+            accessibilityRole="link"
+            accessibilityLabel="Draftoryn Home"
+          >
+            <Image
+              source={require("../../assets/icon.png")}
+              style={styles.headerLogoImg}
+              resizeMode="contain"
+            />
+            <Text style={styles.wordmark}>Draftoryn</Text>
+          </Pressable>
+        </Link>
 
         {/* Center: Navigation Links */}
         {!isMobile && (
           <View style={styles.headerNav}>
-            <Pressable
-              style={[styles.navItem, activeNav === "documents" && styles.navItemActive]}
-              onPress={() => router.push("/specifications")}
+            <Link
+              href="/specifications"
+              asChild
             >
-              <Text
-                style={[
-                  styles.headerNavLink,
-                  activeNav === "documents" && styles.headerNavLinkActive,
-                ]}
+              <Pressable
+                style={[styles.navItem, activeNav === "documents" && styles.navItemActive]}
               >
-                DOCUMENTS
-              </Text>
-              {activeNav === "documents" && <View style={styles.navDot} />}
-            </Pressable>
+                <Text
+                  style={[
+                    styles.headerNavLink,
+                    activeNav === "documents" && styles.headerNavLinkActive,
+                  ]}
+                >
+                  DOCUMENTS
+                </Text>
+                {activeNav === "documents" && <View style={styles.navDot} />}
+              </Pressable>
+            </Link>
 
-            <Pressable
-              style={[styles.navItem, activeNav === "catalog" && styles.navItemActive]}
-              onPress={() => router.push("/catalog")}
+            <Link
+              href="/catalog"
+              asChild
             >
-              <Text
-                style={[
-                  styles.headerNavLink,
-                  activeNav === "catalog" && styles.headerNavLinkActive,
-                ]}
+              <Pressable
+                style={[styles.navItem, activeNav === "catalog" && styles.navItemActive]}
               >
-                CATALOG
-              </Text>
-              {activeNav === "catalog" && <View style={styles.navDot} />}
-            </Pressable>
+                <Text
+                  style={[
+                    styles.headerNavLink,
+                    activeNav === "catalog" && styles.headerNavLinkActive,
+                  ]}
+                >
+                  CATALOG
+                </Text>
+                {activeNav === "catalog" && <View style={styles.navDot} />}
+              </Pressable>
+            </Link>
 
-            <Pressable
-              style={[styles.navItem, activeNav === "workflow" && styles.navItemActive]}
-              onPress={() => router.push("/workflow")}
+            <Link
+              href="/workflow"
+              asChild
             >
-              <Text
-                style={[
-                  styles.headerNavLink,
-                  activeNav === "workflow" && styles.headerNavLinkActive,
-                ]}
+              <Pressable
+                style={[styles.navItem, activeNav === "workflow" && styles.navItemActive]}
               >
-                WORKFLOW
-              </Text>
-              {activeNav === "workflow" && <View style={styles.navDot} />}
-            </Pressable>
+                <Text
+                  style={[
+                    styles.headerNavLink,
+                    activeNav === "workflow" && styles.headerNavLinkActive,
+                  ]}
+                >
+                  WORKFLOW
+                </Text>
+                {activeNav === "workflow" && <View style={styles.navDot} />}
+              </Pressable>
+            </Link>
 
-            <Pressable
-              style={[styles.navItem, activeNav === "how-it-works" && styles.navItemActive]}
-              onPress={() => router.push("/architecture")}
+            <Link
+              href="/architecture"
+              asChild
             >
-              <Text
-                style={[
-                  styles.headerNavLink,
-                  activeNav === "how-it-works" && styles.headerNavLinkActive,
-                ]}
+              <Pressable
+                style={[styles.navItem, activeNav === "how-it-works" && styles.navItemActive]}
               >
-                HOW IT WORKS
-              </Text>
-              {activeNav === "how-it-works" && <View style={styles.navDot} />}
-            </Pressable>
+                <Text
+                  style={[
+                    styles.headerNavLink,
+                    activeNav === "how-it-works" && styles.headerNavLinkActive,
+                  ]}
+                >
+                  HOW IT WORKS
+                </Text>
+                {activeNav === "how-it-works" && <View style={styles.navDot} />}
+              </Pressable>
+            </Link>
           </View>
         )}
 

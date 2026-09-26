@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useAppUser } from "../src/auth/clerk";
 import { PublicHeader } from "../src/ui/PublicHeader";
 import { SeoHead } from "../src/ui/SeoHead";
@@ -170,12 +170,16 @@ export default function CatalogPage() {
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Pressable onPress={() => router.push("/terms")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/privacy")}>
-              <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
-            </Pressable>
+            <Link href="/terms" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
+              </Pressable>
+            </Link>
+            <Link href="/privacy" asChild>
+              <Pressable>
+                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
+              </Pressable>
+            </Link>
           </View>
         </View>
       </View>
