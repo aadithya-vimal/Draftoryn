@@ -79,16 +79,8 @@ export default function TermsPage() {
           ))}
 
           <View style={styles.crossLinks}>
-            <Link href="/privacy" asChild>
-              <TouchableOpacity>
-                <Text style={styles.crossLink}>Privacy Policy →</Text>
-              </TouchableOpacity>
-            </Link>
-            <Link href="/" asChild>
-              <TouchableOpacity>
-                <Text style={styles.crossLink}>Back to home →</Text>
-              </TouchableOpacity>
-            </Link>
+            <Link href="/privacy" style={styles.crossLink}>Privacy Policy →</Link>
+            <Link href="/" style={styles.crossLink}>Back to home →</Link>
           </View>
         </View>
       </View>
@@ -105,16 +97,8 @@ export default function TermsPage() {
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Link href="/terms" asChild>
-              <TouchableOpacity>
-                <Text style={[styles.footerText, styles.footerLink]}>TERMS</Text>
-              </TouchableOpacity>
-            </Link>
-            <Link href="/privacy" asChild>
-              <TouchableOpacity>
-                <Text style={[styles.footerText, styles.footerLink]}>PRIVACY</Text>
-              </TouchableOpacity>
-            </Link>
+            <Link href="/terms" style={[styles.footerText, styles.footerLink]}>TERMS</Link>
+            <Link href="/privacy" style={[styles.footerText, styles.footerLink]}>PRIVACY</Link>
           </View>
         </View>
       </View>

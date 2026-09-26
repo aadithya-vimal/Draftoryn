@@ -18,99 +18,77 @@ export function PublicHeader({ activeNav }: PublicHeaderProps) {
     <View style={styles.header}>
       <View style={styles.headerInner}>
         {/* Left: Brand mark with wordmark */}
-        <Link href="/" asChild>
-          <Pressable
-            style={styles.headerLeft}
-            accessibilityRole="link"
-            accessibilityLabel="Draftoryn Home"
-          >
-            <Image
-              source={require("../../assets/icon.png")}
-              style={styles.headerLogoImg}
-              resizeMode="contain"
-            />
-            <Text style={styles.wordmark}>Draftoryn</Text>
-          </Pressable>
-        </Link>
+        <Pressable
+          style={styles.headerLeft}
+          onPress={() => router.push("/")}
+          accessibilityRole="link"
+          accessibilityLabel="Draftoryn Home"
+        >
+          <Image
+            source={require("../../assets/icon.png")}
+            style={styles.headerLogoImg}
+            resizeMode="contain"
+          />
+          <Text style={styles.wordmark}>Draftoryn</Text>
+        </Pressable>
 
         {/* Center: Navigation Links */}
         {!isMobile && (
           <View style={styles.headerNav}>
-            <Link
-              href="/specifications"
-              asChild
-            >
-              <Pressable
-                style={[styles.navItem, activeNav === "documents" && styles.navItemActive]}
+            {/* NOTE: plain Link (not asChild). Radix Slot object-spreads child
+                style arrays into numeric-keyed garbage on web, which crashes
+                React DOM. Layout lives on the wrapper View; visuals unchanged. */}
+            <View style={[styles.navItem, activeNav === "documents" && styles.navItemActive]}>
+              <Link
+                href="/specifications"
+                style={[
+                  styles.headerNavLink,
+                  activeNav === "documents" && styles.headerNavLinkActive,
+                ]}
               >
-                <Text
-                  style={[
-                    styles.headerNavLink,
-                    activeNav === "documents" && styles.headerNavLinkActive,
-                  ]}
-                >
-                  DOCUMENTS
-                </Text>
-                {activeNav === "documents" && <View style={styles.navDot} />}
-              </Pressable>
-            </Link>
+                DOCUMENTS
+              </Link>
+              {activeNav === "documents" && <View style={styles.navDot} />}
+            </View>
 
-            <Link
-              href="/catalog"
-              asChild
-            >
-              <Pressable
-                style={[styles.navItem, activeNav === "catalog" && styles.navItemActive]}
+            <View style={[styles.navItem, activeNav === "catalog" && styles.navItemActive]}>
+              <Link
+                href="/catalog"
+                style={[
+                  styles.headerNavLink,
+                  activeNav === "catalog" && styles.headerNavLinkActive,
+                ]}
               >
-                <Text
-                  style={[
-                    styles.headerNavLink,
-                    activeNav === "catalog" && styles.headerNavLinkActive,
-                  ]}
-                >
-                  CATALOG
-                </Text>
-                {activeNav === "catalog" && <View style={styles.navDot} />}
-              </Pressable>
-            </Link>
+                CATALOG
+              </Link>
+              {activeNav === "catalog" && <View style={styles.navDot} />}
+            </View>
 
-            <Link
-              href="/workflow"
-              asChild
-            >
-              <Pressable
-                style={[styles.navItem, activeNav === "workflow" && styles.navItemActive]}
+            <View style={[styles.navItem, activeNav === "workflow" && styles.navItemActive]}>
+              <Link
+                href="/workflow"
+                style={[
+                  styles.headerNavLink,
+                  activeNav === "workflow" && styles.headerNavLinkActive,
+                ]}
               >
-                <Text
-                  style={[
-                    styles.headerNavLink,
-                    activeNav === "workflow" && styles.headerNavLinkActive,
-                  ]}
-                >
-                  WORKFLOW
-                </Text>
-                {activeNav === "workflow" && <View style={styles.navDot} />}
-              </Pressable>
-            </Link>
+                WORKFLOW
+              </Link>
+              {activeNav === "workflow" && <View style={styles.navDot} />}
+            </View>
 
-            <Link
-              href="/architecture"
-              asChild
-            >
-              <Pressable
-                style={[styles.navItem, activeNav === "how-it-works" && styles.navItemActive]}
+            <View style={[styles.navItem, activeNav === "how-it-works" && styles.navItemActive]}>
+              <Link
+                href="/architecture"
+                style={[
+                  styles.headerNavLink,
+                  activeNav === "how-it-works" && styles.headerNavLinkActive,
+                ]}
               >
-                <Text
-                  style={[
-                    styles.headerNavLink,
-                    activeNav === "how-it-works" && styles.headerNavLinkActive,
-                  ]}
-                >
-                  HOW IT WORKS
-                </Text>
-                {activeNav === "how-it-works" && <View style={styles.navDot} />}
-              </Pressable>
-            </Link>
+                HOW IT WORKS
+              </Link>
+              {activeNav === "how-it-works" && <View style={styles.navDot} />}
+            </View>
           </View>
         )}
 

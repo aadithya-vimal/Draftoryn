@@ -41,9 +41,14 @@ or other domains.
 
 ## Internal linking
 
-Public nav (`PublicHeader`), footers, and legal cross-links use
-`Link asChild` so they render real `<a href>` anchors. Auth CTAs remain
-JS buttons (those targets are noindex).
+Public nav (`PublicHeader`), footers, and legal cross-links use plain
+`Link` (which renders RN `Text` → a real `<a href>`) so crawlers can
+follow Homepage → Catalog/Specifications/Workflow/Architecture →
+Terms/Privacy. Never use `Link asChild` with array-styled children:
+Radix Slot object-spreads child styles into numeric-keyed garbage, which
+crashes React DOM (`Failed to set an indexed property on
+'CSSStyleDeclaration'`). Auth CTAs remain JS buttons (targets are
+noindex).
 
 ## Verify after deploy
 

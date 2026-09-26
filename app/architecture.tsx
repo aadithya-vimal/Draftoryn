@@ -190,16 +190,8 @@ export default function ArchitecturePage() {
             <Text style={styles.footerText}>© 2026 DRAFTORYN. TECHNICAL EDITORIAL SOFTWARE.</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <Link href="/terms" asChild>
-              <Pressable>
-                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Text>
-              </Pressable>
-            </Link>
-            <Link href="/privacy" asChild>
-              <Pressable>
-                <Text style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Text>
-              </Pressable>
-            </Link>
+            <Link href="/terms" style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>TERMS</Link>
+            <Link href="/privacy" style={[styles.footerText, { color: theme.accent, textDecorationLine: "underline" }]}>PRIVACY</Link>
           </View>
         </View>
       </View>
